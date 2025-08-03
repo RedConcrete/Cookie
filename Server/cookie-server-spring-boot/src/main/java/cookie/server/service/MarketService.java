@@ -3,33 +3,37 @@ package cookie.server.service;
 import cookie.server.dto.MarketDto;
 import cookie.server.dto.MarketRequestDto;
 import cookie.server.dto.UserInformationDto;
+import cookie.server.entitiy.MarketEntity;
+import cookie.server.repository.MarketRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.awt.print.Pageable;
 import java.util.List;
-import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 public class MarketService {
+    private final MarketRepository marketRepository;
+
+    public MarketService(MarketRepository marketRepository) {
+        this.marketRepository = marketRepository;
+    }
+
     public List<MarketDto> getMarketData(int amount) {
-        List<MarketDto> markets = new ArrayList<>();
-        Random random = new Random();
+        Pageable limit = (Pageable) PageRequest.of(0, amount);
+        List<MarketEntity> markets = marketRepository.findAllByOrderByDateDesc(limit);
 
-        for (int i = 0; i < amount; i++) {
-            MarketDto dto = new MarketDto();
-            dto.setDate(LocalDateTime.now().minusMinutes(i * 5));
-            dto.setSugarPrice(random.nextDouble(0.5, 2.0));
-            dto.setFlourPrice(random.nextDouble(0.5, 2.0));
-            dto.setEggsPrice(random.nextDouble(0.5, 2.0));
-            dto.setButterPrice(random.nextDouble(0.5, 2.0));
-            dto.setChocolatePrice(random.nextDouble(0.5, 2.0));
-            dto.setMilkPrice(random.nextDouble(0.5, 2.0));
+        return markets.stream()
+                .map(MarketDto::new)
+                .collect(Collectors.toList());
+    }
 
-            markets.add(dto);
-        }
-
-        return markets;
+    public List<MarketDto> getAllMarketData() {
+        return marketRepository.findAll()
+                .stream()
+                .map(MarketDto::new)
+                .collect(Collectors.toList());
     }
 
     public UserInformationDto performAction(MarketRequestDto request) {

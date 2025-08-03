@@ -3,14 +3,14 @@ package cookie.server.entitiy;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "market")
 public class MarketEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private LocalDateTime date;
 
@@ -21,11 +21,11 @@ public class MarketEntity {
     private double chocolatePrice;
     private double milkPrice;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

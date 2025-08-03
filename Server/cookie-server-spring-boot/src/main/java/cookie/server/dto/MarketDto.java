@@ -1,5 +1,7 @@
 package cookie.server.dto;
 
+import cookie.server.entitiy.MarketEntity;
+
 import java.time.LocalDateTime;
 
 public class MarketDto {
@@ -10,6 +12,16 @@ public class MarketDto {
     private double butterPrice;
     private double chocolatePrice;
     private double milkPrice;
+
+    public MarketDto(MarketEntity market) {
+        this.date = market.getDate();
+        this.sugarPrice = market.getSugarPrice();
+        this.flourPrice = market.getFlourPrice();
+        this.eggsPrice = market.getEggsPrice();
+        this.butterPrice = market.getButterPrice();
+        this.chocolatePrice = market.getChocolatePrice();
+        this.milkPrice = market.getMilkPrice();
+    }
 
     public LocalDateTime getDate() {
         return date;

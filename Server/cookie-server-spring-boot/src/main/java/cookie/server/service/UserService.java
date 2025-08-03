@@ -40,8 +40,14 @@ public class UserService {
     public UserInformationDto getUser(String userId) {
         return userRepository.findById(userId)
                 .map(this::toDto)
-                .orElseThrow(() -> new NoSuchElementException("User not found"));
+                .orElseGet(() -> {
+                    UserEntity newUser = new UserEntity();
+                    newUser.setSteamId(userId);
+                    userRepository.save(newUser);
+                    return toDto(newUser);
+                });
     }
+
 
     public void deleteUser(String userId) {
         if (!userRepository.existsById(userId)) {

@@ -24,7 +24,7 @@ public class WebAPI : MonoBehaviour
 
     List<Market> marketList;
     //private string baseUrl = "http://cookie-server.r3dconcrete.de:3000";
-    private string baseUrl = "http://localhost:3000";
+    private string baseUrl = "http://localhost:8080";
     private GameManager gameManager;
     private int loginScene = 0;
     private int loginLoadTime = 5;

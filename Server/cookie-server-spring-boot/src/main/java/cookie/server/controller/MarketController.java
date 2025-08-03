@@ -18,10 +18,14 @@ public class MarketController {
         this.marketService = marketService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<MarketDto>> getMarketInfo(
-            @RequestParam("amountMarketObjects") int amount) {
-        return ResponseEntity.ok(marketService.getMarketData(amount));
+    @GetMapping("/get/{amount}")
+    public ResponseEntity<List<MarketDto>> getMarketInfo(@PathVariable int amount) {
+        return null;
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<MarketDto>> getMarketInfo() {
+        return ResponseEntity.ok(marketService.getAllMarketData());
     }
 
     @PostMapping
