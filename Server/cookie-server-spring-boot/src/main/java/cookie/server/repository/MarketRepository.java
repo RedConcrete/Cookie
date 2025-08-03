@@ -6,5 +6,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface MarketRepository extends JpaRepository<MarketEntity, Long> {
-    List<MarketEntity> findTopNByOrderByDateDesc(int n);
 }
