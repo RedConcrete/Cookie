@@ -1,4 +1,7 @@
 package cookie.server.repository;
 
-public class UserRepository {
+import cookie.server.entitiy.UserEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<UserEntity, String> {
 }
