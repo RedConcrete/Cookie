@@ -1,4 +1,10 @@
 package cookie.server.enums;
 
-public class ResourceName {
+public enum ResourceName {
+    SUGAR,
+    FLOUR,
+    EGGS,
+    BUTTER,
+    CHOCOLATE,
+    MILK
 }

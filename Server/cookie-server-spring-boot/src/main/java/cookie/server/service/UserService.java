@@ -1,5 +1,6 @@
 package cookie.server.service;
 
+import cookie.server.config.PlayerConfig;
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entitiy.UserEntity;
@@ -12,9 +13,11 @@ import java.util.NoSuchElementException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PlayerConfig playerConfig;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PlayerConfig playerConfig) {
         this.userRepository = userRepository;
+        this.playerConfig = playerConfig;
     }
 
     public UserInformationDto createUser(String userId, UserDto dto) {
@@ -25,13 +28,13 @@ public class UserService {
         UserEntity entity = new UserEntity();
         entity.setSteamId(userId);
         entity.setToken(dto.getToken());
-        entity.setCookies(0);
-        entity.setSugar(0);
-        entity.setFlour(0);
-        entity.setEggs(0);
-        entity.setButter(0);
-        entity.setChocolate(0);
-        entity.setMilk(0);
+        entity.setCookies(playerConfig.getInitialCookies());
+        entity.setSugar(playerConfig.getInitialSugar());
+        entity.setFlour(playerConfig.getInitialFlour());
+        entity.setEggs(playerConfig.getInitialEggs());
+        entity.setButter(playerConfig.getInitialButter());
+        entity.setChocolate(playerConfig.getInitialChocolate());
+        entity.setMilk(playerConfig.getInitialMilk());
 
         userRepository.save(entity);
         return toDto(entity);
@@ -43,6 +46,13 @@ public class UserService {
                 .orElseGet(() -> {
                     UserEntity newUser = new UserEntity();
                     newUser.setSteamId(userId);
+                    newUser.setCookies(playerConfig.getInitialCookies());
+                    newUser.setSugar(playerConfig.getInitialSugar());
+                    newUser.setFlour(playerConfig.getInitialFlour());
+                    newUser.setEggs(playerConfig.getInitialEggs());
+                    newUser.setButter(playerConfig.getInitialButter());
+                    newUser.setChocolate(playerConfig.getInitialChocolate());
+                    newUser.setMilk(playerConfig.getInitialMilk());
                     userRepository.save(newUser);
                     return toDto(newUser);
                 });
@@ -69,4 +79,3 @@ public class UserService {
         return dto;
     }
 }
-
