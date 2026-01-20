@@ -47,13 +47,13 @@ Backend API (Idle, Economy, Seasons) <--- Auth / Inventar / Progress
 Desktop Wrapper (optional)
 (Electron / Tauri)
 
-### Frontend (Open Source)
+### Frontend
 - Darstellung & UI
 - Client-State
 - API-Kommunikation
 - Keine vertrauenswürdige Spiellogik
 
-### Backend (nicht Teil dieses Repos)
+### Backend
 - Idle-Berechnungen
 - Wirtschaft & Markt
 - Anti-Cheat
