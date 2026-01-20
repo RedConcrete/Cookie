@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Server - API Tester</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #f9a826; text-align: center; }
+        h2 { color: #f9a826; border-bottom: 2px solid #f9a826; padding-bottom: 10px; }
+        .section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f0f23;
+            color: #eee;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        .btn-post { background: #4caf50; color: white; }
+        .btn-get { background: #2196f3; color: white; }
+        .btn-delete { background: #f44336; color: white; }
+        button:hover { opacity: 0.9; }
+        .response {
+            background: #0f0f23;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .response.success { border-color: #4caf50; }
+        .response.error { border-color: #f44336; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) {
+            .grid, .grid-3 { grid-template-columns: 1fr; }
+        }
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .resource-card {
+            background: #0f0f23;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .resource-card .value { font-size: 20px; color: #f9a826; }
+        .resource-card .label { font-size: 11px; color: #888; }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: #0f0f23;
+        }
+        .legend-item:hover { background: #1a1a3e; }
+        .legend-item.hidden { opacity: 0.4; }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #0f0f23;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Cookie Market Dashboard</h1>
+
+    <div class="section">
+        <h2>Market Price Chart</h2>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Live Updates (2s)</span>
+            </div>
+            <span id="lastUpdate">Last update: -</span>
+        </div>
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+        <div class="legend-container" id="chartLegend"></div>
+    </div>
+
+    <div class="section">
+        <h2>Current Prices</h2>
+        <div id="marketPrices" class="resource-grid">
+            <div class="resource-card">
+                <div class="value" id="price-sugar">-</div>
+                <div class="label">Sugar</div>
+            </div>
+            <div class="resource-card">
+                <div class="value" id="price-flour">-</div>
+                <div class="label">Flour</div>
+            </div>
+            <div class="resource-card">
+                <div class="value" id="price-eggs">-</div>
+                <div class="label">Eggs</div>
+            </div>
+            <div class="resource-card">
+                <div class="value" id="price-butter">-</div>
+                <div class="label">Butter</div>
+            </div>
+            <div class="resource-card">
+                <div class="value" id="price-chocolate">-</div>
+                <div class="label">Chocolate</div>
+            </div>
+            <div class="resource-card">
+                <div class="value" id="price-milk">-</div>
+                <div class="label">Milk</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="section">
+            <h2>User Management</h2>
+            <div class="form-group">
+                <label for="userId">User ID</label>
+                <input type="text" id="userId" placeholder="Enter user ID (e.g., user123)">
+            </div>
+            <div class="form-group">
+                <label for="steamId">Steam ID (for create)</label>
+                <input type="text" id="steamId" placeholder="Enter Steam ID">
+            </div>
+            <div class="form-group">
+                <label for="token">Token (for create)</label>
+                <input type="text" id="token" placeholder="Enter token">
+            </div>
+            <button class="btn-post" onclick="createUser()">Create User</button>
+            <button class="btn-get" onclick="getUser()">Get User</button>
+            <button class="btn-delete" onclick="deleteUser()">Delete User</button>
+            <div id="userResponse" class="response">Response will appear here...</div>
+        </div>
+
+        <div class="section">
+            <h2>User Resources</h2>
+            <div id="userResources" class="resource-grid">
+                <div class="resource-card">
+                    <div class="value" id="res-cookies">-</div>
+                    <div class="label">Cookies</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-sugar">-</div>
+                    <div class="label">Sugar</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-flour">-</div>
+                    <div class="label">Flour</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-eggs">-</div>
+                    <div class="label">Eggs</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-butter">-</div>
+                    <div class="label">Butter</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-chocolate">-</div>
+                    <div class="label">Chocolate</div>
+                </div>
+                <div class="resource-card">
+                    <div class="value" id="res-milk">-</div>
+                    <div class="label">Milk</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Market Actions</h2>
+        <div class="grid-3">
+            <div class="form-group">
+                <label for="marketAction">Action</label>
+                <select id="marketAction">
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="resourceName">Resource</label>
+                <select id="resourceName">
+                    <option value="SUGAR">Sugar</option>
+                    <option value="FLOUR">Flour</option>
+                    <option value="EGGS">Eggs</option>
+                    <option value="BUTTER">Butter</option>
+                    <option value="CHOCOLATE">Chocolate</option>
+                    <option value="MILK">Milk</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="resourceAmount">Amount</label>
+                <input type="number" id="resourceAmount" placeholder="Enter amount" value="1">
+            </div>
+        </div>
+        <button class="btn-post" onclick="processMarketAction()">Execute Market Action</button>
+        <div id="marketActionResponse" class="response">Response will appear here...</div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        const MAX_DATA_POINTS = 50;
+
+        const resourceColors = {
+            sugar: '#ff6384',
+            flour: '#36a2eb',
+            eggs: '#ffce56',
+            butter: '#4bc0c0',
+            chocolate: '#9966ff',
+            milk: '#ff9f40'
+        };
+
+        let priceChart;
+        let priceHistory = {
+            labels: [],
+            sugar: [],
+            flour: [],
+            eggs: [],
+            butter: [],
+            chocolate: [],
+            milk: []
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: priceHistory.labels,
+                    datasets: [
+                        createDataset('Sugar', 'sugar'),
+                        createDataset('Flour', 'flour'),
+                        createDataset('Eggs', 'eggs'),
+                        createDataset('Butter', 'butter'),
+                        createDataset('Chocolate', 'chocolate'),
+                        createDataset('Milk', 'milk')
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#16213e',
+                            titleColor: '#f9a826',
+                            bodyColor: '#eee',
+                            borderColor: '#333',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(4);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: {
+                                color: '#333'
+                            },
+                            ticks: {
+                                color: '#888',
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            display: true,
+                            grid: {
+                                color: '#333'
+                            },
+                            ticks: {
+                                color: '#888',
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Price',
+                                color: '#888'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 300
+                    }
+                }
+            });
+
+            createCustomLegend();
+        }
+
+        function createDataset(label, key) {
+            return {
+                label: label,
+                data: priceHistory[key],
+                borderColor: resourceColors[key],
+                backgroundColor: resourceColors[key] + '20',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 5
+            };
+        }
+
+        function createCustomLegend() {
+            const container = document.getElementById('chartLegend');
+            container.innerHTML = '';
+
+            const resources = ['sugar', 'flour', 'eggs', 'butter', 'chocolate', 'milk'];
+            resources.forEach((resource, index) => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <div class="legend-color" style="background: ${resourceColors[resource]}"></div>
+                    <span>${resource.charAt(0).toUpperCase() + resource.slice(1)}</span>
+                `;
+                item.onclick = () => toggleDataset(index, item);
+                container.appendChild(item);
+            });
+        }
+
+        function toggleDataset(index, element) {
+            const meta = priceChart.getDatasetMeta(index);
+            meta.hidden = !meta.hidden;
+            element.classList.toggle('hidden');
+            priceChart.update();
+        }
+
+        function updateChart(marketData) {
+            if (!marketData || marketData.length === 0) return;
+
+            // Sort by date
+            marketData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Clear and rebuild history
+            priceHistory.labels = [];
+            priceHistory.sugar = [];
+            priceHistory.flour = [];
+            priceHistory.eggs = [];
+            priceHistory.butter = [];
+            priceHistory.chocolate = [];
+            priceHistory.milk = [];
+
+            // Take last MAX_DATA_POINTS entries
+            const data = marketData.slice(-MAX_DATA_POINTS);
+
+            data.forEach(entry => {
+                const date = new Date(entry.date);
+                const timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                priceHistory.labels.push(timeStr);
+                priceHistory.sugar.push(entry.sugarPrice);
+                priceHistory.flour.push(entry.flourPrice);
+                priceHistory.eggs.push(entry.eggsPrice);
+                priceHistory.butter.push(entry.butterPrice);
+                priceHistory.chocolate.push(entry.chocolatePrice);
+                priceHistory.milk.push(entry.milkPrice);
+            });
+
+            // Update chart
+            priceChart.data.labels = priceHistory.labels;
+            priceChart.data.datasets[0].data = priceHistory.sugar;
+            priceChart.data.datasets[1].data = priceHistory.flour;
+            priceChart.data.datasets[2].data = priceHistory.eggs;
+            priceChart.data.datasets[3].data = priceHistory.butter;
+            priceChart.data.datasets[4].data = priceHistory.chocolate;
+            priceChart.data.datasets[5].data = priceHistory.milk;
+
+            priceChart.update('none');
+
+            // Update last update time
+            document.getElementById('lastUpdate').textContent =
+                'Last update: ' + new Date().toLocaleTimeString('de-DE');
+        }
+
+        async function apiCall(method, endpoint, body = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(API_BASE + endpoint, options);
+            const data = await response.text();
+
+            try {
+                return { status: response.status, data: JSON.parse(data) };
+            } catch {
+                return { status: response.status, data };
+            }
+        }
+
+        function showResponse(elementId, result) {
+            const el = document.getElementById(elementId);
+            el.textContent = JSON.stringify(result.data, null, 2);
+            el.className = 'response ' + (result.status >= 200 && result.status < 300 ? 'success' : 'error');
+        }
+
+        function updateUserResources(data) {
+            if (data && typeof data === 'object') {
+                document.getElementById('res-cookies').textContent = data.cookies?.toFixed(2) ?? '-';
+                document.getElementById('res-sugar').textContent = data.sugar?.toFixed(2) ?? '-';
+                document.getElementById('res-flour').textContent = data.flour?.toFixed(2) ?? '-';
+                document.getElementById('res-eggs').textContent = data.eggs?.toFixed(2) ?? '-';
+                document.getElementById('res-butter').textContent = data.butter?.toFixed(2) ?? '-';
+                document.getElementById('res-chocolate').textContent = data.chocolate?.toFixed(2) ?? '-';
+                document.getElementById('res-milk').textContent = data.milk?.toFixed(2) ?? '-';
+            }
+        }
+
+        function updateMarketPrices(data) {
+            if (Array.isArray(data) && data.length > 0) {
+                const latest = data[data.length - 1];
+                document.getElementById('price-sugar').textContent = latest.sugarPrice?.toFixed(4) ?? '-';
+                document.getElementById('price-flour').textContent = latest.flourPrice?.toFixed(4) ?? '-';
+                document.getElementById('price-eggs').textContent = latest.eggsPrice?.toFixed(4) ?? '-';
+                document.getElementById('price-butter').textContent = latest.butterPrice?.toFixed(4) ?? '-';
+                document.getElementById('price-chocolate').textContent = latest.chocolatePrice?.toFixed(4) ?? '-';
+                document.getElementById('price-milk').textContent = latest.milkPrice?.toFixed(4) ?? '-';
+            }
+        }
+
+        async function createUser() {
+            const userId = document.getElementById('userId').value;
+            const steamId = document.getElementById('steamId').value;
+            const token = document.getElementById('token').value;
+
+            if (!userId) { alert('Please enter a User ID'); return; }
+
+            const result = await apiCall('POST', `/api/v1/users/${userId}`, { steamId, token });
+            showResponse('userResponse', result);
+            updateUserResources(result.data);
+        }
+
+        async function getUser() {
+            const userId = document.getElementById('userId').value;
+            if (!userId) { alert('Please enter a User ID'); return; }
+
+            const result = await apiCall('GET', `/api/v1/users/${userId}`);
+            showResponse('userResponse', result);
+            updateUserResources(result.data);
+        }
+
+        async function deleteUser() {
+            const userId = document.getElementById('userId').value;
+            if (!userId) { alert('Please enter a User ID'); return; }
+
+            if (!confirm(`Delete user ${userId}?`)) return;
+
+            const result = await apiCall('DELETE', `/api/v1/users/${userId}`);
+            showResponse('userResponse', result);
+        }
+
+        async function getAllMarket() {
+            const result = await apiCall('GET', '/api/v1/market/all');
+            if (result.status >= 200 && result.status < 300) {
+                updateMarketPrices(result.data);
+                updateChart(result.data);
+            }
+        }
+
+        async function processMarketAction() {
+            const userId = document.getElementById('userId').value;
+            if (!userId) { alert('Please enter a User ID first'); return; }
+
+            const action = document.getElementById('marketAction').value;
+            const name = document.getElementById('resourceName').value;
+            const amount = parseFloat(document.getElementById('resourceAmount').value);
+
+            const result = await apiCall('POST', '/api/v1/market', {
+                userId,
+                action,
+                resource: { name, amount }
+            });
+            showResponse('marketActionResponse', result);
+            updateUserResources(result.data);
+            getAllMarket();
+        }
+
+        // Initialize
+        initChart();
+        getAllMarket();
+
+        // Auto-refresh every 2 seconds
+        setInterval(getAllMarket, 2000);
+    </script>
+</body>
+</html>

@@ -79,4 +79,3 @@ public class MarketDto {
         this.milkPrice = milkPrice;
     }
 }
-

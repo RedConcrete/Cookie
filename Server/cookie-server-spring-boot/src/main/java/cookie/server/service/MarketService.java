@@ -5,10 +5,12 @@ import cookie.server.dto.MarketDto;
 import cookie.server.dto.MarketRequestDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entitiy.MarketEntity;
+import cookie.server.entitiy.MarketStockEntity;
 import cookie.server.entitiy.UserEntity;
 import cookie.server.enums.MarketAction;
 import cookie.server.enums.ResourceName;
 import cookie.server.repository.MarketRepository;
+import cookie.server.repository.MarketStockRepository;
 import cookie.server.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ public class MarketService {
     private static final Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     private final MarketRepository marketRepository;
+    private final MarketStockRepository marketStockRepository;
     private final UserRepository userRepository;
     private final MarketConfig marketConfig;
 
@@ -39,8 +42,12 @@ public class MarketService {
     private final AtomicInteger updateCounter = new AtomicInteger(0);
     private static final int CLEANUP_INTERVAL = 100;
 
-    public MarketService(MarketRepository marketRepository, UserRepository userRepository, MarketConfig marketConfig) {
+    private static final String STOCK_SINGLETON_ID = "SINGLETON";
+
+    public MarketService(MarketRepository marketRepository, MarketStockRepository marketStockRepository,
+                         UserRepository userRepository, MarketConfig marketConfig) {
         this.marketRepository = marketRepository;
+        this.marketStockRepository = marketStockRepository;
         this.userRepository = userRepository;
         this.marketConfig = marketConfig;
     }
@@ -65,6 +72,7 @@ public class MarketService {
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + request.getUserId()));
 
         MarketEntity currentMarket = getOrCreateCurrentMarket();
+        MarketStockEntity stock = getOrCreateMarketStock();
         ResourceName resource = request.getResource().getName();
         double amount = request.getResource().getAmount();
         MarketAction action = request.getAction();
@@ -73,6 +81,11 @@ public class MarketService {
         double totalCost = currentPrice * amount;
 
         if (action == MarketAction.BUY) {
+            // Pruefen ob der Markt genug auf Lager hat
+            double marketStock = getStock(stock, resource);
+            if (marketStock < amount) {
+                throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
+            }
             if (user.getCookies() < totalCost) {
                 throw new IllegalArgumentException("Not enough cookies. Need: " + totalCost + ", Have: " + user.getCookies());
             }
@@ -89,36 +102,51 @@ public class MarketService {
 
         userRepository.save(user);
 
-        // Preis nach dem Trade anpassen - erstellt neuen Eintrag
-        createNewMarketEntryAfterTrade(currentMarket, resource, amount, action);
+        // Preis nach dem Trade anpassen und Stock aktualisieren
+        createNewMarketEntryAfterTrade(currentMarket, stock, resource, amount, action);
 
         return toDto(user);
     }
 
     /**
      * Erstellt einen neuen Markteintrag nach einem Trade.
+     * Aktualisiert sowohl Preis als auch Lagerbestand.
      */
-    private void createNewMarketEntryAfterTrade(MarketEntity currentMarket, ResourceName resource, double amount, MarketAction action) {
+    private void createNewMarketEntryAfterTrade(MarketEntity currentMarket, MarketStockEntity stock, ResourceName resource, double amount, MarketAction action) {
         marketLock.lock();
         try {
-            double totalResource = getTotalResourceAmount(resource);
+            double marketStock = getStock(stock, resource);
             double currentPrice = getPrice(currentMarket, resource);
 
-            double priceChange = (amount * Math.max(totalResource, 1)) / marketConfig.getTradeDivisor();
-            priceChange *= marketConfig.getTradeImpactMultiplier();
+            // Preisaenderung: Je mehr Stock vorhanden, desto geringer die Preisaenderung
+            // Formel: (amount / stock) * price * multiplier
+            // Bei niedrigem Stock -> grosse Preisaenderung
+            // Bei hohem Stock -> kleine Preisaenderung
+            double priceChange = (amount / Math.max(marketStock, 1)) * currentPrice * marketConfig.getTradeImpactMultiplier();
 
             double newPrice;
+            double newStock;
             if (action == MarketAction.BUY) {
+                // Spieler kauft -> Preis steigt, Markt-Stock sinkt
                 newPrice = currentPrice + priceChange;
+                newStock = marketStock - amount;
             } else {
+                // Spieler verkauft -> Preis sinkt, Markt-Stock steigt
                 newPrice = currentPrice - priceChange;
+                newStock = marketStock + amount;
             }
 
             newPrice = clampPrice(newPrice);
+            newStock = Math.max(0, newStock);
 
+            // Neuen Markteintrag fuer Preis-Historie erstellen
             MarketEntity newMarket = copyMarketWithNewId(currentMarket);
             setPrice(newMarket, resource, newPrice);
             newMarket.setDate(LocalDateTime.now());
+
+            // Stock in separater Tabelle aktualisieren (ueberschreibt sich selbst)
+            setStock(stock, resource, newStock);
+            marketStockRepository.save(stock);
 
             // Validierung vor dem Speichern
             if (isValidMarket(newMarket)) {
@@ -139,6 +167,7 @@ public class MarketService {
         marketLock.lock();
         try {
             MarketEntity currentMarket = getOrCreateCurrentMarket();
+            MarketStockEntity stock = getOrCreateMarketStock();
 
             // Validiere dass currentMarket gueltige Preise hat
             if (!isValidMarket(currentMarket)) {
@@ -149,7 +178,7 @@ public class MarketService {
             MarketEntity newMarket = copyMarketWithNewId(currentMarket);
 
             for (ResourceName resource : ResourceName.values()) {
-                double totalResource = getTotalResourceAmount(resource);
+                double marketStock = getStock(stock, resource);
                 double currentPrice = getPrice(currentMarket, resource);
 
                 // Falls currentPrice 0 ist, nutze den Initialpreis
@@ -157,12 +186,15 @@ public class MarketService {
                     currentPrice = getInitialPrice(resource);
                 }
 
+                // Preisschwankung: Je weniger Stock, desto volatiler der Preis
+                // Bei niedrigem Stock -> groessere Schwankungen
+                // Bei hohem Stock -> kleinere Schwankungen
                 double random = (Math.random() * 2) - 1;
-                double priceChange = (random * Math.max(totalResource, 1)) / marketConfig.getRandomDivisor();
-                priceChange *= marketConfig.getRandomImpactMultiplier();
+                double priceChange = (random / Math.max(marketStock, 1)) * currentPrice * marketConfig.getRandomImpactMultiplier() * marketConfig.getRandomDivisor();
 
                 double newPrice = clampPrice(currentPrice + priceChange);
                 setPrice(newMarket, resource, newPrice);
+                // Stock bleibt gleich bei zufaelliger Preisschwankung
             }
 
             newMarket.setDate(LocalDateTime.now());
@@ -214,6 +246,7 @@ public class MarketService {
 
     /**
      * Erstellt eine Kopie des MarketEntity mit neuer ID.
+     * Stock wird nicht kopiert - dieser ist in separater Tabelle.
      */
     private MarketEntity copyMarketWithNewId(MarketEntity source) {
         MarketEntity copy = new MarketEntity();
@@ -292,6 +325,33 @@ public class MarketService {
         return marketRepository.save(market);
     }
 
+    /**
+     * Holt oder erstellt den MarketStock Singleton-Eintrag.
+     */
+    private MarketStockEntity getOrCreateMarketStock() {
+        return marketStockRepository.findById(STOCK_SINGLETON_ID)
+                .orElseGet(this::createInitialMarketStock);
+    }
+
+    /**
+     * Erstellt den initialen MarketStock Eintrag.
+     */
+    private MarketStockEntity createInitialMarketStock() {
+        MarketStockEntity stock = new MarketStockEntity();
+        stock.setSugarStock(marketConfig.getInitialSugarStock());
+        stock.setFlourStock(marketConfig.getInitialFlourStock());
+        stock.setEggsStock(marketConfig.getInitialEggsStock());
+        stock.setButterStock(marketConfig.getInitialButterStock());
+        stock.setChocolateStock(marketConfig.getInitialChocolateStock());
+        stock.setMilkStock(marketConfig.getInitialMilkStock());
+
+        logger.info("Created initial market stock: Sugar={}, Flour={}, Eggs={}, Butter={}, Chocolate={}, Milk={}",
+                stock.getSugarStock(), stock.getFlourStock(), stock.getEggsStock(),
+                stock.getButterStock(), stock.getChocolateStock(), stock.getMilkStock());
+
+        return marketStockRepository.save(stock);
+    }
+
     private double getPrice(MarketEntity market, ResourceName resource) {
         double price = switch (resource) {
             case SUGAR -> market.getSugarPrice();
@@ -318,15 +378,27 @@ public class MarketService {
         }
     }
 
-    private double getTotalResourceAmount(ResourceName resource) {
+    private double getStock(MarketStockEntity stock, ResourceName resource) {
         return switch (resource) {
-            case SUGAR -> userRepository.getTotalSugar();
-            case FLOUR -> userRepository.getTotalFlour();
-            case EGGS -> userRepository.getTotalEggs();
-            case BUTTER -> userRepository.getTotalButter();
-            case CHOCOLATE -> userRepository.getTotalChocolate();
-            case MILK -> userRepository.getTotalMilk();
+            case SUGAR -> stock.getSugarStock();
+            case FLOUR -> stock.getFlourStock();
+            case EGGS -> stock.getEggsStock();
+            case BUTTER -> stock.getButterStock();
+            case CHOCOLATE -> stock.getChocolateStock();
+            case MILK -> stock.getMilkStock();
         };
+    }
+
+    private void setStock(MarketStockEntity stock, ResourceName resource, double amount) {
+        double safeStock = Math.max(0, amount);
+        switch (resource) {
+            case SUGAR -> stock.setSugarStock(safeStock);
+            case FLOUR -> stock.setFlourStock(safeStock);
+            case EGGS -> stock.setEggsStock(safeStock);
+            case BUTTER -> stock.setButterStock(safeStock);
+            case CHOCOLATE -> stock.setChocolateStock(safeStock);
+            case MILK -> stock.setMilkStock(safeStock);
+        }
     }
 
     private double getResourceFromUser(UserEntity user, ResourceName resource) {
