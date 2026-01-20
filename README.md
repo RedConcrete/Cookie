@@ -37,23 +37,15 @@ Dieses Projekt ist ein **systemorientiertes Idle Game**, inspiriert von klassisc
 - Theme, Layout und Stil sind austauschbar
 - Ziel: klare, funktionale UI für komplexe Systeme
 
-Das Projekt soll **UI-Experimente** und **Community-Beiträge** ausdrücklich ermöglichen.
-
 ---
 
 ## 🏗️ Architektur (Übersicht)
 
-Frontend (HTML / CSS / JS)
-│
-│ REST / WebSocket
-▼
-Backend API (Idle, Economy, Seasons)
-▲
-│ Auth / Inventar / Progress
+Frontend (HTML / CSS / JS) ---> REST / WebSocket
+
+Backend API (Idle, Economy, Seasons) <--- Auth / Inventar / Progress
 Desktop Wrapper (optional)
 (Electron / Tauri)
-
-
 
 ### Frontend (Open Source)
 - Darstellung & UI
@@ -72,7 +64,7 @@ Desktop Wrapper (optional)
 
 ## 🎮 Desktop & Steam (optional)
 
-Das Spiel kann als Desktop-App ausgeliefert werden:
+Das Spiel soll als Desktop-App ausgeliefert werden:
 
 - Desktop Wrapper (z. B. Electron oder Tauri)
 - Steam Login (SteamID)
@@ -86,7 +78,7 @@ Das Spiel kann als Desktop-App ausgeliefert werden:
 
 ---
 
-🤝 Contributing
+## 🤝 Contributing
 Beiträge sind sehr willkommen ❤️
 
 Möglichkeiten:
@@ -112,7 +104,8 @@ Feature-Branch anlegen
 
 Pull Request öffnen
 
-📬 Kontakt & Diskussion
+---
+## 📬 Kontakt & Diskussion
 Ideen, Vorschläge oder Feedback?
 👉 Bitte nutze Issues oder Discussions auf GitHub.
 
