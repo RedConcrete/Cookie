@@ -3,7 +3,7 @@ package cookie.server.service;
 import cookie.server.config.PlayerConfig;
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
-import cookie.server.entitiy.UserEntity;
+import cookie.server.entity.UserEntity;
 import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 

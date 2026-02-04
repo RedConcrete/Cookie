@@ -1,4 +1,4 @@
-package cookie.server.entitiy;
+package cookie.server.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

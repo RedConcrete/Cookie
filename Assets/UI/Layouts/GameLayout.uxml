@@ -1,0 +1,53 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:Style src="../Styles/MainStyles.uss" />
+    <ui:VisualElement class="root">
+        <!-- Header -->
+        <ui:VisualElement class="header">
+            <ui:Label text="Cookie Clicker Market" style="font-size: 20px; -unity-font-style: bold;" />
+            <ui:Label name="player-id" text="SteamID: Loading..." />
+            <ui:Label name="update-time" text="00:00" />
+        </ui:VisualElement>
+
+        <!-- Resources -->
+        <ui:VisualElement class="resource-container">
+            <ui:VisualElement class="resource-item">
+                <ui:Label text="Cookies" class="resource-label" />
+                <ui:Label name="cookie-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Sugar" class="resource-label" />
+                <ui:Label name="sugar-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Flour" class="resource-label" />
+                <ui:Label name="flour-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Eggs" class="resource-label" />
+                <ui:Label name="eggs-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Butter" class="resource-label" />
+                <ui:Label name="butter-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Chocolate" class="resource-label" />
+                <ui:Label name="chocolate-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+             <ui:VisualElement class="resource-item">
+                <ui:Label text="Milk" class="resource-label" />
+                <ui:Label name="milk-value" text="0" class="resource-value" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        
+        <!-- Controls -->
+         <ui:VisualElement style="margin-top: 20px; flex-direction: row;">
+            <ui:TextField name="amount-input" label="Amount" value="1" style="width: 200px;" />
+            <ui:Button name="buy-btn" text="Buy" class="button" style="width: 100px; margin-left: 10px;" />
+            <ui:Button name="sell-btn" text="Sell" class="button" style="width: 100px; margin-left: 10px;" />
+        </ui:VisualElement>
+
+        <ui:Label name="status-message" text="" style="margin-top: 10px; color: orange;" />
+
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,6 +1,6 @@
 package cookie.server.dto;
 
-import cookie.server.entitiy.MarketEntity;
+import cookie.server.entity.MarketEntity;
 
 import java.time.LocalDateTime;
 

@@ -1,6 +1,6 @@
 package cookie.server.repository;
 
-import cookie.server.entitiy.UserEntity;
+import cookie.server.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

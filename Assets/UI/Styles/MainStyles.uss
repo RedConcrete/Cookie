@@ -1,0 +1,67 @@
+.root {
+    flex-grow: 1;
+    background-color: #2c2c2c;
+    color: white;
+    font-size: 14px;
+    padding: 10px;
+}
+
+.header {
+    flex-direction: row;
+    justify-content: space-between;
+    height: 50px;
+    background-color: #3e3e3e;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.resource-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.resource-item {
+    width: 150px;
+    height: 30px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px;
+    padding: 5px;
+    background-color: #4a4a4a;
+    border-radius: 5px;
+}
+
+.resource-label {
+    -unity-font-style: bold;
+}
+
+.resource-value {
+    color: #ffd700;
+}
+
+.market-container {
+    flex-grow: 1;
+    margin-top: 20px;
+    background-color: #252525;
+    padding: 10px;
+}
+
+.button {
+    height: 40px;
+    background-color: #007acc;
+    color: white;
+    border-radius: 5px;
+    margin-top: 10px;
+    -unity-text-align: middle-center;
+}
+
+.button:hover {
+    background-color: #0098ff;
+}
+
+.button:active {
+    background-color: #005c99;
+}

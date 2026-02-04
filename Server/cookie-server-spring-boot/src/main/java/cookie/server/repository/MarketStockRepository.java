@@ -1,6 +1,6 @@
 package cookie.server.repository;
 
-import cookie.server.entitiy.MarketStockEntity;
+import cookie.server.entity.MarketStockEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

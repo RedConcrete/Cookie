@@ -4,9 +4,9 @@ import cookie.server.config.MarketConfig;
 import cookie.server.dto.MarketDto;
 import cookie.server.dto.MarketRequestDto;
 import cookie.server.dto.UserInformationDto;
-import cookie.server.entitiy.MarketEntity;
-import cookie.server.entitiy.MarketStockEntity;
-import cookie.server.entitiy.UserEntity;
+import cookie.server.entity.MarketEntity;
+import cookie.server.entity.MarketStockEntity;
+import cookie.server.entity.UserEntity;
 import cookie.server.enums.MarketAction;
 import cookie.server.enums.ResourceName;
 import cookie.server.repository.MarketRepository;
@@ -34,6 +34,7 @@ public class MarketService {
     private final MarketStockRepository marketStockRepository;
     private final UserRepository userRepository;
     private final MarketConfig marketConfig;
+    private final cookie.server.handler.MarketWebSocketHandler webSocketHandler;
 
     // Lock fuer Thread-Sicherheit bei Market-Operationen
     private final ReentrantLock marketLock = new ReentrantLock();
@@ -45,11 +46,13 @@ public class MarketService {
     private static final String STOCK_SINGLETON_ID = "SINGLETON";
 
     public MarketService(MarketRepository marketRepository, MarketStockRepository marketStockRepository,
-                         UserRepository userRepository, MarketConfig marketConfig) {
+                         UserRepository userRepository, MarketConfig marketConfig,
+                         cookie.server.handler.MarketWebSocketHandler webSocketHandler) {
         this.marketRepository = marketRepository;
         this.marketStockRepository = marketStockRepository;
         this.userRepository = userRepository;
         this.marketConfig = marketConfig;
+        this.webSocketHandler = webSocketHandler;
     }
 
     public List<MarketDto> getMarketData(int amount) {
@@ -154,6 +157,10 @@ public class MarketService {
             } else {
                 logger.warn("Invalid market entry detected after trade, skipping save");
             }
+            
+            // Broadcast update
+            webSocketHandler.broadcastMarketUpdate(getMarketData(20));
+
         } finally {
             marketLock.unlock();
         }
@@ -207,11 +214,13 @@ public class MarketService {
                 createInitialMarket();
             }
 
-            // Cleanup nur alle CLEANUP_INTERVAL Updates
             if (updateCounter.incrementAndGet() >= CLEANUP_INTERVAL) {
                 updateCounter.set(0);
                 cleanupOldEntries(500);
             }
+            
+            // Broadcast update
+            webSocketHandler.broadcastMarketUpdate(getMarketData(20));
         } finally {
             marketLock.unlock();
         }

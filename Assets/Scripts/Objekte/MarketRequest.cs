@@ -1,18 +1,30 @@
-using Unity.VisualScripting;
+using System;
 
 namespace Server.Data
 {
+    [Serializable]
     public class MarketRequest
     {
-        public string player;
-        public int amount;
-        public string rec;
+        public string userId;
+        public string action;
+        public ResourceDto resource;
 
-        public MarketRequest(string playerId, string rec, int amount)
+        public MarketRequest(string userId, string action, string resourceName, int amount)
         {
-            this.player = playerId;
-            this.amount = amount;
-            this.rec = rec;
+            this.userId = userId;
+            this.action = action;
+            this.resource = new ResourceDto
+            {
+                name = resourceName.ToUpper(),
+                amount = amount
+            };
         }
+    }
+
+    [Serializable]
+    public class ResourceDto
+    {
+        public string name;
+        public double amount;
     }
 }

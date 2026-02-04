@@ -12,7 +12,9 @@ using Unity.VisualScripting;
 using UnityEngine.SocialPlatforms;
 using UnityEditor.PackageManager;
 using System.Security.Cryptography;
-using Unity.Mathematics;
+using System.Net.WebSockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 
 public class WebAPI : MonoBehaviour
@@ -36,7 +38,7 @@ public class WebAPI : MonoBehaviour
             Steamworks.SteamClient.Init(2816100);
 
             StartCoroutine(AuthenticateUser());
-
+            ConnectToWebSocket();
         }
         catch (System.Exception e)
         {
@@ -190,62 +192,89 @@ public class WebAPI : MonoBehaviour
      *
      * 
     **/
+    private ClientWebSocket webSocket;
+    private CancellationTokenSource cancellationTokenSource;
+
+    private async void ConnectToWebSocket()
+    {
+        try
+        {
+            webSocket = new ClientWebSocket();
+            Uri serverUri = new Uri("ws://localhost:8080/ws-market");
+            cancellationTokenSource = new CancellationTokenSource();
+            await webSocket.ConnectAsync(serverUri, cancellationTokenSource.Token);
+            Debug.Log("Connected to WebSocket");
+            ReceiveWebSocketMessages();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("WebSocket connection error: " + e.Message);
+        }
+    }
+
+    private async void ReceiveWebSocketMessages()
+    {
+        var buffer = new byte[1024 * 4];
+        while (webSocket.State == WebSocketState.Open)
+        {
+            try
+            {
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationTokenSource.Token);
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    List<Market> newMarketList = JsonConvert.DeserializeObject<List<Market>>(message);
+                    
+                    // Dispatch to main thread if needed
+                    UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                         marketList = newMarketList;
+                         gameManager.UpdateMarketDataAndUserData(); // Or specific update method
+                    });
+                }
+                else if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("WebSocket receive error: " + e.Message);
+                break;
+            }
+        }
+    }
+
     public IEnumerator UpdatePlayerAndMarket(string steamid, int amount)
     {
-        string url = baseUrl + "/update/" + steamid + "?amount=" + amount;
-        byte[] playerData = Encoding.UTF8.GetBytes(steamid);
+        string url = baseUrl + "/api/v1/game/init/" + steamid + "?marketHistoryAmount=" + amount;
 
         using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
         {
             yield return webRequest.SendWebRequest();
-            switch (webRequest.result)
+            if (webRequest.result == UnityWebRequest.Result.Success)
             {
-                case UnityWebRequest.Result.ConnectionError:
-                case UnityWebRequest.Result.DataProcessingError:
-                    Debug.LogError("ERROR: " + webRequest.error);
-                    break;
-                case UnityWebRequest.Result.Success:
-                    string marketJsonData = webRequest.downloadHandler.text;
+                string json = webRequest.downloadHandler.text;
+                UserMarketDataDto data = JsonConvert.DeserializeObject<UserMarketDataDto>(json);
+               
+                // Map User (existing logic)
+                user = new User 
+                { 
+                    steamid = data.user.steamId,
+                    cookies = (int)data.user.cookies, 
+                    sugar = (int)data.user.sugar,
+                    flour = (int)data.user.flour,
+                    eggs = (int)data.user.eggs,
+                    butter = (int)data.user.butter,
+                    chocolate = (int)data.user.chocolate,
+                    milk = (int)data.user.milk
+                };
 
-                    // Deserialisiere das UserMarketData-Objekt
-                    UserMarketData userMarketData = JsonConvert.DeserializeObject<UserMarketData>(marketJsonData);
-
-                    user = new User
-                    {
-                        steamid = userMarketData.user.steamid,
-                        cookies = (int)userMarketData.user.cookies,
-                        sugar = (int)userMarketData.user.sugar,
-                        flour = (int)userMarketData.user.flour,
-                        eggs = (int)userMarketData.user.eggs,
-                        butter = (int)userMarketData.user.butter,
-                        chocolate = (int)userMarketData.user.chocolate,
-                        milk = (int)userMarketData.user.milk,
-                    };
-
-                    // Benutze die neue Markt-Liste
-                    List<Market> newMarketList = new List<Market>();
-
-                    // Märkte in die newMarketList konvertieren
-                    foreach (var userMarket in userMarketData.markets)
-                    {
-                        Market market = new Market
-                        {
-                            Id = userMarket.id,
-                            date = userMarket.date,
-                            sugarPrice = userMarket.sugarPrice,
-                            flourPrice = userMarket.flourPrice,
-                            eggsPrice = userMarket.eggsPrice,
-                            butterPrice = userMarket.butterPrice,
-                            chocolatePrice = userMarket.chocolatePrice,
-                            milkPrice = userMarket.milkPrice
-                        };
-
-                        newMarketList.Add(market);
-                    }
-
-                    // Weise newMarketList zu marketList zu
-                    marketList = newMarketList;
-                    break;
+                 // Map Market
+                marketList = data.markets; // Assuming Market class matches MarketDto
+            }
+            else 
+            {
+                Debug.LogError("Error updating player and market: " + webRequest.error);
             }
         }
     }

@@ -1,6 +1,6 @@
 package cookie.server.repository;
 
-import cookie.server.entitiy.MarketEntity;
+import cookie.server.entity.MarketEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
