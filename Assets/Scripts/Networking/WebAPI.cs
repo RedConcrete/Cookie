@@ -22,6 +22,7 @@ public class WebAPI : MonoBehaviour
     public static WebAPI Instance { get; private set; }
     public static User user;  // Statische Variable f�r den Player
     public static ulong SteamId;  // Statische Steam-ID des Players
+    public static bool SteamInitialized { get; private set; } = false;
     private AuthTicket authTicket;
 
     List<Market> marketList;
@@ -36,17 +37,18 @@ public class WebAPI : MonoBehaviour
         try
         {
             Steamworks.SteamClient.Init(2816100);
+            SteamInitialized = true;
 
             StartCoroutine(AuthenticateUser());
             ConnectToWebSocket();
         }
         catch (System.Exception e)
         {
-            Debug.LogError(e + " Steam connection ERROR! ");
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#endif
-            Application.Quit();
+            Debug.LogError(e + " Steam connection ERROR! Running in Offline/Dev mode.");
+            SteamInitialized = false;
+            SteamId = 76561198000000000; // Dummy SteamID
+            StartCoroutine(AuthenticateUser());
+            ConnectToWebSocket();
         }
 
         if (Instance != null)
@@ -63,7 +65,10 @@ public class WebAPI : MonoBehaviour
 
     private void Update()
     {
-        Steamworks.SteamClient.RunCallbacks();
+        if (SteamInitialized)
+        {
+            Steamworks.SteamClient.RunCallbacks();
+        }
 
         if (gameManager == null && SceneManager.GetActiveScene().buildIndex != loginScene)
         {
@@ -73,17 +78,23 @@ public class WebAPI : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        if (authTicket != null)
+        if (SteamInitialized)
         {
-            Steamworks.SteamUser.EndAuthSession(Steamworks.SteamClient.SteamId);
+            if (authTicket != null)
+            {
+                Steamworks.SteamUser.EndAuthSession(Steamworks.SteamClient.SteamId);
+            }
+            Steamworks.SteamClient.Shutdown();
         }
-        Steamworks.SteamClient.Shutdown();
     }
 
     private IEnumerator AuthenticateUser()
     {
-        // Holen eines Authentifizierungstickets
-        authTicket = Steamworks.SteamUser.GetAuthSessionTicket();
+        if (SteamInitialized)
+        {
+            // Holen eines Authentifizierungstickets
+            authTicket = Steamworks.SteamUser.GetAuthSessionTicket();
+        }
 
         if (authTicket != null)
         {
@@ -93,7 +104,14 @@ public class WebAPI : MonoBehaviour
 
             Debug.Log("SteamID: " + GetSteamID());
 
-            // Warten für 1 Sekunde
+            // Warten fr 1 Sekunde
+            yield return new WaitForSeconds(loginLoadTime);
+            StartCoroutine(WebAPI.Instance.GetPlayer(SteamId.ToString(), true));
+        }
+        else if (!SteamInitialized)
+        {
+            Debug.LogWarning("Steam not initialized. Skipping authentication.");
+            Debug.Log("Dummy SteamID: " + GetSteamID());
             yield return new WaitForSeconds(loginLoadTime);
             StartCoroutine(WebAPI.Instance.GetPlayer(SteamId.ToString(), true));
         }
@@ -304,13 +322,13 @@ public class WebAPI : MonoBehaviour
 
     public IEnumerator PostBuy(string steamid, string rec, int amount)
     {
-        MarketRequest marketRequest = new MarketRequest(steamid, rec, amount);
+        MarketRequest marketRequest = new MarketRequest(steamid, "buy", rec, amount);
         return DoMarketAction("buy", marketRequest);
     }
 
     public IEnumerator PostSell(string steamid, string rec, int amount)
     {
-        MarketRequest marketRequest = new MarketRequest(steamid, rec, amount);
+        MarketRequest marketRequest = new MarketRequest(steamid, "sell", rec, amount);
         return DoMarketAction("sell", marketRequest);
     }
 
@@ -366,7 +384,10 @@ public class WebAPI : MonoBehaviour
 
     public ulong GetSteamID()
     {
-        SteamId = Steamworks.SteamClient.SteamId;
+        if (SteamInitialized)
+        {
+            SteamId = Steamworks.SteamClient.SteamId;
+        }
         return SteamId;
     }
 

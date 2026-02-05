@@ -32,6 +32,7 @@ public class AchievementManager : MonoBehaviour
 
     public bool IsThisAchievementUnlocked(string id)
     {
+        if (!WebAPI.SteamInitialized) return false;
         var ach = new Steamworks.Data.Achievement(id);
         if(ach.State){
             Debug.Log($"Achievement {id} ist aktiviert worden");
@@ -43,6 +44,7 @@ public class AchievementManager : MonoBehaviour
 
     public void UnlockAchievement(string id)
     {
+        if (!WebAPI.SteamInitialized) return;
         var ach = new Steamworks.Data.Achievement(id);
         ach.Trigger();
         Debug.Log($"Achievement {id} unlocked");
@@ -50,6 +52,7 @@ public class AchievementManager : MonoBehaviour
 
     public void ClearAchievementStatus(string id)
     {
+        if (!WebAPI.SteamInitialized) return;
         var ach = new Steamworks.Data.Achievement(id);
         ach.Clear();
         Debug.Log($"Achievement {id} cleared");
