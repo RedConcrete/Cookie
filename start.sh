@@ -15,7 +15,7 @@ sleep 5
 
 echo "[2/2] Frontend starten..."
 cd "$REPO/frontend"
-[ ! -d node_modules ] && npm install
+if [ ! -d node_modules ]; then npm install; fi
 npm run dev &
 FRONTEND_PID=$!
 

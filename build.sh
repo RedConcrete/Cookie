@@ -43,7 +43,7 @@ menu() {
         sleep 5
         echo -e "${CYAN}[Dev] Starte Frontend...${NC}"
         cd "$REPO/frontend"
-        [ ! -d node_modules ] && npm install
+        if [ ! -d node_modules ]; then npm install; fi
         npm run dev &
         FRONTEND_PID=$!
         echo ""
@@ -51,7 +51,7 @@ menu() {
         echo -e "${GREEN}Frontend: http://localhost:5173${NC}"
         echo ""
         echo "  Ctrl+C zum Stoppen"
-        wait $BACKEND_PID $FRONTEND_PID
+        wait $BACKEND_PID $FRONTEND_PID || true
         ;;
       2)
         build_backend
