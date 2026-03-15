@@ -134,9 +134,48 @@ player.initial-milk=1000
 
 ---
 
-## Starten
+## Build & Start
 
-### Docker (empfohlen)
+### build.bat / build.sh — Interaktives Menü
+
+```
+==========================================
+ Cookie Game — Build & Start
+==========================================
+
+  1  Dev starten    (Backend + Frontend)
+  2  Windows bauen  (.exe Installer)
+  3  Linux bauen    (AppImage)
+  4  Beides bauen   (Windows + Linux)
+  5  Docker starten
+  6  Beenden
+```
+
+**Windows:** Doppelklick auf `build.bat`
+
+**Linux / WSL:**
+```bash
+./build.sh
+```
+
+#### Build-Ausgabe
+
+Nach Auswahl 2/3/4 liegt das fertige Paket in `frontend/release/`:
+
+| Plattform | Datei |
+|---|---|
+| Windows | `Cookie Setup x.x.x.exe` (NSIS Installer) |
+| Linux | `Cookie-x.x.x.AppImage` |
+
+Der Build-Prozess:
+1. Baut das Backend zu einer JAR-Datei (`mvnw package`)
+2. Baut das Frontend mit Vite (`vite build`)
+3. Packt alles mit electron-builder zusammen
+4. Die Backend-JAR wird automatisch in die App eingebettet und beim Start geladen
+
+---
+
+### Docker (alle Services in Containern)
 
 Startet PostgreSQL, Backend und Frontend automatisch in Containern.
 

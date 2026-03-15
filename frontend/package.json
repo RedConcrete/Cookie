@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-builder"
+    "build:win": "vite build && electron-builder --win",
+    "build:linux": "vite build && electron-builder --linux",
+    "build:all": "vite build && electron-builder --win --linux"
   },
   "dependencies": {
     "chart.js": "^4.4.0",
@@ -27,15 +29,32 @@
   "build": {
     "appId": "de.cookie.game",
     "productName": "Cookie",
-    "files": ["dist/**/*", "electron/**/*"],
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../Server/cookie-server-spring-boot/target/",
+        "to": "backend/",
+        "filter": ["*.jar", "!*sources*"]
+      }
+    ],
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
     },
     "linux": {
-      "target": "AppImage"
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "category": "Game"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "../assets/icon.ico",
+      "uninstallerIcon": "../assets/icon.ico"
     }
   }
 }
