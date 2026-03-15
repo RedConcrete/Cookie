@@ -20,7 +20,7 @@ public class MarketController {
 
     @GetMapping("/get/{amount}")
     public ResponseEntity<List<MarketDto>> getMarketInfo(@PathVariable int amount) {
-        return null;
+        return ResponseEntity.ok(marketService.getMarketData(amount));
     }
 
     @GetMapping("/all")

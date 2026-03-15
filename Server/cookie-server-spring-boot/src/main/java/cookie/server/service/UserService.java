@@ -6,11 +6,15 @@ import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
 @Service
 public class UserService {
+
+    private static final double RECIPE_INGREDIENT_PER_BATCH = 10.0;
+    private static final double RECIPE_COOKIES_PER_BATCH    = 100.0;
 
     private final UserRepository userRepository;
     private final PlayerConfig playerConfig;
@@ -58,6 +62,36 @@ public class UserService {
                 });
     }
 
+
+    @Transactional
+    public UserInformationDto produce(String userId, int batches) {
+        if (batches < 1) {
+            throw new IllegalArgumentException("Amount must be at least 1");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+
+        double required = batches * RECIPE_INGREDIENT_PER_BATCH;
+
+        if (user.getSugar()     < required) throw new IllegalArgumentException("Not enough sugar. Need " + required + ", have " + user.getSugar());
+        if (user.getFlour()     < required) throw new IllegalArgumentException("Not enough flour. Need " + required + ", have " + user.getFlour());
+        if (user.getEggs()      < required) throw new IllegalArgumentException("Not enough eggs. Need " + required + ", have " + user.getEggs());
+        if (user.getButter()    < required) throw new IllegalArgumentException("Not enough butter. Need " + required + ", have " + user.getButter());
+        if (user.getChocolate() < required) throw new IllegalArgumentException("Not enough chocolate. Need " + required + ", have " + user.getChocolate());
+        if (user.getMilk()      < required) throw new IllegalArgumentException("Not enough milk. Need " + required + ", have " + user.getMilk());
+
+        user.setSugar(user.getSugar()         - required);
+        user.setFlour(user.getFlour()         - required);
+        user.setEggs(user.getEggs()           - required);
+        user.setButter(user.getButter()       - required);
+        user.setChocolate(user.getChocolate() - required);
+        user.setMilk(user.getMilk()           - required);
+        user.setCookies(user.getCookies()     + batches * RECIPE_COOKIES_PER_BATCH);
+
+        userRepository.save(user);
+        return toDto(user);
+    }
 
     public void deleteUser(String userId) {
         if (!userRepository.existsById(userId)) {

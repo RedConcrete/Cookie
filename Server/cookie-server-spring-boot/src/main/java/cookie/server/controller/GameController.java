@@ -1,5 +1,6 @@
 package cookie.server.controller;
 
+import cookie.server.dto.ProduceRequestDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.dto.UserMarketDataDto;
 import cookie.server.service.MarketService;
@@ -26,5 +27,10 @@ public class GameController {
                 user,
                 marketService.getMarketData(marketHistoryAmount)
         ));
+    }
+
+    @PostMapping("/produce/{userId}")
+    public ResponseEntity<UserInformationDto> produce(@PathVariable String userId, @RequestBody ProduceRequestDto request) {
+        return ResponseEntity.ok(userService.produce(userId, request.getAmount()));
     }
 }
