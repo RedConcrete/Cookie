@@ -32,12 +32,18 @@ menu() {
 
     case "$choice" in
       1)
+        echo -e "${CYAN}[Dev] Stoppe alte Prozesse...${NC}"
+        fuser -k 9876/tcp 2>/dev/null
+        fuser -k 5173/tcp 2>/dev/null
+        sleep 1
         echo -e "${CYAN}[Dev] Starte Backend...${NC}"
         cd "$REPO/backend/cookie-server-spring-boot"
         ./mvnw spring-boot:run &
         BACKEND_PID=$!
+        sleep 5
         echo -e "${CYAN}[Dev] Starte Frontend...${NC}"
         cd "$REPO/frontend"
+        [ ! -d node_modules ] && npm install
         npm run dev &
         FRONTEND_PID=$!
         echo ""
