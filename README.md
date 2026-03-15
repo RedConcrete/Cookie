@@ -136,7 +136,42 @@ player.initial-milk=1000
 
 ## Starten
 
-### Schnellstart (Windows)
+### Docker (empfohlen)
+
+Startet PostgreSQL, Backend und Frontend automatisch in Containern.
+
+**Voraussetzung:** Docker Desktop läuft
+
+```bash
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:9876 |
+| PostgreSQL | localhost:5432 |
+
+Beim ersten Start wird die Datenbank automatisch eingerichtet (`database/setup.sql`).
+
+Neu bauen nach Code-Änderungen:
+```bash
+docker compose up --build
+```
+
+Stoppen:
+```bash
+docker compose down
+```
+
+Datenbank komplett zurücksetzen:
+```bash
+docker compose down -v
+```
+
+---
+
+### Schnellstart ohne Docker (Windows)
 
 Doppelklick auf `start.bat` im Repo-Root.
 
