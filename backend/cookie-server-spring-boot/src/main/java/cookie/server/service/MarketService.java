@@ -157,9 +157,6 @@ public class MarketService {
             } else {
                 logger.warn("Invalid market entry detected after trade, skipping save");
             }
-            
-            // Broadcast update
-            webSocketHandler.broadcastMarketUpdate(getMarketData(20));
 
         } finally {
             marketLock.unlock();
