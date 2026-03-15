@@ -1,6 +1,6 @@
 # Cookie Game
 
-Ein Idle-Economy-Spiel. Spieler produzieren Cookies aus Zutaten und handeln Ressourcen auf einem globalen Spieler-getriebenen Markt.
+Ein Idle-Economy-Spiel. Spieler produzieren Zutaten und handeln Ressourcen auf einem globalen Spieler-getriebenen Markt.
 
 ---
 
@@ -8,12 +8,13 @@ Ein Idle-Economy-Spiel. Spieler produzieren Cookies aus Zutaten und handeln Ress
 
 ```
 Cookie/
-├── Server/
+├── backend/
 │   └── cookie-server-spring-boot/   ← Java Spring Boot Backend (Port 9876)
 ├── frontend/                         ← Vue 3 + Electron Frontend (Port 5173)
 ├── database/
 │   └── setup.sql                     ← Datenbank-Schema (einmalig ausführen)
-├── start.bat                         ← Startet Backend + Frontend
+├── start.sh                          ← Schnellstart Backend + Frontend (WSL/Linux)
+├── build.sh                          ← Interaktives Build-Menü (WSL/Linux)
 └── README.md
 ```
 
@@ -38,7 +39,7 @@ Standard-Zugangsdaten (lokal):
 Host:     localhost
 Port:     5432
 User:     postgres
-Password: (dein postgres-Passwort)
+Password: 1234
 DB:       cookie
 ```
 
@@ -50,12 +51,7 @@ In pgAdmin: Rechtsklick auf **Databases** → **Create** → **Database** → Na
 
 Option A — Automatisch (beim ersten Backend-Start via Hibernate `ddl-auto=update`)
 
-Option B — Manuell in pgAdmin Query Tool:
-```sql
--- Inhalt von database/setup.sql einfügen und ausführen
-```
-
-Oder via psql:
+Option B — Manuell via psql:
 ```bash
 psql -U postgres -d cookie -f database/setup.sql
 ```
@@ -65,8 +61,7 @@ psql -U postgres -d cookie -f database/setup.sql
 **`players`** — Spielerdaten
 ```sql
 steamid TEXT PRIMARY KEY
-token TEXT
-cookies FLOAT   -- Hauptwährung
+cookies FLOAT
 sugar FLOAT
 flour FLOAT
 eggs FLOAT
@@ -109,12 +104,16 @@ server.port=9876
 
 spring.datasource.url=jdbc:postgresql://localhost:5432/cookie
 spring.datasource.username=postgres
-spring.datasource.password=DEIN_PASSWORT
+spring.datasource.password=1234
+
+# Dev-Modus: true = Browser-Zugriff erlaubt (DEV_PLAYER_001)
+#            false = nur Electron/Steam erlaubt
+app.dev-mode=true
 
 # Marktpreise alle 2 Sekunden aktualisieren
 market.update-interval-ms=2000
 
-# Startpreis pro Ressource (Cookies)
+# Startpreise pro Ressource (Cookies)
 market.initial-sugar-price=1.0
 market.initial-flour-price=1.5
 market.initial-eggs-price=2.0
@@ -136,7 +135,37 @@ player.initial-milk=1000
 
 ## Build & Start
 
-### build.bat / build.sh — Interaktives Menü
+### start.sh — Schnellstart mit Health-Check
+
+```bash
+./start.sh
+```
+
+Zeigt nur Status-Zusammenfassung — keine rohen Logs:
+```
+  Cookie Game — Dev Start
+  ========================
+
+  [1/3] Stoppe alte Prozesse ... OK
+  [2/3] Backend starten      ... OK  (PID 1234)
+  [3/3] Frontend starten     ... OK  (PID 1235)
+
+  ========================
+  Backend:  http://localhost:9876
+  Frontend: http://localhost:5173
+  Logs:     .logs/
+  ========================
+```
+
+Logs landen in `.logs/backend.log` und `.logs/frontend.log`.
+
+---
+
+### build.sh — Interaktives Menü
+
+```bash
+./build.sh
+```
 
 ```
 ==========================================
@@ -144,23 +173,22 @@ player.initial-milk=1000
 ==========================================
 
   1  Dev starten    (Backend + Frontend)
-  2  Windows bauen  (.exe Installer)
-  3  Linux bauen    (AppImage)
-  4  Beides bauen   (Windows + Linux)
+  2  Linux bauen    (AppImage)
+  3  Windows bauen  (.exe Installer)
+  4  Beides bauen
   5  Docker starten
   6  Beenden
 ```
 
-**Windows:** Doppelklick auf `build.bat`
-
-**Linux / WSL:**
-```bash
-./build.sh
+**Windows-Build** läuft direkt auf Windows (kein WSL nötig):
+```powershell
+cd frontend
+npm run build:win
 ```
 
 #### Build-Ausgabe
 
-Nach Auswahl 2/3/4 liegt das fertige Paket in `frontend/release/`:
+Nach Build liegt das fertige Paket in `frontend/release/`:
 
 | Plattform | Datei |
 |---|---|
@@ -168,18 +196,14 @@ Nach Auswahl 2/3/4 liegt das fertige Paket in `frontend/release/`:
 | Linux | `Cookie-x.x.x.AppImage` |
 
 Der Build-Prozess:
-1. Baut das Backend zu einer JAR-Datei (`mvnw package`)
+1. Baut das Backend zu einer JAR (`mvnw package`)
 2. Baut das Frontend mit Vite (`vite build`)
 3. Packt alles mit electron-builder zusammen
-4. Die Backend-JAR wird automatisch in die App eingebettet und beim Start geladen
+4. Die Backend-JAR wird automatisch eingebettet und beim Start geladen
 
 ---
 
 ### Docker (alle Services in Containern)
-
-Startet PostgreSQL, Backend und Frontend automatisch in Containern.
-
-**Voraussetzung:** Docker Desktop läuft
 
 ```bash
 docker compose up --build
@@ -191,50 +215,32 @@ docker compose up --build
 | Backend API | http://localhost:9876 |
 | PostgreSQL | localhost:5432 |
 
-Beim ersten Start wird die Datenbank automatisch eingerichtet (`database/setup.sql`).
-
-Neu bauen nach Code-Änderungen:
-```bash
-docker compose up --build
-```
-
 Stoppen:
 ```bash
 docker compose down
 ```
 
-Datenbank komplett zurücksetzen:
+Datenbank zurücksetzen:
 ```bash
 docker compose down -v
 ```
 
 ---
 
-### Schnellstart ohne Docker (Windows)
-
-Doppelklick auf `start.bat` im Repo-Root.
-
-Öffnet zwei Terminals:
-- **Cookie Backend** — Spring Boot startet auf Port 9876
-- **Cookie Frontend** — `npm install` (einmalig) + Vite auf Port 5173
-
-Dann im Browser: **http://localhost:5173**
-
 ### Manuell
 
 **Backend:**
 ```bash
 cd backend/cookie-server-spring-boot
-./mvnw spring-boot:run          # Linux/Mac
-mvnw.cmd spring-boot:run        # Windows
+./mvnw spring-boot:run
 ```
 
 **Frontend:**
 ```bash
 cd frontend
 npm install
-npm run dev                     # Browser (http://localhost:5173)
-npm run electron:dev            # Electron Desktop-Fenster
+npm run dev              # Browser (http://localhost:5173)
+npm run electron:dev     # Electron Desktop-Fenster
 ```
 
 ---
@@ -243,12 +249,17 @@ npm run electron:dev            # Electron Desktop-Fenster
 
 Basis-URL: `http://localhost:9876`
 
+### Config
+
+| Method | Endpoint | Beschreibung |
+|---|---|---|
+| `GET` | `/api/v1/config` | Gibt `{"devMode": true/false}` zurück |
+
 ### Spieler
 
 | Method | Endpoint | Beschreibung |
 |---|---|---|
 | `GET` | `/api/v1/users/{steamId}` | Spieler laden (auto-erstellt wenn neu) |
-| `POST` | `/api/v1/users/{steamId}` | Spieler explizit anlegen |
 | `DELETE` | `/api/v1/users/{steamId}` | Spieler löschen |
 
 ### Spiel
@@ -256,13 +267,12 @@ Basis-URL: `http://localhost:9876`
 | Method | Endpoint | Beschreibung |
 |---|---|---|
 | `GET` | `/api/v1/game/init/{steamId}?marketHistoryAmount=20` | Spieler + Marktdaten in einem Call |
-| `POST` | `/api/v1/game/produce/{steamId}` | Cookies backen |
+| `POST` | `/api/v1/game/harvest/{steamId}` | Ressource ernten (+1) |
 
 ### Markt
 
 | Method | Endpoint | Beschreibung |
 |---|---|---|
-| `GET` | `/api/v1/market/all` | Alle Markt-Snapshots |
 | `GET` | `/api/v1/market/get/{amount}` | Letzte N Snapshots |
 | `POST` | `/api/v1/market` | Ressource kaufen oder verkaufen |
 
@@ -306,16 +316,14 @@ Content-Type: application/json
 `action`: `BUY` oder `SELL`
 `name`: `SUGAR` | `FLOUR` | `EGGS` | `BUTTER` | `CHOCOLATE` | `MILK`
 
-### Produce Request
+### Harvest Request
 
 ```http
-POST /api/v1/game/produce/{steamId}
+POST /api/v1/game/harvest/{steamId}
 Content-Type: application/json
 
-{ "amount": 3 }
+{ "resource": "SUGAR" }
 ```
-
-Rezept (pro Batch): 10x jede Zutat → 100 Cookies
 
 ---
 
@@ -327,6 +335,7 @@ Preise reagieren auf Angebot und Nachfrage:
 - **Verkauf** → Preis sinkt, Lagerbestand steigt
 - **Zufällige Schwankung** alle 2 Sekunden (konfigurierbar)
 - Preise werden per **WebSocket** live an alle Clients gepusht
+- Preisänderungen durch Trades werden **nicht** sofort gesendet — nur beim nächsten Scheduler-Tick
 
 Formel Handelseinfluss:
 ```
@@ -338,10 +347,13 @@ preisänderung = (menge / lagerbestand) × preis × tradeImpactMultiplier
 ## Spielmechanik
 
 ### Ressourcen
-- **Cookies** — Hauptwährung (kaufen/verkaufen/backen)
+- **Cookies** — Hauptwährung (kaufen/verkaufen)
 - **Zucker, Mehl, Eier, Butter, Schokolade, Milch** — handelbare Zutaten
 
-### Rezept (Basis)
+### Produktion
+Im **Produktion**-Tab können Spieler durch Hover über eine Ressource diese ernten (+1/s solange gehovered).
+
+### Rezept (geplant)
 ```
 10x Zucker + 10x Mehl + 10x Eier + 10x Butter + 10x Schokolade + 10x Milch
 → 100 Cookies
@@ -356,14 +368,9 @@ Neuer Spieler erhält: `100 Cookies` + `1000x` jede Ressource
 
 Steam App ID: `2816100`
 
-In `electron/main.js` ist ein Stub hinterlegt. Für echte Steam-Auth:
+Electron lädt beim Start automatisch Steam via `steamworks.js`. Falls Steam nicht verfügbar ist (z.B. Dev-Umgebung), wird `DEV_PLAYER_001` als Fallback verwendet.
 
-```bash
-cd frontend
-npm install steamworks.js
-```
-
-Dann in `electron/main.js` den Kommentar-Block mit der echten Implementierung einkommentieren.
+Für Dev-Tests außerhalb Steam: `frontend/steam_appid.txt` (enthält `2816100`) im `frontend/`-Verzeichnis ablegen, dann via `npm run electron:dev` starten.
 
 ---
 
@@ -372,19 +379,17 @@ Dann in `electron/main.js` den Kommentar-Block mit der echten Implementierung ei
 ```
 frontend/
 ├── electron/
-│   ├── main.js          ← Electron Hauptprozess, Steam IPC
+│   ├── main.js          ← Electron Hauptprozess, Steam Auth, Backend-Start
 │   └── preload.js       ← contextBridge API für Vue
 ├── src/
 │   ├── App.vue          ← Root, Steam Auth, Navigation
 │   ├── views/
-│   │   ├── MarketView.vue    ← Preistabelle + Chart + Handel
-│   │   └── IdleView.vue      ← Rezept + Produzieren
+│   │   ├── MarketView.vue    ← Hauptseite: Preistabelle + Chart + Inline-Handel
+│   │   └── IdleView.vue      ← Produktion: Hex-Grid Ressourcen (Hover = Ernte)
 │   ├── components/
 │   │   ├── ResourceBar.vue   ← Ressourcenanzeige (Header)
-│   │   ├── MarketTable.vue   ← Klickbare Preistabelle
 │   │   ├── PriceChart.vue    ← Chart.js Preisverlauf
-│   │   ├── TradePanel.vue    ← Kaufen/Verkaufen
-│   │   └── RecipeCard.vue    ← Backen-Interface
+│   │   └── CookieSpinner.vue ← Lade-Animation (Sprite-Sheet)
 │   ├── stores/
 │   │   ├── player.js    ← Pinia: Spielerdaten
 │   │   └── market.js    ← Pinia: Marktpreise + Historie
@@ -401,8 +406,8 @@ frontend/
 | Bereich | Technologie |
 |---|---|
 | Backend | Java 21, Spring Boot 3.2, Spring WebSocket |
-| Datenbank | PostgreSQL 18, Hibernate JPA |
+| Datenbank | PostgreSQL 16+, Hibernate JPA |
 | Frontend | Vue 3, Pinia, Vue Router, Chart.js |
-| Desktop | Electron |
-| Build | Maven (Backend), Vite (Frontend) |
-| Steam | steamworks.js (geplant) |
+| Desktop | Electron 30 |
+| Build | Maven (Backend), Vite 5 (Frontend), electron-builder |
+| Steam | steamworks.js 0.4 |
