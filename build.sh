@@ -33,8 +33,8 @@ menu() {
     case "$choice" in
       1)
         echo -e "${CYAN}[Dev] Stoppe alte Prozesse...${NC}"
-        fuser -k 9876/tcp 2>/dev/null
-        fuser -k 5173/tcp 2>/dev/null
+        fuser -k 9876/tcp 2>/dev/null || true
+        fuser -k 5173/tcp 2>/dev/null || true
         sleep 1
         echo -e "${CYAN}[Dev] Starte Backend...${NC}"
         cd "$REPO/backend/cookie-server-spring-boot"
