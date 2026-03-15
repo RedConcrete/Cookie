@@ -1,8 +1,10 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { spawn } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 
+const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -38,7 +40,6 @@ function createWindow() {
 
 // ---------------------------------------------------------------------------
 // Backend process (only in packaged builds)
-// In dev mode the backend runs separately via start.bat / build.bat
 // ---------------------------------------------------------------------------
 
 function startBackend() {
@@ -67,23 +68,25 @@ function startBackend() {
 
 // ---------------------------------------------------------------------------
 // Steam integration
-// ---------------------------------------------------------------------------
-// Replace this stub with steamworks.js once the package is installed:
-// npm install steamworks.js
-// Then: const steamworks = require('steamworks.js')
+// Steam must be running. Falls back to DEV_PLAYER_001 if unavailable.
+// For dev testing outside Steam: place steam_appid.txt (containing 2816100)
+// in the frontend/ directory, then launch via npm run electron:dev.
 // ---------------------------------------------------------------------------
 
 function initSteam() {
-  // TODO: real Steam init
-  // const client = steamworks.init(2816100)
-  // const steamId = client.localplayer.getSteamId().steamId64.toString()
-  // mainWindow.webContents.on('did-finish-load', () => {
-  //   mainWindow.webContents.send('steam-auth', { steamId })
-  // })
+  let steamId = 'DEV_PLAYER_001'
 
-  const stubSteamId = 'DEV_PLAYER_001'
+  try {
+    const steamworks = require('steamworks.js')
+    const client = steamworks.init(2816100)
+    steamId = client.localplayer.getSteamId().steamId64.toString()
+    console.log('[Steam] Authenticated as', steamId)
+  } catch (err) {
+    console.warn('[Steam] Not available, using stub ID:', err.message)
+  }
+
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('steam-auth', { steamId: stubSteamId })
+    mainWindow.webContents.send('steam-auth', { steamId })
   })
 }
 
