@@ -31,7 +31,7 @@ goto menu
 cls
 echo  [Dev] Starte Backend und Frontend...
 echo.
-start "Cookie Backend" cmd /k "cd /d %~dp0Server\cookie-server-spring-boot && mvnw.cmd spring-boot:run"
+start "Cookie Backend" cmd /k "cd /d %~dp0backend\cookie-server-spring-boot && mvnw.cmd spring-boot:run"
 timeout /t 5 /nobreak >nul
 start "Cookie Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
 echo.
@@ -104,7 +104,7 @@ goto menu
 
 :: ------------------------------------------
 :build_backend
-cd /d %~dp0Server\cookie-server-spring-boot
+cd /d %~dp0backend\cookie-server-spring-boot
 echo  Maven baut JAR (dauert beim ersten Mal 1-2 Minuten)...
 call mvnw.cmd package -DskipTests
 exit /b %errorlevel%

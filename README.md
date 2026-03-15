@@ -102,7 +102,7 @@ milk_stock FLOAT
 
 ## Backend konfigurieren
 
-Datei: `Server/cookie-server-spring-boot/src/main/resources/application.properties`
+Datei: `backend/cookie-server-spring-boot/src/main/resources/application.properties`
 
 ```properties
 server.port=9876
@@ -224,7 +224,7 @@ Dann im Browser: **http://localhost:5173**
 
 **Backend:**
 ```bash
-cd Server/cookie-server-spring-boot
+cd backend/cookie-server-spring-boot
 ./mvnw spring-boot:run          # Linux/Mac
 mvnw.cmd spring-boot:run        # Windows
 ```

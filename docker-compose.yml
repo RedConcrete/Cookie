@@ -21,7 +21,7 @@ services:
 
   backend:
     build:
-      context: ./Server/cookie-server-spring-boot
+      context: ./backend/cookie-server-spring-boot
       dockerfile: Dockerfile
     container_name: cookie-backend
     restart: unless-stopped

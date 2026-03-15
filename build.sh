@@ -9,7 +9,7 @@ NC='\033[0m'
 
 build_backend() {
   echo -e "${CYAN}[Build] Baue Backend JAR...${NC}"
-  cd "$REPO/Server/cookie-server-spring-boot"
+  cd "$REPO/backend/cookie-server-spring-boot"
   ./mvnw package -DskipTests
   echo -e "${GREEN}[Build] JAR fertig.${NC}"
 }
@@ -33,7 +33,7 @@ menu() {
     case "$choice" in
       1)
         echo -e "${CYAN}[Dev] Starte Backend...${NC}"
-        cd "$REPO/Server/cookie-server-spring-boot"
+        cd "$REPO/backend/cookie-server-spring-boot"
         ./mvnw spring-boot:run &
         BACKEND_PID=$!
         echo -e "${CYAN}[Dev] Starte Frontend...${NC}"
