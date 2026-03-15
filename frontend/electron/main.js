@@ -17,7 +17,7 @@ let backendProcess = null
 
 function createWindow() {
   const icon = nativeImage.createFromPath(
-    path.join(__dirname, '../src/assets/Sprites/BackgroundCookieGameIcon.png')
+    path.join(__dirname, '../src/assets/Sprites/RecSprits/BackgroundCookie512.png')
   )
 
   mainWindow = new BrowserWindow({
@@ -25,6 +25,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    fullscreen: true,
     icon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

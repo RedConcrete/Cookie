@@ -30,7 +30,7 @@
   "build": {
     "appId": "de.cookie.game",
     "productName": "Cookie",
-    "icon": "src/assets/Sprites/BackgroundCookieGameIcon.png",
+    "icon": "src/assets/Sprites/RecSprits/BackgroundCookie512.png",
     "files": [
       "dist/**/*",
       "electron/**/*"
@@ -49,6 +49,7 @@
       "output": "release"
     },
     "win": {
+      "icon": "src/assets/Sprites/RecSprits/BackgroundCookie512.png",
       "target": [
         {
           "target": "nsis",
@@ -59,6 +60,7 @@
       ]
     },
     "linux": {
+      "icon": "src/assets/Sprites/RecSprits/BackgroundCookie512.png",
       "target": [
         {
           "target": "AppImage",

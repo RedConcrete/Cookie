@@ -16,7 +16,7 @@
 
 <script setup>
 import { usePlayerStore } from '../stores/player.js'
-import cookieIcon    from '../assets/Sprites/BackgroundCookieGameIcon.png'
+import cookieIcon    from '../assets/Sprites/RecSprits/BackgroundCookie512.png'
 import sugarIcon     from '../assets/Sprites/RecSprits/Zucker.png'
 import flourIcon     from '../assets/Sprites/RecSprits/Mehl.png'
 import eggsIcon      from '../assets/Sprites/RecSprits/Eier.png'

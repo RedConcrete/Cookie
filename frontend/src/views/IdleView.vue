@@ -6,13 +6,14 @@
         :key="res.name"
         class="hex-card"
         :class="{ 'harvest-flash': flashing[res.name] }"
-        @mouseenter="onHover(res.name)"
+        @mouseenter="startHarvest(res.name)"
+        @mouseleave="stopHarvest(res.name)"
       >
         <div class="hex-card-img">
           <img :src="res.icon" :alt="res.label" />
         </div>
         <div class="hex-card-label">{{ res.label }}</div>
-        <div class="hex-card-hint">+1 bei Hover</div>
+        <div class="hex-card-hint">+1/s bei Hover</div>
       </div>
     </div>
   </div>
@@ -40,22 +41,29 @@ const resources = [
   { name: 'MILK',      label: 'Milch',      icon: milkIcon   },
 ]
 
-const flashing = reactive({})
-const cooldown = reactive({})
+const flashing  = reactive({})
+const intervals = reactive({})
 
-async function onHover(name) {
-  if (cooldown[name]) return
-  cooldown[name] = true
+async function doHarvest(name) {
   flashing[name] = true
   setTimeout(() => { flashing[name] = false }, 300)
-  setTimeout(() => { cooldown[name] = false }, 600)
-
   try {
     const updated = await harvestResource(playerStore.steamId, name)
     playerStore.updateFromDto(updated)
   } catch (e) {
     console.error('[Harvest] failed', e)
   }
+}
+
+function startHarvest(name) {
+  if (intervals[name]) return
+  doHarvest(name)
+  intervals[name] = setInterval(() => doHarvest(name), 1000)
+}
+
+function stopHarvest(name) {
+  clearInterval(intervals[name])
+  intervals[name] = null
 }
 </script>
 

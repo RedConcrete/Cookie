@@ -2,6 +2,9 @@
 set -e
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
@@ -42,10 +45,13 @@ menu() {
         BACKEND_PID=$!
         sleep 5
         echo -e "${CYAN}[Dev] Starte Frontend...${NC}"
+        echo "[Debug] npm Pfad: $(which npm 2>/dev/null || echo 'NICHT GEFUNDEN')"
+        echo "[Debug] node Pfad: $(which node 2>/dev/null || echo 'NICHT GEFUNDEN')"
         cd "$REPO/frontend"
         if [ ! -d node_modules ]; then npm install; fi
         npm run dev &
         FRONTEND_PID=$!
+        echo "[Debug] Frontend PID: $FRONTEND_PID"
         echo ""
         echo -e "${GREEN}Backend:  http://localhost:9876${NC}"
         echo -e "${GREEN}Frontend: http://localhost:5173${NC}"
