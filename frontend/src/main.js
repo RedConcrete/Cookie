@@ -9,8 +9,8 @@ import './assets/styles/main.css'
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', component: IdleView },
-    { path: '/market', component: MarketView }
+    { path: '/', component: MarketView },
+    { path: '/produktion', component: IdleView }
   ]
 })
 

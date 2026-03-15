@@ -8,8 +8,8 @@
       <header class="app-header">
         <ResourceBar />
         <nav class="app-nav">
-          <RouterLink to="/" class="nav-link">Produktion</RouterLink>
-          <RouterLink to="/market" class="nav-link">Markt</RouterLink>
+          <RouterLink to="/" class="nav-link">Markt</RouterLink>
+          <RouterLink to="/produktion" class="nav-link">Produktion</RouterLink>
         </nav>
       </header>
 

@@ -4,6 +4,7 @@ import cookie.server.config.PlayerConfig;
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.UserEntity;
+import cookie.server.enums.ResourceName;
 import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +90,22 @@ public class UserService {
         user.setMilk(user.getMilk()           - required);
         user.setCookies(user.getCookies()     + batches * RECIPE_COOKIES_PER_BATCH);
 
+        userRepository.save(user);
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserInformationDto harvest(String userId, ResourceName resource) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+        switch (resource) {
+            case SUGAR     -> user.setSugar(user.getSugar()         + 1);
+            case FLOUR     -> user.setFlour(user.getFlour()         + 1);
+            case EGGS      -> user.setEggs(user.getEggs()           + 1);
+            case BUTTER    -> user.setButter(user.getButter()       + 1);
+            case CHOCOLATE -> user.setChocolate(user.getChocolate() + 1);
+            case MILK      -> user.setMilk(user.getMilk()           + 1);
+        }
         userRepository.save(user);
         return toDto(user);
     }

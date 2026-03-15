@@ -1,5 +1,6 @@
 package cookie.server.controller;
 
+import cookie.server.dto.HarvestRequestDto;
 import cookie.server.dto.ProduceRequestDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.dto.UserMarketDataDto;
@@ -32,5 +33,10 @@ public class GameController {
     @PostMapping("/produce/{userId}")
     public ResponseEntity<UserInformationDto> produce(@PathVariable String userId, @RequestBody ProduceRequestDto request) {
         return ResponseEntity.ok(userService.produce(userId, request.getAmount()));
+    }
+
+    @PostMapping("/harvest/{userId}")
+    public ResponseEntity<UserInformationDto> harvest(@PathVariable String userId, @RequestBody HarvestRequestDto request) {
+        return ResponseEntity.ok(userService.harvest(userId, request.getResource()));
     }
 }

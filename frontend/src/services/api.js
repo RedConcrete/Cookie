@@ -51,6 +51,11 @@ export function getMarketHistory(amount = 20) {
   return request('GET', `/api/v1/market/get/${amount}`)
 }
 
+// Harvest 1 unit of a resource by hovering.
+export function harvestResource(steamId, resourceName) {
+  return request('POST', `/api/v1/game/harvest/${steamId}`, { resource: resourceName })
+}
+
 // Produce cookies from ingredients.
 // batches: how many times to run the recipe (1 batch = 10x each ingredient → 100 cookies)
 // Returns: UserInformationDto (updated player state)
