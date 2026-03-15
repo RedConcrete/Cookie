@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(git add:*)",
+      "Bash(java:*)",
+      "Bash(git commit:*)",
+      "Bash(git:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(\"/mnt/c/Program Files/nodejs/npm.cmd\" install:*)",
+      "Bash(\"/mnt/c/Program Files/PostgreSQL/18/bin/psql.exe\":*)",
+      "Bash(/tmp/pgtest.bat:*)",
+      "Bash(/tmp/pgsetup.bat:*)",
+      "Bash(/tmp/start_backend.bat:*)",
+      "Bash(/tmp/kill9876.bat:*)",
+      "Bash(/tmp/start_frontend.bat:*)",
+      "Bash(docker info:*)",
+      "Bash(docker compose:*)",
+      "Bash(/tmp/kill_ports.bat:*)",
+      "Bash(chmod +x:*)"
+    ]
+  }
+}
