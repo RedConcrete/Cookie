@@ -14,7 +14,9 @@
       </header>
 
       <main class="app-content">
-        <div v-if="playerStore.loading" class="status-overlay">Verbinde...</div>
+        <div v-if="playerStore.loading" class="status-overlay">
+          <CookieSpinner />
+        </div>
         <div v-else-if="playerStore.error" class="status-overlay error">
           Fehler: {{ playerStore.error }}
         </div>
@@ -28,6 +30,7 @@
 import { ref, onMounted } from 'vue'
 import { usePlayerStore } from './stores/player.js'
 import ResourceBar from './components/ResourceBar.vue'
+import CookieSpinner from './components/CookieSpinner.vue'
 
 const playerStore = usePlayerStore()
 const blocked = ref(false)

@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeImage } from 'electron'
 import { spawn } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -16,11 +16,16 @@ let backendProcess = null
 // ---------------------------------------------------------------------------
 
 function createWindow() {
+  const icon = nativeImage.createFromPath(
+    path.join(__dirname, '../src/assets/Sprites/BackgroundCookieGameIcon.png')
+  )
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    icon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -30,6 +30,7 @@
   "build": {
     "appId": "de.cookie.game",
     "productName": "Cookie",
+    "icon": "src/assets/Sprites/BackgroundCookieGameIcon.png",
     "files": [
       "dist/**/*",
       "electron/**/*"
