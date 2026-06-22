@@ -5,7 +5,10 @@ import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.enums.ResourceName;
+import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
+import cookie.server.service.PrestigeService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +22,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PlayerConfig playerConfig;
+    private final PlayerUpgradeRepository playerUpgradeRepository;
 
-    public UserService(UserRepository userRepository, PlayerConfig playerConfig) {
+    public UserService(UserRepository userRepository, PlayerConfig playerConfig,
+                       PlayerUpgradeRepository playerUpgradeRepository) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
+        this.playerUpgradeRepository = playerUpgradeRepository;
     }
 
     public UserInformationDto createUser(String userId, UserDto dto) {
@@ -98,13 +104,21 @@ public class UserService {
     public UserInformationDto harvest(String userId, ResourceName resource) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+
+        int boostLevel = playerUpgradeRepository
+                .findByUserIdAndUpgradeId(userId, "boost_harvest")
+                .map(pu -> pu.getLevel())
+                .orElse(0);
+        double prestigeMultiplier = PrestigeService.calcMultiplier(user.getPrestigeLevel());
+        double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier;
+
         switch (resource) {
-            case SUGAR     -> user.setSugar(user.getSugar()         + 1);
-            case FLOUR     -> user.setFlour(user.getFlour()         + 1);
-            case EGGS      -> user.setEggs(user.getEggs()           + 1);
-            case BUTTER    -> user.setButter(user.getButter()       + 1);
-            case CHOCOLATE -> user.setChocolate(user.getChocolate() + 1);
-            case MILK      -> user.setMilk(user.getMilk()           + 1);
+            case SUGAR     -> user.setSugar(user.getSugar()         + amount);
+            case FLOUR     -> user.setFlour(user.getFlour()         + amount);
+            case EGGS      -> user.setEggs(user.getEggs()           + amount);
+            case BUTTER    -> user.setButter(user.getButter()       + amount);
+            case CHOCOLATE -> user.setChocolate(user.getChocolate() + amount);
+            case MILK      -> user.setMilk(user.getMilk()           + amount);
         }
         userRepository.save(user);
         return toDto(user);

@@ -1,0 +1,53 @@
+/* NestedTooltip.css — global einbinden (z.B. in main.js oder App.vue) */
+
+.tooltip-trigger {
+  display: inline;
+  cursor: default;
+}
+
+/* ── Popup ─────────────────────────────────────────────── */
+.tt-popup {
+  position: absolute;
+  z-index: 9000;
+  max-width: 280px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  pointer-events: all;
+
+  /* Depth 0: dunkel */
+  background: #1e1e2e;
+  color: #e2e2f0;
+  border: 1px solid #3a3a55;
+}
+
+/* Depth 1+: etwas heller, leicht versetzt im Farbton */
+.tt-depth-1 { background: #252540; border-color: #4a4a6a; }
+.tt-depth-2 { background: #2c2c50; border-color: #5a5a80; }
+.tt-depth-3 { background: #323268; border-color: #6a6a90; }
+
+/* ── Highlighted Text im Tooltip ───────────────────────── */
+.tt-highlight {
+  display: inline;
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(160, 160, 255, 0.7);
+  color: #a0aaff;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tt-highlight:hover {
+  color: #c8d0ff;
+  border-bottom-color: rgba(200, 208, 255, 0.9);
+}
+
+/* ── Transition ─────────────────────────────────────────── */
+.tt-fade-enter-active,
+.tt-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.tt-fade-enter-from,
+.tt-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}

@@ -20,6 +20,9 @@ public class UserEntity {
     private double butter;
     private double chocolate;
     private double milk;
+    private double lifetimeCookiesBaked;
+    private int prestigeLevel;
+    private int totalPrestiges;
 
     public String getSteamId() {
         return steamId;
@@ -91,5 +94,29 @@ public class UserEntity {
 
     public void setMilk(double milk) {
         this.milk = milk;
+    }
+
+    public double getLifetimeCookiesBaked() {
+        return lifetimeCookiesBaked;
+    }
+
+    public void setLifetimeCookiesBaked(double lifetimeCookiesBaked) {
+        this.lifetimeCookiesBaked = lifetimeCookiesBaked;
+    }
+
+    public int getPrestigeLevel() {
+        return prestigeLevel;
+    }
+
+    public void setPrestigeLevel(int prestigeLevel) {
+        this.prestigeLevel = prestigeLevel;
+    }
+
+    public int getTotalPrestiges() {
+        return totalPrestiges;
+    }
+
+    public void setTotalPrestiges(int totalPrestiges) {
+        this.totalPrestiges = totalPrestiges;
     }
 }

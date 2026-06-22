@@ -1,21 +1,33 @@
 <template>
   <div class="resource-bar">
-    <div class="resource-item resource-item-cookies">
-      <img :src="cookieIcon" class="resource-cookie-icon" alt="Cookie" />
-      <span class="resource-value cookies-value">{{ fmt(playerStore.cookies) }}</span>
-    </div>
-    <div v-for="res in resources" :key="res.key" class="resource-item">
-      <img :src="res.icon" class="resource-icon" :alt="res.label" />
-      <div class="resource-text">
-        <span class="resource-label">{{ res.label }}</span>
-        <span class="resource-value">{{ fmt(playerStore[res.key]) }}</span>
+
+    <!-- Cookies -->
+    <NestedTooltip :content="cookieTooltip">
+      <div class="resource-item resource-item-cookies">
+        <img :src="cookieIcon" class="resource-cookie-icon" alt="Cookie" />
+        <span class="resource-value cookies-value">{{ fmt(playerStore.cookies) }}</span>
       </div>
-    </div>
+    </NestedTooltip>
+
+    <!-- Ressourcen -->
+    <NestedTooltip v-for="res in resources" :key="res.key" :content="resTooltip(res)">
+      <div class="resource-item">
+        <img :src="res.icon" class="resource-icon" :alt="res.label" />
+        <div class="resource-text">
+          <span class="resource-label">{{ res.label }}</span>
+          <span class="resource-value">{{ fmt(playerStore[res.key]) }}</span>
+        </div>
+      </div>
+    </NestedTooltip>
+
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
+import { useMarketStore } from '../stores/market.js'
+import NestedTooltip from './NestedTooltip.vue'
 import cookieIcon    from '../assets/Sprites/RecSprits/BackgroundCookie512.png'
 import sugarIcon     from '../assets/Sprites/RecSprits/Zucker.png'
 import flourIcon     from '../assets/Sprites/RecSprits/Mehl.png'
@@ -25,18 +37,40 @@ import chocoIcon     from '../assets/Sprites/RecSprits/SchokiIcon.png'
 import milkIcon      from '../assets/Sprites/RecSprits/MilchIcon.png'
 
 const playerStore = usePlayerStore()
+const marketStore = useMarketStore()
 
 const resources = [
-  { key: 'sugar',     label: 'Zucker',     icon: sugarIcon  },
-  { key: 'flour',     label: 'Mehl',       icon: flourIcon  },
-  { key: 'eggs',      label: 'Eier',       icon: eggsIcon   },
-  { key: 'butter',    label: 'Butter',     icon: butterIcon },
-  { key: 'chocolate', label: 'Schokolade', icon: chocoIcon  },
-  { key: 'milk',      label: 'Milch',      icon: milkIcon   },
+  { key: 'sugar',     label: 'Zucker',     name: 'SUGAR',     icon: sugarIcon  },
+  { key: 'flour',     label: 'Mehl',       name: 'FLOUR',     icon: flourIcon  },
+  { key: 'eggs',      label: 'Eier',       name: 'EGGS',      icon: eggsIcon   },
+  { key: 'butter',    label: 'Butter',     name: 'BUTTER',    icon: butterIcon },
+  { key: 'chocolate', label: 'Schokolade', name: 'CHOCOLATE', icon: chocoIcon  },
+  { key: 'milk',      label: 'Milch',      name: 'MILK',      icon: milkIcon   },
 ]
 
-function fmt(v) {
-  return Number(v).toFixed(1)
+const cookieTooltip = computed(() => [
+  { text: `Cookies: ${fmt(playerStore.cookies)}` },
+  { text: `\nNet Worth: ${fmtBig(playerStore.netWorth)}` },
+])
+
+function resTooltip(res) {
+  const amount   = playerStore[res.key] ?? 0
+  const price    = marketStore.priceOf(res.name)
+  const sellVal  = amount * price * 0.85   // nach 15% Gebühr
+  return [
+    { text: `${res.label}: ${fmt(amount)}` },
+    { text: `\nMarktpreis: ${price.toFixed(4)} C` },
+    { text: `\nVerkaufswert: `, tooltip: 'Menge × Preis × 0.85 (nach Gebühr)' },
+    { text: `${fmt2(sellVal)} C` },
+  ]
+}
+
+function fmt(v)    { return Number(v).toFixed(1) }
+function fmt2(v)   { return Number(v).toFixed(2) }
+function fmtBig(v) {
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
+  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
+  return Number(v ?? 0).toFixed(1)
 }
 </script>
 
@@ -50,6 +84,7 @@ function fmt(v) {
   background: rgba(255,255,255,0.12);
   padding: 3px 8px;
   border-radius: 10px;
+  cursor: default;
 }
 
 .resource-item-cookies {

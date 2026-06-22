@@ -33,8 +33,39 @@ body {
   flex-shrink: 0;
 }
 
-.app-content { flex: 1; overflow: auto; padding: 20px; }
-.app-nav { display: flex; gap: 12px; margin-left: auto; }
+.app-content { flex: 1; overflow: hidden; padding: 0; }
+
+.header-nav {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.nav-btn {
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.1);
+  color: #F5EDD6;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.25); }
+
+.header-networth {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 2px 8px;
+  background: rgba(100,200,100,0.2);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.header-networth .nw-label { font-size: 9px; color: #F5EDD6; opacity: 0.75; line-height: 1; }
+.header-networth .nw-val   { font-size: 14px; font-weight: 700; color: #aaff88; line-height: 1.3; }
 
 .nav-link {
   color: #F5EDD6;

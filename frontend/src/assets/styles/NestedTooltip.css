@@ -1,0 +1,92 @@
+/* NestedTooltip.css — global einbinden (z.B. in main.js oder App.vue) */
+
+.tooltip-trigger {
+  display: inline;
+  cursor: default;
+}
+
+/* ── Popup ─────────────────────────────────────────────── */
+.tt-popup {
+  position: fixed;
+  z-index: 9000;
+  max-width: 340px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  pointer-events: all;
+  white-space: pre-wrap;
+  font-family: monospace;
+
+  /* Depth 0: dunkel */
+  background: #1e1e2e;
+  color: #e2e2f0;
+  border: 1px solid #3a3a55;
+}
+
+/* Depth 1+: etwas heller, leicht versetzt im Farbton */
+.tt-depth-1 { background: #252540; border-color: #4a4a6a; }
+.tt-depth-2 { background: #2c2c50; border-color: #5a5a80; }
+.tt-depth-3 { background: #323268; border-color: #6a6a90; }
+
+/* ── Highlighted Text im Tooltip ───────────────────────── */
+.tt-highlight {
+  display: inline;
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(160, 160, 255, 0.7);
+  color: #a0aaff;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tt-highlight:hover {
+  color: #c8d0ff;
+  border-bottom-color: rgba(200, 208, 255, 0.9);
+}
+
+/* ── Phase 1: Füll-Balken am Trigger ───────────────────── */
+.tt-fill-indicator {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: rgba(160,170,255,0.5);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: tt-fill linear forwards;
+  border-radius: 1px;
+}
+@keyframes tt-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ── Phase 3: Countdown-Balken ──────────────────────────── */
+.tt-countdown {
+  margin-top: 6px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.tt-countdown-bar {
+  height: 100%;
+  width: 100%;
+  background: rgba(160,170,255,0.6);
+  border-radius: 1px;
+  transform-origin: left;
+  animation: tt-drain linear forwards;
+}
+@keyframes tt-drain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* ── Transition ─────────────────────────────────────────── */
+.tt-fade-enter-active,
+.tt-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.tt-fade-enter-from,
+.tt-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}

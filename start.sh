@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
+# nvm (falls vorhanden)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Homebrew (Java 21 + Node 20)
+export PATH="/home/linuxbrew/.linuxbrew/opt/openjdk@21/bin:/home/linuxbrew/.linuxbrew/opt/node@20/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+export JAVA_HOME="/home/linuxbrew/.linuxbrew/opt/openjdk@21"
 
 LOG_DIR="$REPO/.logs"
 mkdir -p "$LOG_DIR"

@@ -60,6 +60,12 @@ public class MarketConfig {
     private double randomImpactMultiplier = 1.0;
 
     /**
+     * Anteil des Verkaufserlöses, der als Gebühr vernichtet wird.
+     * 0.05 = 5% Gebühr: Spieler erhält 95% des Marktpreises.
+     */
+    private double sellFeeRate = 0.05;
+
+    /**
      * Startpreis für Sugar.
      */
     private double initialSugarPrice = 1.0;
@@ -175,6 +181,14 @@ public class MarketConfig {
 
     public void setRandomImpactMultiplier(double randomImpactMultiplier) {
         this.randomImpactMultiplier = randomImpactMultiplier;
+    }
+
+    public double getSellFeeRate() {
+        return sellFeeRate;
+    }
+
+    public void setSellFeeRate(double sellFeeRate) {
+        this.sellFeeRate = sellFeeRate;
     }
 
     public double getInitialSugarPrice() {

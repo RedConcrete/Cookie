@@ -1,10 +1,9 @@
 package cookie.server.controller;
 
-import cookie.server.dto.HarvestRequestDto;
-import cookie.server.dto.ProduceRequestDto;
-import cookie.server.dto.UserInformationDto;
-import cookie.server.dto.UserMarketDataDto;
+import cookie.server.dto.*;
+import cookie.server.service.BakeService;
 import cookie.server.service.MarketService;
+import cookie.server.service.PrestigeService;
 import cookie.server.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +14,15 @@ public class GameController {
 
     private final UserService userService;
     private final MarketService marketService;
+    private final BakeService bakeService;
+    private final PrestigeService prestigeService;
 
-    public GameController(UserService userService, MarketService marketService) {
+    public GameController(UserService userService, MarketService marketService,
+                          BakeService bakeService, PrestigeService prestigeService) {
         this.userService = userService;
         this.marketService = marketService;
+        this.bakeService = bakeService;
+        this.prestigeService = prestigeService;
     }
 
     @GetMapping("/init/{userId}")
@@ -38,5 +42,30 @@ public class GameController {
     @PostMapping("/harvest/{userId}")
     public ResponseEntity<UserInformationDto> harvest(@PathVariable String userId, @RequestBody HarvestRequestDto request) {
         return ResponseEntity.ok(userService.harvest(userId, request.getResource()));
+    }
+
+    @PostMapping("/bake/start/{userId}")
+    public ResponseEntity<BakeJobStatusDto> bakeStart(@PathVariable String userId, @RequestBody BakeStartRequestDto request) {
+        return ResponseEntity.ok(bakeService.startBake(userId, request.getRecipeId(), request.getBatches()));
+    }
+
+    @GetMapping("/bake/status/{userId}")
+    public ResponseEntity<BakeJobStatusDto> bakeStatus(@PathVariable String userId) {
+        return ResponseEntity.ok(bakeService.getStatus(userId));
+    }
+
+    @PostMapping("/bake/claim/{userId}")
+    public ResponseEntity<UserInformationDto> bakeClaim(@PathVariable String userId) {
+        return ResponseEntity.ok(bakeService.claim(userId));
+    }
+
+    @GetMapping("/prestige/status/{userId}")
+    public ResponseEntity<PrestigeStatusDto> prestigeStatus(@PathVariable String userId) {
+        return ResponseEntity.ok(prestigeService.getStatus(userId));
+    }
+
+    @PostMapping("/prestige/{userId}")
+    public ResponseEntity<PrestigeStatusDto> prestige(@PathVariable String userId) {
+        return ResponseEntity.ok(prestigeService.prestige(userId));
     }
 }

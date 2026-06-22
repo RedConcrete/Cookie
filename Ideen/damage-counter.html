@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Damage Counter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    #arena {
+      position: relative;
+      width: 600px;
+      height: 320px;
+      overflow: hidden;
+      background: #2a2a2a;
+      border-radius: 12px;
+      border: 1px solid #444;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    /* Hover-Hinweis wenn Maus draußen ist */
+    #hover-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      color: #666;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    #counter-label {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      color: #aaa;
+      pointer-events: none;
+    }
+
+    #counter-display {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 28px;
+      font-weight: 500;
+      color: #f0f0f0;
+      pointer-events: none;
+    }
+
+    .dmg-number {
+      position: absolute;
+      font-weight: 500;
+      pointer-events: none;
+      transform-origin: center;
+      white-space: nowrap;
+    }
+
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      width: 600px;
+    }
+
+    #controls label { font-size: 13px; color: #aaa; }
+    #controls span  { font-size: 13px; font-weight: 500; min-width: 32px; color: #f0f0f0; }
+
+    input[type="range"] { width: 100px; accent-color: #7F77DD; }
+
+    #reset-btn {
+      margin-left: auto;
+      font-size: 13px;
+      padding: 5px 16px;
+      border-radius: 8px;
+      border: 1px solid #555;
+      background: transparent;
+      color: #f0f0f0;
+      cursor: pointer;
+    }
+    #reset-btn:hover { background: #333; }
+  </style>
+</head>
+<body>
+
+  <div id="arena">
+    <div id="hover-hint">Maus hierher bewegen</div>
+    <div id="counter-label">Aktueller Wert</div>
+    <div id="counter-display">0</div>
+  </div>
+
+  <div id="controls">
+    <label>Geschwindigkeit</label>
+    <input type="range" min="1" max="5" value="3" id="speed-slider">
+    <span id="speed-out">3</span>
+
+    <label style="margin-left: 12px;">Schaden</label>
+    <input type="range" min="1" max="50" value="10" id="step-slider">
+    <span id="step-out">+10</span>
+
+    <button id="reset-btn">Zurücksetzen</button>
+  </div>
+
+  <script>
+    const arena          = document.getElementById('arena');
+    const counterDisplay = document.getElementById('counter-display');
+    const hoverHint      = document.getElementById('hover-hint');
+    const speedSlider    = document.getElementById('speed-slider');
+    const speedOut       = document.getElementById('speed-out');
+    const stepSlider     = document.getElementById('step-slider');
+    const stepOut        = document.getElementById('step-out');
+    const resetBtn       = document.getElementById('reset-btn');
+
+    let counter    = 0;
+    let stepValue  = 10;
+    let intervalId = null;
+    let isHovered  = false;
+
+    // Aktuelle Mausposition innerhalb der Arena
+    let mouseX = 0;
+    let mouseY = 0;
+
+    const colors = ['#E24B4A', '#ef9f27', '#D4537E', '#7F77DD', '#1D9E75'];
+    const sizes  = [16, 18, 20, 22, 26, 30];
+
+    /**
+     * Spawnt eine fliegende Schadenszahl an Position (x, y).
+     * Flugwinkel: zufällig zwischen -30° und +30°.
+     * Textrotation: zufällig zwischen -5° und +5°.
+     */
+    function spawnNumber(value, x, y) {
+      const el = document.createElement('div');
+      el.className = 'dmg-number';
+
+      const isCrit    = value >= stepValue * 3;
+      const size      = isCrit ? 34 : sizes[Math.floor(Math.random() * sizes.length)];
+      const color     = isCrit ? '#E24B4A' : colors[Math.floor(Math.random() * colors.length)];
+
+      // Flugwinkel -30° bis +30°
+      const angleDeg  = Math.random() * 60 - 30;
+      const angle     = angleDeg * (Math.PI / 180);
+
+      // Textrotation -5° bis +5°
+      const rotateDeg = Math.random() * 10 - 5;
+      const speed     = 1.8 + Math.random() * 1.2;
+
+      el.textContent = '+' + value;
+      el.style.cssText = `
+        left: ${x}px;
+        top: ${y}px;
+        font-size: ${size}px;
+        color: ${color};
+        text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        transform: rotate(${rotateDeg}deg);
+      `;
+
+      arena.appendChild(el);
+
+      let progress = 0;
+      const startX = x, startY = y;
+      const vx = Math.sin(angle) * 60;   // horizontale Drift
+      const vy = -120 * speed;           // initiale Aufwärtskraft
+
+      const anim = setInterval(() => {
+        progress += 0.016; // ~60fps
+
+        const px      = startX + vx * progress;
+        const py      = startY + vy * progress + 60 * progress * progress; // Schwerkraft
+        const opacity = Math.max(0, 1 - progress * 1.4);
+        const scale   = isCrit ? (1 + progress * 0.3) : 1;
+
+        el.style.left      = px + 'px';
+        el.style.top       = py + 'px';
+        el.style.opacity   = opacity;
+        el.style.transform = `rotate(${rotateDeg}deg) scale(${scale})`;
+
+        if (opacity <= 0) { clearInterval(anim); el.remove(); }
+      }, 16);
+    }
+
+    // Tick läuft immer — aber spawnt nur wenn Maus über der Arena ist
+    function tick() {
+      if (!isHovered) return;
+      counter += stepValue;
+      counterDisplay.textContent = counter;
+      spawnNumber(stepValue, mouseX, mouseY);
+    }
+
+    function startInterval() {
+      if (intervalId) clearInterval(intervalId);
+      const ms = Math.round(1000 / parseInt(speedSlider.value));
+      intervalId = setInterval(tick, ms);
+    }
+
+    // Mausposition innerhalb Arena tracken
+    arena.addEventListener('mousemove', (e) => {
+      const rect = arena.getBoundingClientRect();
+      mouseX = e.clientX - rect.left - 20;
+      mouseY = e.clientY - rect.top  - 10;
+    });
+
+    // Hover-Status: Schaden aktiv / inaktiv
+    arena.addEventListener('mouseenter', () => {
+      isHovered = true;
+      hoverHint.style.opacity = '0';
+    });
+    arena.addEventListener('mouseleave', () => {
+      isHovered = false;
+      hoverHint.style.opacity = '1';
+    });
+
+    // Schieberegler
+    speedSlider.addEventListener('input', () => {
+      speedOut.textContent = speedSlider.value;
+      startInterval();
+    });
+
+    stepSlider.addEventListener('input', () => {
+      stepValue = parseInt(stepSlider.value);
+      stepOut.textContent = '+' + stepValue;
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+      counter = 0;
+      counterDisplay.textContent = '0';
+      document.querySelectorAll('.dmg-number').forEach(e => e.remove());
+    });
+
+    // Start
+    startInterval();
+  </script>
+
+</body>
+</html>
