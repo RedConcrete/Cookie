@@ -1,6 +1,7 @@
 package cookie.server.controller;
 
 import cookie.server.dto.LeaderboardEntryDto;
+import cookie.server.dto.NetWorthHistoryDto;
 import cookie.server.dto.PlayerProfileDto;
 import cookie.server.service.NetWorthService;
 import org.springframework.http.ResponseEntity;
@@ -31,5 +32,10 @@ public class LeaderboardController {
     @GetMapping("/players/{steamId}/profile")
     public ResponseEntity<PlayerProfileDto> getProfile(@PathVariable String steamId) {
         return ResponseEntity.ok(netWorthService.getProfile(steamId));
+    }
+
+    @GetMapping("/players/{steamId}/networth/history")
+    public ResponseEntity<List<NetWorthHistoryDto>> getNetWorthHistory(@PathVariable String steamId) {
+        return ResponseEntity.ok(netWorthService.getHistory(steamId));
     }
 }

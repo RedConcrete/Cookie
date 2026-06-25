@@ -5,20 +5,25 @@ import cookie.server.dto.MarketDto;
 import cookie.server.dto.MarketRequestDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.MarketEntity;
+import cookie.server.entity.MarketSnapshotEntity;
 import cookie.server.entity.MarketStockEntity;
 import cookie.server.entity.UserEntity;
 import cookie.server.enums.MarketAction;
 import cookie.server.enums.ResourceName;
 import cookie.server.repository.MarketRepository;
+import cookie.server.repository.MarketSnapshotRepository;
 import cookie.server.repository.MarketStockRepository;
 import cookie.server.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -31,28 +36,145 @@ public class MarketService {
     private static final Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     private final MarketRepository marketRepository;
+    private final MarketSnapshotRepository snapshotRepository;
     private final MarketStockRepository marketStockRepository;
     private final UserRepository userRepository;
     private final MarketConfig marketConfig;
     private final cookie.server.handler.MarketWebSocketHandler webSocketHandler;
 
-    // Lock fuer Thread-Sicherheit bei Market-Operationen
     private final ReentrantLock marketLock = new ReentrantLock();
-
-    // Zaehler fuer Cleanup - nur alle 100 Updates ausfuehren
     private final AtomicInteger updateCounter = new AtomicInteger(0);
     private static final int CLEANUP_INTERVAL = 100;
-
     private static final String STOCK_SINGLETON_ID = "SINGLETON";
 
-    public MarketService(MarketRepository marketRepository, MarketStockRepository marketStockRepository,
+    public MarketService(MarketRepository marketRepository,
+                         MarketSnapshotRepository snapshotRepository,
+                         MarketStockRepository marketStockRepository,
                          UserRepository userRepository, MarketConfig marketConfig,
                          cookie.server.handler.MarketWebSocketHandler webSocketHandler) {
         this.marketRepository = marketRepository;
+        this.snapshotRepository = snapshotRepository;
         this.marketStockRepository = marketStockRepository;
         this.userRepository = userRepository;
         this.marketConfig = marketConfig;
         this.webSocketHandler = webSocketHandler;
+    }
+
+    /** Alle 5 Minuten einen Preis-Snapshot speichern (persistente Langzeit-History). */
+    @Scheduled(fixedDelay = 300_000)
+    @Transactional
+    public void saveSnapshot() {
+        try {
+            MarketEntity current = getOrCreateCurrentMarket();
+            MarketSnapshotEntity snap = new MarketSnapshotEntity();
+            snap.setId(UUID.randomUUID().toString());
+            snap.setDate(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+            snap.setSugarPrice(current.getSugarPrice());
+            snap.setFlourPrice(current.getFlourPrice());
+            snap.setEggsPrice(current.getEggsPrice());
+            snap.setButterPrice(current.getButterPrice());
+            snap.setChocolatePrice(current.getChocolatePrice());
+            snap.setMilkPrice(current.getMilkPrice());
+            snapshotRepository.save(snap);
+        } catch (Exception e) {
+            logger.error("Snapshot save failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Komprimiert ältere Snapshots stündlich:
+     * - 1–7 Tage alt → 1 Eintrag pro Stunde (Stundendurchschnitt)
+     * - >7 Tage alt  → 1 Eintrag pro Tag   (Tagesdurchschnitt)
+     * - >30 Tage alt → wird gelöscht
+     */
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void compressSnapshots() {
+        try {
+            LocalDateTime now        = LocalDateTime.now();
+            LocalDateTime cutoff7d   = now.minusDays(7);
+            LocalDateTime cutoff1d   = now.minusDays(1);
+            LocalDateTime cutoff30d  = now.minusDays(30);
+
+            // 1–7 Tage → Stundendurchschnitt
+            compressBucket(cutoff7d, cutoff1d, java.time.temporal.ChronoUnit.HOURS);
+            // >7 Tage → Tagesdurchschnitt
+            compressBucket(cutoff30d, cutoff7d, java.time.temporal.ChronoUnit.DAYS);
+            // >30 Tage → löschen
+            snapshotRepository.deleteByDateBefore(cutoff30d);
+
+            logger.info("Snapshot compression complete");
+        } catch (Exception e) {
+            logger.error("Snapshot compression failed: {}", e.getMessage());
+        }
+    }
+
+    private void compressBucket(LocalDateTime from, LocalDateTime to, java.time.temporal.ChronoUnit unit) {
+        List<MarketSnapshotEntity> entries = snapshotRepository.findBetween(from, to);
+        if (entries.isEmpty()) return;
+
+        // Gruppieren nach Zeit-Bucket
+        java.util.Map<LocalDateTime, List<MarketSnapshotEntity>> groups = entries.stream()
+                .collect(java.util.stream.Collectors.groupingBy(e -> e.getDate().truncatedTo(unit)));
+
+        // Alte löschen
+        snapshotRepository.deleteAll(entries);
+
+        // Durchschnitt pro Bucket speichern
+        List<MarketSnapshotEntity> compressed = groups.entrySet().stream().map(entry -> {
+            List<MarketSnapshotEntity> g = entry.getValue();
+            MarketSnapshotEntity avg = new MarketSnapshotEntity();
+            avg.setId(UUID.randomUUID().toString());
+            avg.setDate(entry.getKey());
+            avg.setSugarPrice(    g.stream().mapToDouble(MarketSnapshotEntity::getSugarPrice).average().orElse(0));
+            avg.setFlourPrice(    g.stream().mapToDouble(MarketSnapshotEntity::getFlourPrice).average().orElse(0));
+            avg.setEggsPrice(     g.stream().mapToDouble(MarketSnapshotEntity::getEggsPrice).average().orElse(0));
+            avg.setButterPrice(   g.stream().mapToDouble(MarketSnapshotEntity::getButterPrice).average().orElse(0));
+            avg.setChocolatePrice(g.stream().mapToDouble(MarketSnapshotEntity::getChocolatePrice).average().orElse(0));
+            avg.setMilkPrice(     g.stream().mapToDouble(MarketSnapshotEntity::getMilkPrice).average().orElse(0));
+            return avg;
+        }).collect(java.util.stream.Collectors.toList());
+
+        snapshotRepository.saveAll(compressed);
+        logger.debug("Compressed {} → {} entries for bucket {}", entries.size(), compressed.size(), unit);
+    }
+
+    /**
+     * Aggregierte Gesamt-History für den Chart:
+     * - Alle 5-min Snapshots (ältere History)
+     * - Raw-Einträge der letzten Stunde (neueste, lückenlos)
+     * Beide Quellen werden chronologisch zusammengeführt und dedupliziert.
+     */
+    public List<MarketDto> getFullHistory() {
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+
+        // Snapshots (ältere Daten, vor einer Stunde)
+        List<MarketDto> snapshots = snapshotRepository.findOlderThan(oneHourAgo)
+                .stream()
+                .map(s -> {
+                    MarketEntity tmp = new MarketEntity();
+                    tmp.setDate(s.getDate());
+                    tmp.setSugarPrice(s.getSugarPrice());
+                    tmp.setFlourPrice(s.getFlourPrice());
+                    tmp.setEggsPrice(s.getEggsPrice());
+                    tmp.setButterPrice(s.getButterPrice());
+                    tmp.setChocolatePrice(s.getChocolatePrice());
+                    tmp.setMilkPrice(s.getMilkPrice());
+                    return new MarketDto(tmp);
+                })
+                .collect(Collectors.toList());
+
+        // Raw-Daten der letzten Stunde (bereits newest-first, umkehren für chronologisch)
+        List<MarketDto> recent = marketRepository.findAllByOrderByDateDesc(PageRequest.of(0, 1800))
+                .stream()
+                .filter(m -> m.getDate().isAfter(oneHourAgo))
+                .map(MarketDto::new)
+                .collect(Collectors.toList());
+        java.util.Collections.reverse(recent);
+
+        List<MarketDto> combined = new ArrayList<>(snapshots);
+        combined.addAll(recent);
+        return combined;
     }
 
     public List<MarketDto> getMarketData(int amount) {
@@ -214,7 +336,7 @@ public class MarketService {
 
             if (updateCounter.incrementAndGet() >= CLEANUP_INTERVAL) {
                 updateCounter.set(0);
-                cleanupOldEntries(500);
+                cleanupOldEntries(1800);
             }
             
             // Broadcast update

@@ -13,7 +13,7 @@
       <BuildingTile
         variant="oven"
         label="Backofen"
-        :bakeStatus="bakeStatus"
+        :bakeStatus="bakeStore.status"
         class="pos-oven"
         @open="dialog = 'bake'"
       />
@@ -64,8 +64,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
-import { harvestResource, bakeStatus as fetchBakeStatus, getUpgrades } from '../services/api.js'
+import { useBakeStore } from '../stores/bake.js'
+import { harvestResource, getUpgrades } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
+import { useAudio } from '../composables/useAudio.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import BuildingTile from '../components/BuildingTile.vue'
 import MarketDialog  from '../components/MarketDialog.vue'
@@ -78,8 +80,9 @@ import chocoIcon  from '../assets/Sprites/RecSprits/SchokiIcon.png'
 import milkIcon   from '../assets/Sprites/RecSprits/MilchIcon.png'
 
 const playerStore = usePlayerStore()
+const bakeStore   = useBakeStore()
+const { playChop } = useAudio()
 const dialog      = ref(null)
-const bakeStatus  = ref(null)
 const viewEl      = ref(null)
 const gridEl      = ref(null)
 const upgrades    = ref([])
@@ -165,8 +168,8 @@ function zoomStep(factor) {
 
 function resetView() {
   panX.value = 0
-  panY.value = 0
-  zoom.value = 1
+  panY.value = 100
+  zoom.value = 0.80
 }
 
 // ── Harvest ──────────────────────────────────────────────
@@ -222,13 +225,6 @@ function stopHarvest(name) {
 }
 
 // ── Bake Poll ────────────────────────────────────────────
-let bakeTimer = null
-async function pollBake() {
-  try {
-    const s = await fetchBakeStatus(playerStore.steamId)
-    bakeStatus.value = s.active ? s : null
-  } catch {}
-}
 
 let upgradeTimer     = null
 let autoHarvestTimer = null
@@ -256,8 +252,7 @@ function tickAutoHarvestNumbers() {
 }
 
 onMounted(() => {
-  pollBake()
-  bakeTimer = setInterval(pollBake, 2000)
+  bakeStore.start(playerStore.steamId)
   loadUpgrades()
   upgradeTimer     = setInterval(loadUpgrades, 10000)
   autoHarvestTimer = setInterval(tickAutoHarvestNumbers, 5000)
@@ -265,7 +260,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  clearInterval(bakeTimer)
   clearInterval(upgradeTimer)
   clearInterval(autoHarvestTimer)
   Object.values(harvestDelays).forEach(clearTimeout)

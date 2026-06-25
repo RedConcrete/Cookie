@@ -1,12 +1,15 @@
 <template>
-  <div class="cookie-spinner"></div>
+  <div class="cookie-spinner" :style="{ backgroundImage: `url(${spriteUrl})` }"></div>
 </template>
+
+<script setup>
+import spriteUrl from '../assets/Sprites/CookieAnimationSpirte.png'
+</script>
 
 <style scoped>
 .cookie-spinner {
   width: 75px;
   height: 75px;
-  background-image: url('@/assets/Sprites/CookieAnimationSpirte.png');
   background-repeat: no-repeat;
   background-size: 800% auto;
   background-position: 0px 0px;

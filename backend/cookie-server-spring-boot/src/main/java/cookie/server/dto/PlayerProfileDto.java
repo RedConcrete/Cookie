@@ -12,6 +12,7 @@ public class PlayerProfileDto {
     private int prestigeLevel;
     private double lifetimeCookiesBaked;
     private List<UpgradeWithStatusDto> upgrades;
+    private List<SeasonResultDto> seasonHistory;
 
     public String getSteamId() { return steamId; }
     public void setSteamId(String steamId) { this.steamId = steamId; }
@@ -39,4 +40,7 @@ public class PlayerProfileDto {
 
     public List<UpgradeWithStatusDto> getUpgrades() { return upgrades; }
     public void setUpgrades(List<UpgradeWithStatusDto> upgrades) { this.upgrades = upgrades; }
+
+    public List<SeasonResultDto> getSeasonHistory() { return seasonHistory; }
+    public void setSeasonHistory(List<SeasonResultDto> seasonHistory) { this.seasonHistory = seasonHistory; }
 }

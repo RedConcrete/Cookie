@@ -45,6 +45,11 @@ export function getProfile(steamId) {
   return request('GET', `/api/v1/players/${steamId}/profile`)
 }
 
+// Fetch net worth history for chart.
+export function getNetWorthHistory(steamId) {
+  return request('GET', `/api/v1/players/${steamId}/networth/history`)
+}
+
 // Fetch prestige status (level, multiplier, threshold, canPrestige).
 export function getPrestigeStatus(steamId) {
   return request('GET', `/api/v1/game/prestige/status/${steamId}`)
@@ -86,9 +91,14 @@ export function trade(steamId, action, resourceName, amount) {
   })
 }
 
-// Fetch last N market snapshots.
+// Fetch last N market snapshots (recent, live).
 export function getMarketHistory(amount = 20) {
   return request('GET', `/api/v1/market/get/${amount}`)
+}
+
+// Fetch full aggregated market history since server start.
+export function getFullMarketHistory() {
+  return request('GET', '/api/v1/market/history')
 }
 
 // Harvest 1 unit of a resource by hovering.

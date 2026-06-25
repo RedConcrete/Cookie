@@ -19,6 +19,7 @@ export const usePlayerStore = defineStore('player', () => {
   const nwUpgrades    = ref(0)
   const loading       = ref(false)
   const error         = ref(null)
+  const recipes       = ref([])
 
   let netWorthTimer = null
 
@@ -32,6 +33,7 @@ export const usePlayerStore = defineStore('player', () => {
 
       const marketStore = useMarketStore()
       marketStore.setHistory(data.markets)
+      if (data.recipes) recipes.value = data.recipes
 
       connectMarketWebSocket((snapshots) => {
         marketStore.setHistory(snapshots)
@@ -71,7 +73,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     steamId, cookies, sugar, flour, eggs, butter, chocolate, milk,
-    netWorth, nwCookies, nwResources, nwUpgrades, loading, error,
+    netWorth, nwCookies, nwResources, nwUpgrades, loading, error, recipes,
     init, updateFromDto, refreshNetWorth,
   }
 })

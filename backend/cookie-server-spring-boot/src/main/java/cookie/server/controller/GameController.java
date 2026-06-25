@@ -30,7 +30,8 @@ public class GameController {
         UserInformationDto user = userService.getUser(userId);
         return ResponseEntity.ok(new UserMarketDataDto(
                 user,
-                marketService.getMarketData(marketHistoryAmount)
+                marketService.getMarketData(marketHistoryAmount),
+                bakeService.getRecipes()
         ));
     }
 

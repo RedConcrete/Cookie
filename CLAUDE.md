@@ -26,11 +26,48 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 - Backend-Validierung ist Pflicht bei allem, was Ressourcen/Cookies bewegt
   (Client-Werte nie vertrauen)
 
-## Aktueller Stand
+## Aktueller Stand (2026-06-25)
 
-Phase 1 (RecipeCard eingebunden) ist fertig. Nächste Schritte laut
-Implementierungs-Reihenfolge im Design-Dokument: Phase 1b (Markt-
-Verkaufsgebühr), 1c (Rezept-Varianten + Bake-Timer), 1d (Hof-Grid als
-Hauptansicht).
+Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
+Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
+Markt-Preisgraph mit %-Modus und Zoom.
+
+Nächste Schritte (nächste Session):
+1. **Unity-Reste aufräumen** — `.meta`-Dateien (149 Stück), `.sfk`-Dateien,
+   ungenutzte Sprites/Assets aus `src/assets/` entfernen
+2. **Steam-Upload vorbereiten** — Build testen, Depots konfigurieren, Upload via
+   SteamCMD (siehe Plan unten)
+3. **Server-Deployment** — produktiven Server aufsetzen/aktualisieren
+
+## Steam-Upload-Plan
+
+```
+1. Windows-Build erstellen:
+   cd frontend && npm run build:win
+   → frontend/release/Cookie Setup x.x.x.exe
+
+2. SteamCMD-Upload:
+   steamcmd +login <user>
+            +run_app_build app_build_2816100.vdf
+            +quit
+
+3. app_build_2816100.vdf braucht:
+   - AppID 2816100
+   - Depot für Windows-Client (Electron + eingebettetes Backend-JAR)
+   - Depot für Server-Binary (falls Server via Steam deployiert)
+
+4. Testen: Steam-Branch "beta" zuerst, dann auf "default" promoten
+```
+
+## Server-Deployment-Plan
+
+```
+1. Backend-JAR bauen: ./mvnw package -DskipTests
+2. JAR + application.properties auf Server kopieren
+3. PostgreSQL auf Server einrichten (schema via Hibernate auto)
+4. Systemd-Service oder Docker Compose starten
+5. Firewall: Port 9876 öffnen (oder hinter Reverse Proxy)
+6. app.dev-mode=false setzen (nur Steam-Auth erlaubt)
+```
 
 Offene Issues im Repo (#19, #21, #24, #14) bei Gelegenheit mit einplanen.

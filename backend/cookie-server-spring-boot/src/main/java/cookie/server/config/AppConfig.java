@@ -8,12 +8,11 @@ import org.springframework.context.annotation.Configuration;
 public class AppConfig {
 
     private boolean devMode = false;
+    private String adminToken = "change-me-in-production";
 
-    public boolean isDevMode() {
-        return devMode;
-    }
+    public boolean isDevMode() { return devMode; }
+    public void setDevMode(boolean devMode) { this.devMode = devMode; }
 
-    public void setDevMode(boolean devMode) {
-        this.devMode = devMode;
-    }
+    public String getAdminToken() { return adminToken; }
+    public void setAdminToken(String adminToken) { this.adminToken = adminToken; }
 }

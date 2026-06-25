@@ -1,23 +1,37 @@
 <template>
-  <div class="app">
+  <div
+    class="app"
+    @mousedown="onMouseDown"
+    @mouseover="onMouseOver"
+  >
     <div v-if="blocked" class="status-overlay error">
       Bitte das Spiel über Steam starten.
     </div>
 
     <template v-else>
       <header class="app-header">
+        <!-- Steam Avatar oben links -->
+        <button class="avatar-btn" @click="dialog = 'profile'" title="Profil öffnen">
+          <span class="avatar-icon">👤</span>
+        </button>
+
         <ResourceBar />
+
         <NestedTooltip :content="nwTooltip">
-          <div class="header-networth">
+          <div class="header-networth clickable" @click="dialog = 'networth'" title="Net Worth Verlauf">
             <span class="nw-label">Net Worth</span>
             <span class="nw-val">{{ fmtBig(playerStore.netWorth) }}</span>
           </div>
         </NestedTooltip>
+
         <div class="header-nav">
           <button class="nav-btn" @click="dialog = 'upgrades'">Upgrades</button>
           <button class="nav-btn" @click="dialog = 'prestige'">Prestige</button>
           <button class="nav-btn" @click="dialog = 'leaderboard'">Rangliste</button>
         </div>
+
+        <!-- Einstellungen -->
+        <button class="nav-btn settings-btn" @click="dialog = 'settings'" title="Einstellungen">⚙</button>
       </header>
 
       <main class="app-content">
@@ -31,10 +45,21 @@
       </main>
     </template>
 
-    <!-- Globale Dialoge (außerhalb RouterView damit sie über allem liegen) -->
-    <UpgradeDialog     v-if="dialog === 'upgrades'"    @close="dialog = null" />
-    <PrestigeDialog    v-if="dialog === 'prestige'"    @close="dialog = null" />
-    <LeaderboardDialog v-if="dialog === 'leaderboard'" @close="dialog = null" />
+    <!-- Globale Dialoge -->
+    <UpgradeDialog      v-if="dialog === 'upgrades'"    @close="dialog = null" />
+    <PrestigeDialog     v-if="dialog === 'prestige'"    @close="dialog = null" />
+    <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
+    <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
+    <PlayerProfileDialog
+      v-if="dialog === 'profile'"
+      :steamId="playerStore.steamId"
+      @close="dialog = null"
+    />
+    <NetWorthDialog
+      v-if="dialog === 'networth'"
+      :steamId="playerStore.steamId"
+      @close="dialog = null"
+    />
   </div>
 </template>
 
@@ -43,21 +68,49 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from './stores/player.js'
 import { useMarketStore } from './stores/market.js'
 import { getUpgrades } from './services/api.js'
-import ResourceBar       from './components/ResourceBar.vue'
-import CookieSpinner     from './components/CookieSpinner.vue'
-import UpgradeDialog     from './components/UpgradeDialog.vue'
-import PrestigeDialog    from './components/PrestigeDialog.vue'
-import LeaderboardDialog from './components/LeaderboardDialog.vue'
-import NestedTooltip     from './components/NestedTooltip.vue'
+import { useAudio } from './composables/useAudio.js'
+import ResourceBar          from './components/ResourceBar.vue'
+import CookieSpinner        from './components/CookieSpinner.vue'
+import UpgradeDialog        from './components/UpgradeDialog.vue'
+import PrestigeDialog       from './components/PrestigeDialog.vue'
+import LeaderboardDialog    from './components/LeaderboardDialog.vue'
+import SettingsDialog       from './components/SettingsDialog.vue'
+import PlayerProfileDialog  from './components/PlayerProfileDialog.vue'
+import NetWorthDialog       from './components/NetWorthDialog.vue'
+import NestedTooltip        from './components/NestedTooltip.vue'
 
-const playerStore    = usePlayerStore()
-const marketStore    = useMarketStore()
+const playerStore = usePlayerStore()
+const marketStore = useMarketStore()
+const audio       = useAudio()
+
 const blocked        = ref(false)
 const dialog         = ref(null)
 const playerUpgrades = ref([])
 const sellFeeRate    = ref(0.15)
 let upgradeTimer = null
 
+// ── Audio-Events ─────────────────────────────────────────
+const INTERACTIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'LABEL'])
+
+function onMouseDown() {
+  audio.startMusic()
+  audio.playClick()
+}
+
+function onMouseOver(e) {
+  const el = e.target
+  if (el.closest('.tile-harvest')) return
+  if (
+    INTERACTIVE.has(el.tagName) ||
+    el.closest('[data-hover]') ||
+    el.closest('button') ||
+    el.closest('a')
+  ) {
+    audio.playHover()
+  }
+}
+
+// ── Upgrades ──────────────────────────────────────────────
 async function loadUpgrades() {
   if (!playerStore.steamId) return
   try { playerUpgrades.value = await getUpgrades(playerStore.steamId) } catch {}
@@ -70,7 +123,6 @@ function fmtBig(v) {
 }
 function fmt2(v) { return Number(v ?? 0).toFixed(2) }
 
-// Live-Ressourcenwert aus aktuellen Marktpreisen berechnen
 const liveResourceValue = computed(() => {
   const p   = marketStore.priceOf
   const net = 1 - sellFeeRate.value
@@ -100,9 +152,7 @@ const RESOURCES = [
 const upgradeBreakdown = computed(() => {
   const active = playerUpgrades.value.filter(u => u.totalSpent > 0)
   if (!active.length) return 'Keine Upgrades gekauft'
-  return active
-    .map(u => `${u.name.padEnd(22)} ${fmt2(u.totalSpent)}`)
-    .join('\n')
+  return active.map(u => `${u.name.padEnd(22)} ${fmt2(u.totalSpent)}`).join('\n')
 })
 
 const resourceBreakdown = computed(() => {
@@ -110,18 +160,15 @@ const resourceBreakdown = computed(() => {
   return RESOURCES.map(r => {
     const amount = playerStore[r.key] ?? 0
     const price  = marketStore.priceOf(r.name)
-    const value  = amount * price * net
-    return `${r.label.padEnd(12)} ${fmtBig(amount)} × ${price.toFixed(4)} × ${fmt2(net)} = ${fmt2(value)}`
+    return `${r.label.padEnd(12)} ${fmtBig(amount)} × ${price.toFixed(4)} × ${fmt2(net)} = ${fmt2(amount * price * net)}`
   }).join('\n')
 })
 
 const nwTooltip = computed(() => [
   { text: `Net Worth: ${fmtBig(liveNetWorth.value)}` },
   { text: `\nCookies:    ${fmt2(playerStore.cookies)}` },
-  { text: `\nRessourcen: ${fmt2(liveResourceValue.value)}`,
-    tooltip: resourceBreakdown.value },
-  { text: `\nUpgrades:   ${fmt2(playerStore.nwUpgrades)}`,
-    tooltip: upgradeBreakdown.value },
+  { text: `\nRessourcen: ${fmt2(liveResourceValue.value)}`, tooltip: resourceBreakdown.value },
+  { text: `\nUpgrades:   ${fmt2(playerStore.nwUpgrades)}`, tooltip: upgradeBreakdown.value },
 ])
 
 onMounted(async () => {
@@ -136,8 +183,7 @@ onMounted(async () => {
   try {
     const res = await fetch('http://localhost:9876/api/v1/config')
     const cfg = await res.json()
-    const { devMode } = cfg
-    if (devMode) {
+    if (cfg.devMode) {
       sellFeeRate.value = cfg.sellFeeRate ?? 0.15
       await playerStore.init('DEV_PLAYER_001')
       loadUpgrades()
@@ -152,3 +198,25 @@ onMounted(async () => {
 
 onUnmounted(() => clearInterval(upgradeTimer))
 </script>
+
+<style>
+/* Avatar-Button */
+.avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+  padding: 0;
+}
+.avatar-btn:hover { border-color: var(--accent); }
+.avatar-icon { font-size: 20px; line-height: 1; }
+
+.settings-btn { font-size: 16px; padding: 4px 10px; }
+</style>

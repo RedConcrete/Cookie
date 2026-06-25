@@ -55,6 +55,29 @@
         </div>
         <div v-if="activeUpgrades.length === 0" class="no-upgrades">Keine Upgrades</div>
       </div>
+
+      <!-- Season-Historie -->
+      <template v-if="data.seasonHistory?.length">
+        <div class="profile-section-label" style="margin-top:20px">Season-Historie</div>
+        <table class="season-table">
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Platz</th>
+              <th>Net Worth</th>
+              <th>Prestige</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="s in data.seasonHistory" :key="s.seasonId">
+              <td>{{ s.seasonName }}</td>
+              <td>#{{ s.finalRank }}</td>
+              <td>{{ fmtBig(s.finalNetWorth) }}</td>
+              <td>{{ s.prestigeLevelAtEnd }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
     </template>
   </div>
 </template>
@@ -150,4 +173,17 @@ onMounted(load)
 .badge-name  { color: var(--text); }
 .badge-level { color: var(--accent); font-weight: 700; }
 .no-upgrades { color: var(--text-muted); font-size: 12px; }
+
+.season-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.season-table th, .season-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.season-table th { color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+.season-table td { color: var(--text); }
 </style>

@@ -28,6 +28,11 @@ public class MarketController {
         return ResponseEntity.ok(marketService.getAllMarketData());
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<List<MarketDto>> getFullHistory() {
+        return ResponseEntity.ok(marketService.getFullHistory());
+    }
+
     @PostMapping
     public ResponseEntity<UserInformationDto> processMarketAction(
             @RequestBody MarketRequestDto request) {

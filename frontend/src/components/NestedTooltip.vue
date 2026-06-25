@@ -40,6 +40,9 @@
 import { ref, computed, onUnmounted } from 'vue'
 import NestedTooltip from './NestedTooltip.vue'
 import { registerGlobal, unregisterGlobal } from '../composables/tooltipMutex.js'
+import { useAudio } from '../composables/useAudio.js'
+
+const { playHover } = useAudio()
 
 const APPEAR_DELAY = 1000
 const CLOSE_DELAY  = 1000
@@ -47,6 +50,7 @@ const CLOSE_DELAY  = 1000
 const props = defineProps({
   content: { type: [String, Array], required: true },
   depth:   { type: Number, default: 0 },
+  silent:  { type: Boolean, default: false },
 })
 
 const visible  = ref(false)
@@ -76,6 +80,7 @@ function closeNow() {
 function onTriggerEnter(e) {
   clearTimeout(closeTimer)
   draining.value = false
+  if (!props.silent) playHover()
 
   if (visible.value) return
 

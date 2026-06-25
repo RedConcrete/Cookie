@@ -3,6 +3,7 @@ package cookie.server.service;
 import cookie.server.dto.LeaderboardEntryDto;
 import cookie.server.dto.NetWorthHistoryDto;
 import cookie.server.dto.PlayerProfileDto;
+import cookie.server.dto.SeasonResultDto;
 import cookie.server.dto.UpgradeWithStatusDto;
 import cookie.server.entity.MarketEntity;
 import cookie.server.entity.NetWorthHistoryEntity;
@@ -32,17 +33,20 @@ public class NetWorthService {
     private final MarketService marketService;
     private final UpgradeService upgradeService;
     private final NetWorthHistoryRepository historyRepository;
+    private final SeasonService seasonService;
 
     public NetWorthService(UserRepository userRepository,
                            PlayerUpgradeRepository playerUpgradeRepository,
                            MarketService marketService,
                            @Lazy UpgradeService upgradeService,
-                           NetWorthHistoryRepository historyRepository) {
+                           NetWorthHistoryRepository historyRepository,
+                           @Lazy SeasonService seasonService) {
         this.userRepository = userRepository;
         this.playerUpgradeRepository = playerUpgradeRepository;
         this.marketService = marketService;
         this.upgradeService = upgradeService;
         this.historyRepository = historyRepository;
+        this.seasonService = seasonService;
     }
 
     public LeaderboardEntryDto calculateForUser(UserEntity user, MarketEntity market) {
@@ -183,6 +187,7 @@ public class NetWorthService {
                 .map(u -> calculateForUser(u, market).getNetWorth())
                 .filter(v -> v > nw.getNetWorth()).count() + 1;
         List<UpgradeWithStatusDto> upgrades = upgradeService.getUpgradesForPlayer(userId);
+        List<SeasonResultDto> seasonHistory = seasonService.getSeasonHistoryForUser(userId);
         PlayerProfileDto dto = new PlayerProfileDto();
         dto.setSteamId(user.getSteamId());
         dto.setRank((int) rank);
@@ -193,6 +198,7 @@ public class NetWorthService {
         dto.setPrestigeLevel(user.getPrestigeLevel());
         dto.setLifetimeCookiesBaked(user.getLifetimeCookiesBaked());
         dto.setUpgrades(upgrades);
+        dto.setSeasonHistory(seasonHistory);
         return dto;
     }
 }

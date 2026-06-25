@@ -64,6 +64,11 @@ body {
   border-radius: 10px;
   white-space: nowrap;
 }
+.header-networth.clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.header-networth.clickable:hover { background: rgba(100,200,100,0.35); }
 .header-networth .nw-label { font-size: 9px; color: #F5EDD6; opacity: 0.75; line-height: 1; }
 .header-networth .nw-val   { font-size: 14px; font-weight: 700; color: #aaff88; line-height: 1.3; }
 
@@ -158,6 +163,9 @@ body {
   padding: 14px;
 }
 
+/* ── Dialog-Close global ─────────────────────────────── */
+.dialog-close { z-index: 10; }
+
 /* ── Buttons ──────────────────────────────────────────── */
 .btn {
   padding: 6px 14px;
@@ -167,6 +175,10 @@ body {
   font-weight: 700;
   font-size: 12px;
   transition: opacity 0.15s, transform 0.1s;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
 }
 .btn:hover { opacity: 0.85; transform: translateY(-1px); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }

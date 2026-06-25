@@ -1,47 +1,46 @@
 <template>
   <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="dialog-box">
-      <button class="dialog-close" @click="emit('close')">✕</button>
-      <RecipeCard />
+    <div class="book">
+      <RecipeCard @close="close" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import RecipeCard from './RecipeCard.vue'
-const emit = defineEmits(['close'])
+import { useAudio } from '../composables/useAudio.js'
+
+const emit  = defineEmits(['close'])
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
+
+function close() {
+  audio.playBookClose()
+  emit('close')
+}
 </script>
 
 <style scoped>
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
 }
-.dialog-box {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  width: 420px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow: auto;
-  position: relative;
-  padding: 20px;
+.book {
+  width: min(820px, 96vw);
+  height: min(560px, 90vh);
+  display: flex;
+  border-radius: 4px 12px 12px 4px;
+  box-shadow:
+    -6px 0 16px rgba(0,0,0,0.5),
+    0 8px 32px rgba(0,0,0,0.4),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
+  overflow: hidden;
 }
-.dialog-close {
-  position: absolute;
-  top: 12px; right: 14px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text-muted);
-  line-height: 1;
-}
-.dialog-close:hover { color: var(--text); }
 </style>
