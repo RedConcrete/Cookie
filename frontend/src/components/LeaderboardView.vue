@@ -1,41 +1,25 @@
 <template>
-  <div class="leaderboard">
-    <h3>Rangliste</h3>
+  <div class="lv-root">
+    <div v-if="loading" class="lv-loading">Lade...</div>
 
-    <div v-if="loading" class="lb-loading">Lade...</div>
+    <template v-else>
+      <div class="lv-head-row">
+        <div>#</div><div>SPIELER</div><div>NET WORTH</div><div>COOKIES</div><div>RESSOURCEN</div>
+      </div>
+      <div
+        v-for="entry in board" :key="entry.steamId" class="lv-row"
+        :class="{ self: entry.steamId === playerStore.steamId }"
+        @click="emit('view-profile', entry.steamId)"
+      >
+        <div class="lv-rank">#{{ entry.rank }}</div>
+        <div class="lv-name">{{ entry.steamId }}</div>
+        <div class="lv-nw">{{ fmtBig(entry.netWorth) }}</div>
+        <div class="lv-num">{{ fmt(entry.cookies) }}</div>
+        <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
+      </div>
 
-    <table v-else class="lb-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Spieler</th>
-          <th>Net Worth</th>
-          <th>Cookies</th>
-          <th>Ressourcen</th>
-          <th>Upgrades</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="entry in board"
-          :key="entry.steamId"
-          class="lb-row"
-          :class="{ 'lb-self': entry.steamId === playerStore.steamId }"
-          @click="emit('view-profile', entry.steamId)"
-        >
-          <td class="lb-rank">
-            <span>#{{ entry.rank }}</span>
-          </td>
-          <td class="lb-id">{{ entry.steamId }}</td>
-          <td class="lb-nw">{{ fmtBig(entry.netWorth) }}</td>
-          <td>{{ fmt(entry.cookies) }}</td>
-          <td>{{ fmt(entry.resourceValue) }}</td>
-          <td>{{ fmt(entry.upgradeValue) }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <button class="btn-refresh" @click="load">↻ Aktualisieren</button>
+      <button class="px-btn px-btn-flat lv-refresh" @click="load">&#8635; AKTUALISIEREN</button>
+    </template>
   </div>
 </template>
 
@@ -53,7 +37,6 @@ async function load() {
   loading.value = true
   try {
     board.value = await getLeaderboard()
-    // eigenen Eintrag nehmen → Header-Anzeige mit demselben Snapshot synchronisieren
     const own = board.value.find(e => e.steamId === playerStore.steamId)
     if (own) playerStore.netWorth = own.netWorth
   } finally {
@@ -72,40 +55,19 @@ onMounted(load)
 </script>
 
 <style scoped>
-.leaderboard { min-width: 480px; }
-h3 { margin-bottom: 16px; }
+.lv-root { min-width: 480px; padding: 16px; }
+.lv-loading { color: var(--px-tan-ink); text-align: center; padding: 24px; }
 
-.lb-loading { color: var(--text-muted); text-align: center; padding: 24px; }
+.lv-head-row, .lv-row { display: grid; grid-template-columns: 52px 1fr 100px 90px 100px; gap: 8px; align-items: center; }
+.lv-head-row { padding: 9px 10px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); }
+.lv-row { padding: 11px 10px; border-bottom: 2px solid #e8dcbc; cursor: pointer; }
+.lv-row:hover { background: #fff3c4; }
+.lv-row.self { background: rgba(74,124,47,.1); font-weight: 700; }
 
-.lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.lb-table th {
-  background: var(--surface2);
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.lb-table td { padding: 8px 10px; border-top: 1px solid var(--border); }
+.lv-rank { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
+.lv-name { font-size: 15px; color: var(--px-ink-txt); }
+.lv-nw   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
+.lv-num  { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood-lt); }
 
-.lb-row { cursor: pointer; transition: background 0.1s; }
-.lb-row:hover td { background: var(--surface2); }
-.lb-self td { background: rgba(100,200,100,0.1); font-weight: 700; }
-
-.lb-rank { font-size: 16px; width: 40px; text-align: center; }
-.lb-id   { color: var(--text-muted); font-size: 11px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-nw   { color: var(--accent); font-weight: 700; }
-
-.btn-refresh {
-  margin-top: 12px;
-  padding: 5px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text);
-  cursor: pointer;
-  font-size: 12px;
-}
-.btn-refresh:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lv-refresh { margin-top: 14px; }
 </style>

@@ -1,9 +1,9 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="dialog-box">
-      <div class="dialog-header">
-        <span class="dialog-title">Net Worth — {{ fmtBig(nw?.netWorth) }}</span>
-        <button class="dialog-close" @click="emit('close')">✕</button>
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
+    <div class="nw-box px-panel">
+      <div class="px-titlebar">
+        <span>NET WORTH &middot; {{ fmtBig(nw?.netWorth) }}</span>
+        <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
       <div class="nw-layout">
@@ -338,25 +338,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-  display: flex; align-items: center; justify-content: center; z-index: 300;
-}
-.dialog-box {
-  background: var(--surface); border: 2px solid var(--border);
-  border-radius: 16px; width: 820px; max-width: 96vw; height: 480px;
+.nw-box {
+  width: 820px; max-width: 96vw; height: 480px;
   display: flex; flex-direction: column; overflow: hidden;
 }
-.dialog-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-}
-.dialog-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.dialog-close {
-  background: none; border: none; font-size: 18px; cursor: pointer;
-  color: var(--text-muted); padding: 2px 6px; border-radius: 4px;
-}
-.dialog-close:hover { color: var(--text); background: var(--surface2); }
 
 .nw-layout {
   display: flex; flex: 1; min-height: 0; overflow: hidden;
@@ -365,34 +350,34 @@ onUnmounted(() => {
 /* ── Links ─────────────────────────────────────── */
 .nw-left {
   width: 280px; flex-shrink: 0;
-  padding: 16px; border-right: 1px solid var(--border);
+  padding: 16px; border-right: 3px solid var(--px-tan);
   display: flex; flex-direction: column; gap: 8px;
   overflow-y: auto;
 }
 
 .nw-section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px;
+  font-family: 'Silkscreen', monospace; font-size: 10px;
+  letter-spacing: 1px; color: var(--px-tan-hd); margin-bottom: 4px;
 }
 
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .bk-row { display: flex; align-items: center; gap: 8px; }
 .bk-icon  { font-size: 16px; flex-shrink: 0; }
-.bk-label { width: 80px; flex-shrink: 0; font-size: 12px; color: var(--text); }
+.bk-label { width: 80px; flex-shrink: 0; font-size: 13px; color: var(--px-ink-txt); }
 .bk-bar-wrap {
-  flex: 1; height: 8px; background: rgba(255,255,255,0.08);
-  border-radius: 4px; overflow: hidden;
+  flex: 1; height: 10px; background: var(--px-ink);
+  border: 2px solid var(--px-ink); overflow: hidden;
 }
-.bk-bar { height: 100%; border-radius: 4px; transition: width 0.4s; }
-.bk-val { width: 52px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
+.bk-bar { height: 100%; transition: width 0.4s; }
+.bk-val { width: 52px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.nw-divider { border-top: 1px solid var(--border); margin: 4px 0; }
-.stat-row { display: flex; justify-content: space-between; font-size: 12px; }
-.stat-label { color: var(--text-muted); }
-.stat-val   { font-weight: 700; color: var(--text); }
-.stat-val.accent { color: #aaff88; }
+.nw-divider { border-top: 2px solid #e8dcbc; margin: 4px 0; }
+.stat-row { display: flex; justify-content: space-between; font-size: 13px; }
+.stat-label { color: var(--px-tan-ink); }
+.stat-val   { font-family: 'Silkscreen', monospace; color: var(--px-ink-txt); }
+.stat-val.accent { color: #3d6b25; }
 
-.nw-loading { color: var(--text-muted); font-size: 12px; }
+.nw-loading { color: var(--px-tan-ink); font-size: 13px; }
 
 /* ── Rechts ─────────────────────────────────────── */
 .nw-right {
@@ -410,26 +395,26 @@ onUnmounted(() => {
 
 .toggle-btn {
   display: flex; align-items: center; gap: 5px;
-  padding: 3px 8px; border: 1px solid var(--border);
-  border-radius: 6px; background: var(--surface2);
-  color: var(--text); font-size: 12px; cursor: pointer;
+  padding: 4px 9px; border: 2px solid var(--px-brown2);
+  background: var(--px-cream2);
+  color: var(--px-ink-txt); font-size: 12px; cursor: pointer;
   transition: opacity 0.15s;
 }
 .toggle-btn.inactive { opacity: 0.35; }
 .toggle-btn:hover    { opacity: 1; }
 
 .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--dot); flex-shrink: 0;
+  width: 8px; height: 8px;
+  background: var(--dot); flex-shrink: 0; box-shadow: 0 0 0 1px #3a2a1c;
 }
 
 .pct-btn {
-  padding: 3px 10px; border: 1px solid var(--border);
-  border-radius: 6px; background: var(--surface2);
-  color: var(--text-muted); font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border: 2px solid var(--px-brown2);
+  background: var(--px-cream2);
+  color: var(--px-tan-ink); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
-.pct-btn:hover { color: var(--text); }
+.pct-btn:hover { color: var(--px-ink-txt); background: #fff3c4; }
 
 .chart-wrap { flex: 1; min-height: 0; position: relative; }
 </style>

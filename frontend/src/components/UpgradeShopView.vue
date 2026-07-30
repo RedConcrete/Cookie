@@ -1,52 +1,44 @@
 <template>
-  <div class="upgrade-shop">
-    <h3>Upgrade-Shop</h3>
+  <div class="us-root">
+    <div v-if="loading" class="us-loading">Lade...</div>
 
-    <div v-if="loading" class="shop-loading">Lade...</div>
-
-    <div v-else>
-      <!-- Boosts + Kapazität: 2 Spalten -->
-      <div class="groups-grid">
-        <div v-for="group in topGroups" :key="group.label" class="upgrade-group">
-          <div class="group-label">{{ group.label }}</div>
-          <div v-for="u in group.items" :key="u.id" class="upgrade-row">
-            <div class="upgrade-info">
+    <template v-else>
+      <div class="us-groups">
+        <div v-for="group in topGroups" :key="group.label" class="us-group">
+          <div class="us-group-label">{{ group.label.toUpperCase() }}</div>
+          <div v-for="u in group.items" :key="u.id" class="us-row">
+            <div class="us-info">
               <NestedTooltip :content="tooltipContent(u)">
-                <div class="upgrade-name">{{ u.name }}</div>
+                <div class="us-name">{{ u.name }}</div>
               </NestedTooltip>
-              <div class="upgrade-level">
-                Stufe {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span>
-              </div>
+              <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
-            <button class="btn-upgrade" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
-              <template v-if="atMax(u)">Max</template>
-              <template v-else>{{ fmt(u.nextLevelCost) }} C</template>
+            <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
+              <template v-if="atMax(u)">MAX</template>
+              <template v-else>{{ fmt(u.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></template>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Automatisierung: volle Breite, 2-Spalten-Rows -->
-      <div v-for="group in bottomGroups" :key="group.label" class="upgrade-group">
-        <div class="group-label">{{ group.label }}</div>
-        <div class="auto-grid">
-          <div v-for="u in group.items" :key="u.id" class="upgrade-row">
-            <div class="upgrade-info">
+      <div v-for="group in bottomGroups" :key="group.label" class="us-group">
+        <div class="us-group-label">{{ group.label.toUpperCase() }}</div>
+        <div class="us-auto-grid">
+          <div v-for="u in group.items" :key="u.id" class="us-row">
+            <div class="us-info">
               <NestedTooltip :content="tooltipContent(u)">
-                <div class="upgrade-name">{{ u.name }}</div>
+                <div class="us-name">{{ u.name }}</div>
               </NestedTooltip>
-              <div class="upgrade-level">
-                Stufe {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span>
-              </div>
+              <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
-            <button class="btn-upgrade" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
-              <template v-if="atMax(u)">Max</template>
-              <template v-else>{{ fmt(u.nextLevelCost) }} C</template>
+            <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
+              <template v-if="atMax(u)">MAX</template>
+              <template v-else>{{ fmt(u.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></template>
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -55,6 +47,7 @@ import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { getUpgrades, buyUpgrade, initGame } from '../services/api.js'
 import NestedTooltip from './NestedTooltip.vue'
+import PixelIcon from './pixel/PixelIcon.vue'
 
 const playerStore = usePlayerStore()
 const upgrades = ref([])
@@ -101,7 +94,6 @@ async function buy(u) {
   buying.value = u.id
   try {
     upgrades.value = await buyUpgrade(playerStore.steamId, u.id)
-    // Spieler-Daten nach Kauf neu laden
     const data = await initGame(playerStore.steamId, 1)
     playerStore.updateFromDto(data.user)
   } catch (e) {
@@ -115,65 +107,18 @@ onMounted(load)
 </script>
 
 <style scoped>
-.upgrade-shop { min-width: 360px; }
-h3 { margin-bottom: 16px; color: var(--text); }
+.us-root { min-width: 360px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.us-loading { color: var(--px-tan-ink); text-align: center; padding: 24px; }
 
-.shop-loading { color: var(--text-muted); text-align: center; padding: 24px; }
+.us-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+.us-auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
 
-/* Boosts + Kapazität: 2 Spalten nebeneinander */
-.groups-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 32px;
+.us-group { margin-bottom: 6px; }
+.us-group-label {
+  font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd);
+  letter-spacing: 1px; border-bottom: 3px solid var(--px-tan); padding-bottom: 6px; margin-bottom: 10px;
 }
-
-/* Automatisierung: 2-Spalten-Grid für die Rows */
-.auto-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 32px;
-}
-
-.upgrade-group { margin-bottom: 20px; }
-.group-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.upgrade-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-.upgrade-row:last-child { border-bottom: none; }
-
-.upgrade-info { flex: 1; min-width: 0; }
-.upgrade-name { font-weight: 700; font-size: 13px; color: var(--text); }
-.upgrade-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.upgrade-level { font-size: 11px; color: var(--accent); margin-top: 3px; font-weight: 600; }
-
-.btn-upgrade {
-  white-space: nowrap;
-  padding: 6px 12px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-.btn-upgrade:hover:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-upgrade:disabled { opacity: 0.4; cursor: not-allowed; }
+.us-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.us-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); cursor: help; }
+.us-level { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-orange); margin-top: 3px; }
 </style>

@@ -10,47 +10,49 @@
   position: fixed;
   z-index: 9000;
   max-width: 340px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.7;
+  padding: 12px 14px;
+  border-radius: 0;
+  font-size: 14px;
+  line-height: 1.6;
   pointer-events: all;
   white-space: pre-wrap;
-  font-family: monospace;
+  font-family: 'Pixelify Sans', system-ui, sans-serif;
 
   /* Depth 0: dunkel */
-  background: #1e1e2e;
-  color: #e2e2f0;
-  border: 1px solid #3a3a55;
+  background: #33261a;
+  color: #f3e6cc;
+  border: 4px solid #100b07;
+  box-shadow: inset 2px 2px 0 #55402a, 0 6px 0 rgba(0,0,0,.4);
 }
 
 /* Depth 1+: etwas heller, leicht versetzt im Farbton */
-.tt-depth-1 { background: #252540; border-color: #4a4a6a; }
-.tt-depth-2 { background: #2c2c50; border-color: #5a5a80; }
-.tt-depth-3 { background: #323268; border-color: #6a6a90; }
+.tt-depth-1 { background: #42311f; box-shadow: inset 2px 2px 0 #66492c, 0 6px 0 rgba(0,0,0,.4); }
+.tt-depth-2 { background: #523d27; box-shadow: inset 2px 2px 0 #7a5c38, 0 6px 0 rgba(0,0,0,.4); }
+.tt-depth-3 { background: #614a30; box-shadow: inset 2px 2px 0 #8a6a44, 0 6px 0 rgba(0,0,0,.4); }
 
 /* ── Highlighted Text im Tooltip ───────────────────────── */
 .tt-highlight {
   display: inline;
   cursor: pointer;
-  color: #a0aaff;
+  color: #ffd76b;
+  border-bottom: 2px dashed #c9702a;
   transition: color 0.15s;
 }
 
 .tt-highlight:hover {
-  color: #c8d0ff;
+  color: #fff0b0;
 }
 
 /* ── Phase 1: Füll-Balken am Trigger ───────────────────── */
 .tt-fill-indicator {
   display: block;
-  height: 2px;
+  height: 3px;
   width: 100%;
-  background: rgba(160,170,255,0.5);
+  background: #e8b93c;
   transform-origin: left;
   transform: scaleX(0);
   animation: tt-fill linear forwards;
-  border-radius: 1px;
+  border-radius: 0;
 }
 @keyframes tt-fill {
   from { transform: scaleX(0); }
@@ -60,16 +62,16 @@
 /* ── Phase 3: Countdown-Balken ──────────────────────────── */
 .tt-countdown {
   margin-top: 6px;
-  height: 2px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 1px;
+  height: 3px;
+  background: #100b07;
+  border-radius: 0;
   overflow: hidden;
 }
 .tt-countdown-bar {
   height: 100%;
   width: 100%;
-  background: rgba(160,170,255,0.6);
-  border-radius: 1px;
+  background: #e0873a;
+  border-radius: 0;
   transform-origin: left;
   animation: tt-drain linear forwards;
 }

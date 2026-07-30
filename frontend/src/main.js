@@ -4,6 +4,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 import FarmGridView from './views/FarmGridView.vue'
 import './assets/styles/main.css'
+import './assets/styles/pixel.css'
 import './assets/styles/NestedTooltip.css'
 
 const router = createRouter({

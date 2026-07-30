@@ -1,88 +1,75 @@
 <template>
-  <div class="market-layout">
-
-    <!-- ── Chart-Seite ──────────────────────────────────── -->
-    <div class="chart-side">
-      <PriceChart
-        @hover-resource="hoveredResource = $event"
-        @hover-point="hoveredPoint = $event"
-        @pct-mode-change="onPctModeChange"
-      />
-      <div class="hover-bar">
-        <span class="hover-time">{{ hoveredPoint ? fmtTime(hoveredPoint.date) : 'Aktuell' }}</span>
-        <span v-for="res in resources" :key="res.name" class="hover-chip" :style="{ borderColor: COLORS[res.name] }">
+  <div class="mv-root">
+    <div class="mv-chart-row">
+      <div class="mv-legend">
+        <div v-for="r in resources" :key="r.name" class="mv-legend-chip">
+          <span class="mv-legend-dot" :style="{ background: COLORS[r.name] }"></span>{{ r.label }}
+        </div>
+      </div>
+      <div class="mv-chart-box">
+        <PriceChart
+          @hover-resource="hoveredResource = $event"
+          @hover-point="hoveredPoint = $event"
+          @pct-mode-change="onPctModeChange"
+        />
+      </div>
+      <div class="mv-hover-bar">
+        <span class="mv-hover-time">{{ hoveredPoint ? fmtTime(hoveredPoint.date) : 'Aktuell' }}</span>
+        <span v-for="res in resources" :key="res.name" class="mv-hover-chip">
           {{ res.label }}:
-          <template v-if="chartPctMode && chartBases[res.name]">
-            {{ fmtPct((hoveredPoint ?? marketStore.current)?.[res.priceKey], chartBases[res.name]) }}
-          </template>
-          <template v-else>
-            {{ fmt((hoveredPoint ?? marketStore.current)?.[res.priceKey]) }}
-          </template>
+          <template v-if="chartPctMode && chartBases[res.name]">{{ fmtPct((hoveredPoint ?? marketStore.current)?.[res.priceKey], chartBases[res.name]) }}</template>
+          <template v-else>{{ fmt((hoveredPoint ?? marketStore.current)?.[res.priceKey]) }}</template>
         </span>
       </div>
     </div>
 
-    <!-- ── Trade-Panel (einklappbar) ────────────────────── -->
-    <div class="trade-side" :class="{ collapsed: panelCollapsed }">
+    <div class="mv-table">
+      <div class="mv-row mv-head">
+        <div></div><div>RESSOURCE</div><div>PREIS</div><div>TREND</div><div>BESTAND</div><div>MENGE</div><div>AKTION</div>
+        <div class="mv-col-cost">KOSTEN &darr;</div>
+      </div>
 
-      <!-- Eingeklappt: nur Toggle-Button -->
-      <button v-if="panelCollapsed" class="panel-toggle" @click="panelCollapsed = false" title="Handel öffnen">◀</button>
-
-      <!-- Ausgeklappt: Toggle + Inhalt -->
-      <template v-else>
-        <button class="panel-toggle" @click="panelCollapsed = true" title="Handel schließen">▶</button>
-        <div class="trade-content">
-          <div
-            v-for="res in resources" :key="res.name"
-            class="trade-row"
-            :class="{ 'row-highlight': hoveredResource === res.name, 'row-success': flashSuccess[res.name] }"
-          >
-            <!-- Header: Icon + Name + Preis | Bestand -->
-            <div class="tr-header">
-              <img :src="res.icon" class="res-icon" :alt="res.label" />
-              <span class="res-label">{{ res.label }}</span>
-              <span class="res-price">{{ fmt(marketStore.priceOf(res.name)) }}</span>
-              <span class="res-stock">{{ fmt2(playerStore[res.key]) }}</span>
-            </div>
-
-            <!-- Stepper + Buttons in einer Zeile -->
-            <div class="tr-controls">
-              <div class="stepper">
-                <button
-                  class="step-btn"
-                  @mousedown="startHold(res.name, -1)"
-                  @mouseup="stopHold"
-                  @mouseleave="stopHold"
-                >−</button>
-                <input v-model.number="amounts[res.name]" type="number" min="1" class="step-input" @blur="clamp(res.name)" />
-                <button
-                  class="step-btn"
-                  @mousedown="startHold(res.name, 1)"
-                  @mouseup="stopHold"
-                  @mouseleave="stopHold"
-                >+</button>
-              </div>
-              <button class="btn btn-buy"  :disabled="busy[res.name] || !canBuy(res)"  @click="doTrade(res, 'BUY')">
-                Kaufen<span class="btn-cost">−{{ fmt(buyCost(res)) }} C</span>
-              </button>
-              <button class="btn btn-sell" :disabled="busy[res.name] || !canSell(res)" @click="doTrade(res, 'SELL')">
-                Verkaufen<span class="btn-earn">+{{ fmt(netPayout(res)) }} C</span>
-              </button>
-            </div>
-          </div>
+      <div v-for="res in resources" :key="res.name" class="mv-row" :class="{ highlight: hoveredResource === res.name, success: flashSuccess[res.name] }">
+        <div class="mv-icon"><PixelIcon :name="res.icon" :size="20" /></div>
+        <div class="mv-name">{{ res.label }}</div>
+        <div class="mv-price">{{ fmt(marketStore.priceOf(res.name)) }}</div>
+        <div class="mv-trend" :style="{ color: trendOf(res.name) >= 0 ? '#3d6b25' : '#b83232' }">
+          {{ trendOf(res.name) >= 0 ? '+' : '' }}{{ trendOf(res.name).toFixed(1) }} %
         </div>
-      </template>
+        <div class="mv-stock">{{ fmt2(playerStore[res.key]) }}</div>
+
+        <div class="mv-qty">
+          <button class="mv-qty-btn" @mousedown="startHold(res.name, -1)" @mouseup="stopHold" @mouseleave="stopHold">&minus;</button>
+          <div class="mv-qty-val">{{ amounts[res.name] }}</div>
+          <button class="mv-qty-btn" @mousedown="startHold(res.name, 1)" @mouseup="stopHold" @mouseleave="stopHold">+</button>
+        </div>
+
+        <div class="mv-actions">
+          <button class="px-btn px-btn-buy mv-action-btn" :disabled="busy[res.name] || !canBuy(res)" @click="doTrade(res, 'BUY')">KAUFEN</button>
+          <button class="px-btn px-btn-sell mv-action-btn" :disabled="busy[res.name] || !canSell(res)" @click="doTrade(res, 'SELL')">VERKAUF</button>
+        </div>
+
+        <PixelInfoPopover :rows="costRows(res)" :title="res.label + ' · KOSTEN'" side="left" :width="284" :z="9" bar-placement="edge">
+          <div class="mv-cost">
+            <div class="mv-cost-buy">&minus;{{ fmt(buyCost(res)) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
+            <div class="mv-cost-sell">+{{ fmt(netPayout(res)) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
+          </div>
+        </PixelInfoPopover>
+      </div>
+
+      <div class="mv-footer">
+        <div class="mv-footer-hint">HOVER AUF KOSTEN = AUFSCHLÜSSELUNG</div>
+        <div class="mv-footer-fee">GEBÜHR {{ Math.round(sellFeeRate * 100) }} %</div>
+      </div>
     </div>
 
-    <!-- ── Fehler-Dialog ─────────────────────────────────── -->
     <div v-if="errorMsg" class="err-overlay" @click.self="errorMsg = null">
       <div class="err-dialog">
         <div class="err-title">Fehler</div>
         <div class="err-body">{{ errorMsg }}</div>
-        <button class="btn btn-buy" style="margin-top:12px" @click="errorMsg = null">OK</button>
+        <button class="px-btn px-btn-accent" style="margin-top:12px" @click="errorMsg = null">OK</button>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -93,26 +80,21 @@ import { useMarketStore } from '../stores/market.js'
 import { trade, getConfig } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PriceChart from '../components/PriceChart.vue'
-import sugarIcon  from '../assets/Sprites/RecSprits/Zucker.png'
-import flourIcon  from '../assets/Sprites/RecSprits/Mehl.png'
-import eggsIcon   from '../assets/Sprites/RecSprits/Eier.png'
-import butterIcon from '../assets/Sprites/RecSprits/ButterICon.png'
-import chocoIcon  from '../assets/Sprites/RecSprits/SchokiIcon.png'
-import milkIcon   from '../assets/Sprites/RecSprits/MilchIcon.png'
+import PixelIcon from '../components/pixel/PixelIcon.vue'
+import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 
 const COLORS = {
-  SUGAR: '#ef4444', FLOUR: '#3b82f6', EGGS: '#22c55e',
-  BUTTER: '#eab308', CHOCOLATE: '#a855f7', MILK: '#06b6d4',
+  SUGAR: '#e05a4a', FLOUR: '#5aa0e0', EGGS: '#8fae5c',
+  BUTTER: '#e8b93c', CHOCOLATE: '#6b3b1c', MILK: '#9fb3c2',
 }
 
 const { playCoins } = useAudio()
-const sellFeeRate     = ref(0.05)
+const sellFeeRate     = ref(0.08)
 const hoveredResource = ref(null)
 const hoveredPoint    = ref(null)
-const panelCollapsed  = ref(false)
 const chartPctMode    = ref(false)
 const chartBases      = ref({})
 const errorMsg        = ref(null)
@@ -127,43 +109,40 @@ function onPctModeChange({ active, bases }) {
 }
 
 onMounted(async () => {
-  try { const cfg = await getConfig(); sellFeeRate.value = cfg.sellFeeRate ?? 0.05 } catch {}
+  try { const cfg = await getConfig(); sellFeeRate.value = cfg.sellFeeRate ?? 0.08 } catch {}
 })
 
 const resources = [
-  { name: 'SUGAR',     label: 'Zucker',     key: 'sugar',     priceKey: 'sugarPrice',     icon: sugarIcon  },
-  { name: 'FLOUR',     label: 'Mehl',       key: 'flour',     priceKey: 'flourPrice',     icon: flourIcon  },
-  { name: 'EGGS',      label: 'Eier',       key: 'eggs',      priceKey: 'eggsPrice',      icon: eggsIcon   },
-  { name: 'BUTTER',    label: 'Butter',     key: 'butter',    priceKey: 'butterPrice',    icon: butterIcon },
-  { name: 'CHOCOLATE', label: 'Schokolade', key: 'chocolate', priceKey: 'chocolatePrice', icon: chocoIcon  },
-  { name: 'MILK',      label: 'Milch',      key: 'milk',      priceKey: 'milkPrice',      icon: milkIcon   },
+  { name: 'SUGAR',     label: 'Zucker',     key: 'sugar',     priceKey: 'sugarPrice',     icon: 'zucker' },
+  { name: 'FLOUR',     label: 'Mehl',       key: 'flour',     priceKey: 'flourPrice',     icon: 'mehl'   },
+  { name: 'EGGS',      label: 'Eier',       key: 'eggs',      priceKey: 'eggsPrice',      icon: 'eier'   },
+  { name: 'BUTTER',    label: 'Butter',     key: 'butter',    priceKey: 'butterPrice',    icon: 'butter' },
+  { name: 'CHOCOLATE', label: 'Schokolade', key: 'chocolate', priceKey: 'chocolatePrice', icon: 'schoko' },
+  { name: 'MILK',      label: 'Milch',      key: 'milk',      priceKey: 'milkPrice',      icon: 'milch'  },
 ]
 
-const amounts = reactive(Object.fromEntries(resources.map(r => [r.name, 1])))
+const amounts = reactive(Object.fromEntries(resources.map(r => [r.name, 10])))
 const busy    = reactive(Object.fromEntries(resources.map(r => [r.name, false])))
 
-function clamp(name) { if (!amounts[name] || amounts[name] < 1) amounts[name] = 1 }
+function trendOf(name) {
+  const key = resources.find(r => r.name === name)?.priceKey
+  const hist = marketStore.history
+  if (!key || !hist?.length) return 0
+  const now = marketStore.priceOf(name)
+  const past = hist[hist.length - 1]?.[key]
+  if (!past) return 0
+  return ((now - past) / past) * 100
+}
 
 // ── Hold-to-repeat ──────────────────────────────────────
 let holdTimer = null
 let holdRepeat = null
-
 function startHold(name, delta) {
   step(name, delta)
-  holdTimer = setTimeout(() => {
-    holdRepeat = setInterval(() => step(name, delta), 80)
-  }, 400)
+  holdTimer = setTimeout(() => { holdRepeat = setInterval(() => step(name, delta), 80) }, 400)
 }
-function stopHold() {
-  clearTimeout(holdTimer)
-  clearInterval(holdRepeat)
-  holdTimer = null
-  holdRepeat = null
-}
-function step(name, delta) {
-  amounts[name] = Math.max(1, (amounts[name] || 1) + delta)
-}
-
+function stopHold() { clearTimeout(holdTimer); clearInterval(holdRepeat); holdTimer = null; holdRepeat = null }
+function step(name, delta) { amounts[name] = Math.max(1, (amounts[name] || 1) + delta) }
 onUnmounted(stopHold)
 
 // ── Trade ───────────────────────────────────────────────
@@ -171,6 +150,15 @@ function canBuy(res)    { return amounts[res.name] > 0 && playerStore.cookies >=
 function canSell(res)   { return amounts[res.name] > 0 && playerStore[res.key] >= amounts[res.name] }
 function buyCost(res)   { return marketStore.priceOf(res.name) * (amounts[res.name] || 0) }
 function netPayout(res) { return buyCost(res) * (1 - sellFeeRate.value) }
+
+function costRows(res) {
+  return [
+    { k: 'Menge × Preis', v: `${amounts[res.name]} × ${fmt(marketStore.priceOf(res.name))} C`, color: 'w' },
+    { k: 'Kaufkosten', v: `−${fmt(buyCost(res))} C`, color: 'o' },
+    { k: `Marktgebühr ${Math.round(sellFeeRate.value * 100)} %`, v: `−${fmt(buyCost(res) * sellFeeRate.value)} C`, color: 'o' },
+    { k: 'Verkauf netto', v: `+${fmt(netPayout(res))} C`, color: 'g' },
+  ]
+}
 
 async function doTrade(res, action) {
   if (busy[res.name]) return
@@ -188,196 +176,57 @@ async function doTrade(res, action) {
   }
 }
 
-// ── Format ──────────────────────────────────────────────
-function fmt(v)          { return Number(v ?? 0).toFixed(2) }
-function fmt2(v)         { return Number(v ?? 0).toFixed(1) }
-function fmtPct(v, base) {
-  const pct = ((Number(v) - base) / base) * 100
-  return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
-}
-function fmtTime(date) {
-  const d = new Date(date)
-  return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`
-}
+function fmt(v)  { return Number(v ?? 0).toFixed(2) }
+function fmt2(v) { return Number(v ?? 0).toFixed(1) }
+function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` }
+function fmtTime(date) { const d = new Date(date); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}` }
 </script>
 
 <style scoped>
-/* ── Layout ─────────────────────────────────────────────── */
-.market-layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 0 0 16px;
-}
+.mv-root { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--px-cream); }
 
-/* ── Chart ──────────────────────────────────────────────── */
-.chart-side {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 12px 12px 0;
-  border-right: 1px solid var(--border);
-}
+.mv-chart-row { flex: 0 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 4px solid var(--px-ink); }
+.mv-legend { display: flex; gap: 6px; flex-wrap: wrap; }
+.mv-legend-chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--px-cream2); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); }
+.mv-legend-dot { display: inline-block; width: 10px; height: 10px; box-shadow: 0 0 0 2px #3a2a1c; }
+.mv-chart-box { height: 196px; flex: 0 0 auto; position: relative; background: var(--px-ink); border: 4px solid var(--px-ink); padding: 14px; }
+.mv-hover-bar { display: flex; flex-wrap: wrap; gap: 10px; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); }
+.mv-hover-chip { color: var(--px-ink-txt); }
 
-.hover-bar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 3px 0;
-  min-height: 26px;
+.mv-table { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 16px; background: var(--px-cream2); display: flex; flex-direction: column; gap: 3px; }
+.mv-row {
+  display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 130px 190px 150px;
+  gap: 10px; align-items: center; padding: 7px 10px; min-width: 900px;
 }
-.hover-time { color: var(--text-muted); font-size: 11px; margin-right: 2px; }
-.hover-chip {
-  padding: 1px 5px;
-  border-radius: 4px;
-  border: 1px solid;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 600;
-}
+.mv-head { background: var(--px-wood); border: 3px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
+.mv-col-cost { text-align: right; }
+.mv-row:not(.mv-head) { background: var(--px-cream); border: 2px solid #e0cda2; position: relative; }
+.mv-row.highlight { border-color: var(--px-orange); }
+.mv-row.success { background: #dff0d0; }
 
-/* ── Trade-Panel ────────────────────────────────────────── */
-.trade-side {
-  display: flex;
-  flex-shrink: 0;
-  width: 280px;
-  transition: width 0.2s;
-  border-bottom-right-radius: 14px;
-  overflow: hidden;
-}
-.trade-side.collapsed { width: 28px; }
+.mv-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
+.mv-price { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
+.mv-trend { font-family: 'Silkscreen', monospace; font-size: 11px; }
+.mv-stock { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
 
-.panel-toggle {
-  width: 28px;
-  flex-shrink: 0;
-  background: var(--surface2);
-  border: none;
-  border-left: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-.panel-toggle:hover { background: var(--surface); color: var(--text); }
+.mv-qty { display: flex; align-items: center; border: 3px solid var(--px-ink); background: var(--px-cream2); width: max-content; }
+.mv-qty-btn { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 5px 9px; background: none; border: none; cursor: pointer; color: var(--px-ink-txt); }
+.mv-qty-btn:hover { background: #fff3c4; }
+.mv-qty-val { padding: 5px 10px; font-family: 'Silkscreen', monospace; font-size: 11px; border-left: 3px solid var(--px-ink); border-right: 3px solid var(--px-ink); color: var(--px-ink-txt); }
 
-.trade-content {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 10px 8px 10px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.mv-actions { display: flex; gap: 6px; }
+.mv-action-btn { flex: 1; padding: 6px 0; text-align: center; font-size: 10px; }
 
-/* ── Trade-Karte ────────────────────────────────────────── */
-.trade-row {
-  flex: 1;
-  min-height: 0;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: 2px solid var(--border);
-  background: var(--surface2);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  transition: border-color 0.15s, background 0.15s;
-}
-.trade-row.row-highlight { border-color: var(--accent); }
-.trade-row.row-success   { border-color: var(--success); background: rgba(34,197,94,0.1); }
+.mv-cost { text-align: right; }
+.mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
+.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 9px; color: #3d6b25; margin-top: 3px; }
 
-.tr-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.res-icon  { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
-.res-label { flex: 1; font-weight: 700; font-size: 12px; }
-.res-price { color: var(--accent); font-weight: 700; font-size: 12px; }
-.res-stock { color: var(--text-muted); font-size: 11px; margin-left: 4px; }
+.mv-footer { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 8px; }
+.mv-footer-hint { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 8px; background: var(--px-cream3); border: 2px solid var(--px-brown2); color: var(--px-tan-hd); }
+.mv-footer-fee  { margin-left: auto; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); }
 
-/* ── Controls: stepper + buttons in einer Reihe ─────────── */
-.tr-controls {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.stepper { display: flex; align-items: center; gap: 3px; }
-.step-btn {
-  width: 22px; height: 22px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  transition: background 0.1s;
-}
-.step-btn:hover  { background: var(--accent); color: #fff; border-color: var(--accent); }
-.step-btn:active { opacity: 0.7; }
-
-.step-input {
-  width: 42px;
-  padding: 2px 4px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 12px;
-  text-align: center;
-  -moz-appearance: textfield;
-}
-.step-input::-webkit-outer-spin-button,
-.step-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-
-.tr-controls .btn { flex: 1; min-width: 0; font-size: 11px; padding: 4px 6px; }
-
-.btn-cost, .btn-earn {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  opacity: 0.85;
-  line-height: 1;
-  margin-top: 1px;
-}
-.btn-cost { color: #ffbbbb; }
-.btn-earn { color: #bbffbb; }
-
-/* ── Fehler-Dialog ──────────────────────────────────────── */
-.err-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  border-radius: 16px;
-}
-.err-dialog {
-  background: var(--surface);
-  border: 2px solid var(--error);
-  border-radius: 12px;
-  padding: 20px 24px;
-  max-width: 320px;
-  text-align: center;
-}
-.err-title { font-weight: 700; font-size: 15px; color: var(--error); margin-bottom: 8px; }
-.err-body  { font-size: 13px; color: var(--text); line-height: 1.5; }
+.err-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.err-dialog { background: var(--px-cream); border: 4px solid var(--px-red); padding: 20px 24px; max-width: 320px; text-align: center; }
+.err-title { font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 15px; color: var(--px-red); margin-bottom: 8px; }
+.err-body  { font-size: 13px; color: var(--px-ink-txt); line-height: 1.5; }
 </style>

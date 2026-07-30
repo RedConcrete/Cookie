@@ -1,101 +1,101 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="dialog-box">
-      <div class="dialog-header">
-        <span class="dialog-title">Einstellungen</span>
-        <button class="dialog-close" @click="emit('close')">✕</button>
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
+    <div class="sd-box px-panel">
+      <div class="px-titlebar">
+        <span>EINSTELLUNGEN</span>
+        <button class="px-close" @click="emit('close')">&times;</button>
       </div>
-      <div class="settings-body">
 
-        <div class="setting-group">
-          <div class="setting-label">
-            <span>Musik</span>
-            <button class="mute-btn" @click="audio.musicMuted.value = !audio.musicMuted.value">
-              {{ audio.musicMuted.value ? '🔇' : '🎵' }}
-            </button>
-          </div>
-          <input
-            type="range" min="0" max="1" step="0.01"
-            :value="audio.musicVolume.value"
-            @input="audio.musicVolume.value = +$event.target.value"
-            :disabled="audio.musicMuted.value"
-            class="vol-slider"
-          />
-          <span class="vol-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
+      <div class="sd-body">
+        <div class="sd-slider-row">
+          <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value">{{ audio.musicMuted.value ? '🔇' : '🎵' }}</button></div>
+          <input type="range" min="0" max="1" step="0.01" :value="audio.musicVolume.value"
+            @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider" />
+          <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
         </div>
 
-        <div class="setting-group">
-          <div class="setting-label">
-            <span>Soundeffekte</span>
-            <button class="mute-btn" @click="audio.sfxMuted.value = !audio.sfxMuted.value">
-              {{ audio.sfxMuted.value ? '🔇' : '🔊' }}
-            </button>
-          </div>
-          <input
-            type="range" min="0" max="1" step="0.01"
-            :value="audio.sfxVolume.value"
-            @input="audio.sfxVolume.value = +$event.target.value"
-            :disabled="audio.sfxMuted.value"
-            class="vol-slider"
-          />
-          <span class="vol-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
+        <div class="sd-slider-row">
+          <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value">{{ audio.sfxMuted.value ? '🔇' : '🔊' }}</button></div>
+          <input type="range" min="0" max="1" step="0.01" :value="audio.sfxVolume.value"
+            @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider" />
+          <span class="sd-slider-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
         </div>
 
+        <div class="sd-toggle-row">
+          <span>Lohn-Warnung anzeigen</span>
+          <button class="sd-toggle" :class="{ on: wageWarning }" @click="wageWarning = !wageWarning"><span class="sd-toggle-knob"></span></button>
+        </div>
+        <div class="sd-toggle-row">
+          <span>Pixel-Zoom rasten</span>
+          <button class="sd-toggle" :class="{ on: pixelSnap }" @click="pixelSnap = !pixelSnap"><span class="sd-toggle-knob"></span></button>
+        </div>
+
+        <div class="sd-hotkeys">
+          <div class="sd-hotkeys-head">
+            <span class="sd-label">TASTENKÜRZEL</span>
+            <span class="sd-hotkeys-hint">Zeile anklicken, dann Taste drücken</span>
+          </div>
+          <div class="sd-hotkey-list px-scroll">
+            <div v-for="h in hotkeys.state.bindings" :key="h.id" class="sd-hotkey-row" @click="hotkeys.startEditing(h.id)" @keydown="hotkeys.state.editingId === h.id && hotkeys.assign(h.id, $event)" tabindex="0">
+              <span>{{ h.action }}</span>
+              <span class="sd-hotkey-key" :class="{ editing: hotkeys.state.editingId === h.id, dup: hotkeys.isDuplicate(h.id) }">
+                {{ hotkeys.state.editingId === h.id ? 'TASTE DRÜCKEN …' : h.key }}
+              </span>
+            </div>
+          </div>
+          <div class="sd-hotkeys-foot">
+            <button class="px-btn px-btn-flat" @click="hotkeys.reset()">ZURÜCKSETZEN</button>
+            <span class="sd-hotkeys-note">Doppelbelegung wird rot markiert</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useAudio } from '../composables/useAudio.js'
+import { useHotkeys } from '../composables/useHotkeys.js'
+
 const emit = defineEmits(['close'])
 const audio = useAudio()
+const hotkeys = useHotkeys()
+const wageWarning = ref(true)
+const pixelSnap = ref(false)
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 300;
-}
-.dialog-box {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  width: 360px;
-  max-width: 95vw;
-  overflow: hidden;
-}
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.dialog-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.dialog-close {
-  background: none; border: none; font-size: 18px;
-  cursor: pointer; color: var(--text-muted); padding: 2px 6px; border-radius: 4px;
-}
-.dialog-close:hover { color: var(--text); background: var(--surface2); }
+.sd-box { width: 420px; max-width: 95vw; max-height: 90vh; overflow: auto; }
+.sd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
-.settings-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.sd-slider-row { display: flex; align-items: center; gap: 10px; }
+.sd-slider-label { width: 130px; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; }
+.sd-mute { background: none; border: none; cursor: pointer; font-size: 14px; }
+.sd-slider { flex: 1; accent-color: var(--px-orange); }
+.sd-slider-val { width: 40px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.setting-group { display: flex; align-items: center; gap: 10px; }
-.setting-label { display: flex; align-items: center; gap: 6px; min-width: 130px; font-size: 13px; color: var(--text); }
+.sd-toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: var(--px-ink-txt); }
+.sd-toggle { width: 64px; height: 30px; background: var(--px-tan); border: 3px solid var(--px-ink); display: flex; padding: 2px; cursor: pointer; }
+.sd-toggle.on { background: var(--px-green); justify-content: flex-end; }
+.sd-toggle-knob { width: 26px; height: 100%; background: var(--px-cream2); border: 2px solid var(--px-ink); }
 
-.mute-btn {
-  background: none; border: 1px solid var(--border); border-radius: 6px;
-  cursor: pointer; font-size: 14px; padding: 2px 6px; line-height: 1;
+.sd-hotkeys { border-top: 3px solid var(--px-tan); padding-top: 14px; }
+.sd-hotkeys-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.sd-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; }
+.sd-hotkeys-hint { font-size: 13px; color: var(--px-tan-ink); }
+
+.sd-hotkey-list { max-height: 206px; overflow-y: auto; border: 3px solid var(--px-brown2); background: var(--px-cream2); }
+.sd-hotkey-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 2px solid #e8dcbc; font-size: 15px; color: var(--px-ink-txt); cursor: pointer; }
+.sd-hotkey-row:hover { background: #fff3c4; }
+.sd-hotkey-key {
+  font-family: 'Silkscreen', monospace; font-size: 10px; padding: 6px 9px; min-width: 64px; text-align: center;
+  background: var(--px-cream3); border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 #b9a276, inset 2px 2px 0 var(--px-cream);
+  color: var(--px-ink-txt);
 }
-.mute-btn:hover { background: var(--surface2); }
+.sd-hotkey-key.editing { background: var(--px-gold); }
+.sd-hotkey-key.dup { color: var(--px-red); }
 
-.vol-slider { flex: 1; accent-color: var(--accent); cursor: pointer; }
-.vol-slider:disabled { opacity: 0.4; cursor: not-allowed; }
-.vol-val { min-width: 36px; text-align: right; font-size: 12px; color: var(--text-muted); }
+.sd-hotkeys-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.sd-hotkeys-note { margin-left: auto; font-size: 13px; color: var(--px-tan-ink); }
 </style>

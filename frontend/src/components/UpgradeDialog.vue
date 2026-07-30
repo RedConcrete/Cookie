@@ -1,7 +1,10 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="dialog-box">
-      <button class="dialog-close" @click="emit('close')">✕</button>
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
+    <div class="ud-box px-panel">
+      <div class="px-titlebar">
+        <span>UPGRADE-SHOP</span>
+        <button class="px-close" @click="emit('close')">&times;</button>
+      </div>
       <UpgradeShopView />
     </div>
   </div>
@@ -13,34 +16,12 @@ const emit = defineEmits(['close'])
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-.dialog-box {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  width: 720px;
+.ud-box {
+  width: 700px;
   max-width: 95vw;
   max-height: 85vh;
   overflow: auto;
-  position: relative;
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
 }
-.dialog-close {
-  position: absolute;
-  top: 12px; right: 14px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-.dialog-close:hover { color: var(--text); }
 </style>

@@ -1,0 +1,171 @@
+/* pixel.css — chunky pixel-art design system for Cookie
+   4px dark borders, 0px radii, Silkscreen for labels/numbers, Pixelify Sans for body text.
+   Ported from the "Cookie Layouts" design (Claude Design handoff). */
+
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --px-ink:      #100b07;
+  --px-bg:       #20170f;
+  --px-wood:     #33261a;
+  --px-wood2:    #3f2f1f;
+  --px-wood3:    #4b3623;
+  --px-wood-lt:  #5a4023;
+  --px-cream:    #fffaf0;
+  --px-cream2:   #f7edd4;
+  --px-cream3:   #ecdcb4;
+  --px-tan:      #d9c39a;
+  --px-tan-ink:  #8a6e4e;
+  --px-tan-hd:   #8a5a1e;
+  --px-brown:    #6b4f2a;
+  --px-brown2:   #8d6a3d;
+  --px-ink-txt:  #2a1d12;
+  --px-paper-txt:#f3e6cc;
+  --px-gold:     #e8b93c;
+  --px-gold-lt:  #ffd76b;
+  --px-gold-txt: #ffe680;
+  --px-orange:   #c9702a;
+  --px-orange-lt:#e8a05c;
+  --px-orange-dk:#8d4a17;
+  --px-red:      #b83232;
+  --px-red-dk:   #821f1f;
+  --px-red-lt:   #d45a5a;
+  --px-green:    #4a7c2f;
+  --px-green-dk: #2f5a1c;
+  --px-green-lt: #6da046;
+  --px-green-txt:#a9ff88;
+  --px-green-panel: #26401f;
+  --px-green-panel2: #3c5c2c;
+  --px-blue:     #5aa0e0;
+  --px-muted:    #a8977a;
+  --px-muted2:   #c8b795;
+  --px-fill:     #e8b93c;
+  --px-drain:    #e0873a;
+}
+
+.px-font-title { font-family: 'Silkscreen', monospace; }
+.px-font-body  { font-family: 'Pixelify Sans', system-ui, sans-serif; }
+
+/* ── Keyframes: worker animations ─────────────────────── */
+@keyframes px-walk    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-2px) } }
+@keyframes px-bend    { 0%,100% { transform:translateY(0) } 45% { transform:translateY(3px) } }
+@keyframes px-swing   { 0%,60%,100% { transform:rotate(-10deg) } 30% { transform:rotate(-64deg) } }
+@keyframes px-knead   { 0%,100% { transform:translateY(0) scaleY(1) } 50% { transform:translateY(2px) scaleY(.88) } }
+@keyframes px-churn   { 0%,100% { transform:rotate(8deg) } 50% { transform:rotate(-8deg) } }
+@keyframes px-reach   { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-5px) } }
+@keyframes px-lift    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+@keyframes px-tap     { 0%,100% { transform:translateY(0) rotate(0) } 50% { transform:translateY(2px) rotate(10deg) } }
+@keyframes px-milk    { 0%,100% { transform:translateY(3px) scaleY(.93) } 50% { transform:translateY(5px) scaleY(.88) } }
+@keyframes px-bob     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-2px) } }
+@keyframes px-carry   { 0% { transform:translateX(0) scaleX(1) } 45% { transform:translateX(58px) scaleX(1) } 50% { transform:translateX(58px) scaleX(-1) } 95% { transform:translateX(0) scaleX(-1) } 100% { transform:translateX(0) scaleX(1) } }
+@keyframes px-wander  { 0% { transform:translateX(0) scaleX(1) } 45% { transform:translateX(140px) scaleX(1) } 50% { transform:translateX(140px) scaleX(-1) } 95% { transform:translateX(0) scaleX(-1) } 100% { transform:translateX(0) scaleX(1) } }
+@keyframes px-trek    { 0% { transform:translateX(0) scaleX(1) } 44% { transform:translateX(128px) scaleX(1) } 50% { transform:translateX(128px) scaleX(-1) } 94% { transform:translateX(0) scaleX(-1) } 100% { transform:translateX(0) scaleX(1) } }
+@keyframes px-patrol  { 0% { transform:translateX(0) scaleX(1) } 44% { transform:translateX(74px) scaleX(1) } 50% { transform:translateX(74px) scaleX(-1) } 94% { transform:translateX(0) scaleX(-1) } 100% { transform:translateX(0) scaleX(1) } }
+@keyframes px-rowwalk { 0% { transform:translateX(0) scaleX(1) } 44% { transform:translateX(52px) scaleX(1) } 50% { transform:translateX(52px) scaleX(-1) } 94% { transform:translateX(0) scaleX(-1) } 100% { transform:translateX(0) scaleX(1) } }
+@keyframes px-commute { 0% { transform:translate(0,0) scaleX(1) } 40% { transform:translate(96px,-38px) scaleX(1) } 50% { transform:translate(96px,-38px) scaleX(-1) } 90% { transform:translate(0,0) scaleX(-1) } 100% { transform:translate(0,0) scaleX(1) } }
+@keyframes px-peck    { 0%,100% { transform:translateY(0) rotate(0) } 40% { transform:translateY(4px) rotate(22deg) } 60% { transform:translateY(4px) rotate(22deg) } }
+@keyframes px-chew    { 0%,100% { transform:translateX(0) } 50% { transform:translateX(3px) } }
+@keyframes px-flick   { 0%,100% { opacity:.85; transform:scaleY(1) } 50% { opacity:1; transform:scaleY(1.18) } }
+@keyframes px-sway    { 0%,100% { transform:skewX(-2deg) } 50% { transform:skewX(2deg) } }
+@keyframes px-wander3 { 0% { transform:translateX(-14px) scaleX(1) } 45% { transform:translateX(14px) scaleX(1) } 50% { transform:translateX(14px) scaleX(-1) } 95% { transform:translateX(-14px) scaleX(-1) } 100% { transform:translateX(-14px) scaleX(1) } }
+@keyframes px-wander2 { 0% { transform:translateX(0) scaleX(-1) } 45% { transform:translateX(-96px) scaleX(-1) } 50% { transform:translateX(-96px) scaleX(1) } 95% { transform:translateX(0) scaleX(1) } 100% { transform:translateX(0) scaleX(-1) } }
+
+/* ── Generic building blocks ──────────────────────────── */
+.px-panel {
+  background: var(--px-cream);
+  border: 4px solid var(--px-ink);
+  box-shadow: 0 10px 0 rgba(0,0,0,.45);
+}
+.px-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--px-wood);
+  border-bottom: 4px solid var(--px-ink);
+  font-family: 'Silkscreen', monospace;
+  font-size: 15px;
+  color: var(--px-cream);
+}
+.px-close {
+  font-family: 'Silkscreen', monospace;
+  padding: 4px 8px;
+  border: 3px solid var(--px-ink);
+  background: var(--px-wood3);
+  color: var(--px-cream);
+  cursor: pointer;
+}
+.px-close:hover { background: var(--px-red-dk); }
+
+.px-btn {
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  padding: 11px 14px;
+  border: 3px solid var(--px-ink);
+  cursor: pointer;
+  color: var(--px-cream);
+  background: var(--px-wood3);
+  box-shadow: inset -2px -2px 0 #4a3419, inset 2px 2px 0 #8e6c3c;
+}
+.px-btn:hover { filter: brightness(1.08); }
+.px-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.px-btn-accent {
+  background: var(--px-orange);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt);
+}
+.px-btn-buy {
+  background: var(--px-green);
+  box-shadow: inset -2px -2px 0 var(--px-green-dk), inset 2px 2px 0 var(--px-green-lt);
+}
+.px-btn-sell {
+  background: var(--px-red);
+  box-shadow: inset -2px -2px 0 var(--px-red-dk), inset 2px 2px 0 var(--px-red-lt);
+}
+.px-btn-flat {
+  background: var(--px-cream3);
+  color: var(--px-ink-txt);
+  border: 3px solid var(--px-brown2);
+  box-shadow: none;
+}
+.px-btn-flat:hover { background: #fff3c4; }
+
+.px-badge {
+  font-family: 'Silkscreen', monospace;
+  font-size: 8px;
+  padding: 2px 4px;
+  background: var(--px-bg);
+  color: var(--px-gold-txt);
+  border: 2px solid var(--px-ink);
+}
+
+.px-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--px-brown2) var(--px-cream2);
+}
+.px-scroll::-webkit-scrollbar { width: 10px; }
+.px-scroll::-webkit-scrollbar-track { background: var(--px-cream2); }
+.px-scroll::-webkit-scrollbar-thumb { background: var(--px-brown2); border: 2px solid var(--px-ink); }
+
+.px-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16,11,7,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+/* Mobile: dialogs act as full-width bottom sheets instead of centered panels */
+@media (max-width: 860px) {
+  .px-dialog-overlay { align-items: flex-end; }
+  .px-dialog-overlay .px-panel,
+  .px-dialog-overlay > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+    border-bottom-width: 0 !important;
+  }
+}
