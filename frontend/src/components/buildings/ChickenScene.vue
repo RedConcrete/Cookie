@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <div class="patroller">
+    <div v-if="workers > 0" class="patroller">
       <TravelingWorker travel-anim="patrol" :travel-dur="5.5" :leg-dur="0.55" hat="#4a3f7a" torso="#8a5a34" />
     </div>
   </div>
@@ -28,6 +28,8 @@
 
 <script setup>
 import TravelingWorker from './TravelingWorker.vue'
+
+defineProps({ workers: { type: Number, default: 0 } })
 
 const hens = [
   { left: 82,  bottom: 40, color: '#fffaf0', delay: 0 },

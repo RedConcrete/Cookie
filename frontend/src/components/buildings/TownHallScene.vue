@@ -1,5 +1,5 @@
 <template>
-  <div class="th-scene">
+  <div >
     <div class="flagpole"></div>
     <div class="flag"></div>
     <div class="roof"></div>
@@ -11,9 +11,6 @@
     <div class="notice-line notice-line-1"></div>
     <div class="notice-line notice-line-2"></div>
     <div class="bush"></div>
-    <div class="messenger">
-      <TravelingWorker travel-anim="patrol" :travel-dur="5" hat="#b83232" torso="#5f4c9c" />
-    </div>
   </div>
 </template>
 

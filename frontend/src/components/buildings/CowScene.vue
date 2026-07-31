@@ -23,7 +23,7 @@
     <div class="fence-rail fence-rail-top"></div>
     <div class="fence-rail fence-rail-mid"></div>
 
-    <div class="milker">
+    <div v-if="workers > 0" class="milker">
       <PixelWorker anim="milk" :dur="1.1" hat="#5aa0e0" torso="#4a3f7a"
         :tool="{ anim: 'tap', dur: 1.1, color: '#9fb3c2', top: '12px', height: '9px', width: '7px' }" />
     </div>
@@ -32,6 +32,8 @@
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
+
+defineProps({ workers: { type: Number, default: 0 } })
 
 const cows = [
   { left: 12, bottom: 46, body: '#fffaf0', spot: '#3a2a1c', delay: 0 },

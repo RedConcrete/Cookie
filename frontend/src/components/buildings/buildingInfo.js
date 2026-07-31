@@ -3,9 +3,10 @@
 // there is no backend model yet for assigned workers or wages (see game design doc §4/§6),
 // so these numbers are illustrative placeholders until that system ships — only the
 // hover-harvest amounts (SUGAR/FLOUR/EGGS/BUTTER/CHOCOLATE/MILK) are wired to the real API.
+// wagePerMin must match BuildingService.java static definitions
 export const BUILDING_INFO = {
   pond: {
-    title: 'ZUCKERTEICH', icon: 'zucker', side: 'right', overlayRate: '+1.4/s', workers: 2,
+    title: 'ZUCKERTEICH', icon: 'zucker', side: 'right', overlayRate: '+1.4/s', workers: 2, wagePerMin: 4,
     resource: 'SUGAR',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+1.4/s', color: 'g' },
@@ -15,7 +16,7 @@ export const BUILDING_INFO = {
     ],
   },
   ofen: {
-    title: 'BACKOFEN', icon: 'ofen', side: 'right', overlayRate: '1/2', workers: 2,
+    title: 'BACKOFEN', icon: 'ofen', side: 'right', overlayRate: '1/2', workers: 2, wagePerMin: 4,
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '2 Batches', color: 'g' },
       { k: 'Hover · ohne Lohn', v: '+1 Batch', color: 'y' },
@@ -24,36 +25,28 @@ export const BUILDING_INFO = {
     ],
   },
   rathaus: {
-    title: 'RATHAUS', icon: 'haus', side: 'right', overlayRate: '12/16', workers: 1,
+    title: 'RATHAUS', icon: 'haus', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
     rows: [
-      { k: 'Einwohner', v: '12 / 16', color: 'w' },
-      { k: 'Lohnsumme', v: '−34 C/min', color: 'o' },
-      { k: 'Verwaltung', v: '1 Arbeiter', color: 'w' },
-      { k: 'Lohn', v: '2 C/min', color: 'o' },
+      { k: 'Einwohner', v: '→ Dialog', color: 'w' },
+      { k: 'Funktion', v: 'Einwohner-Slots', color: 'g' },
     ],
   },
   markt: {
-    title: 'MARKT', icon: 'stand', side: 'left', overlayRate: 'GEB. 8%', workers: 1,
+    title: 'MARKT', icon: 'stand', side: 'left', overlayRate: 'GEB. 8%', workers: 0, wagePerMin: 0,
     rows: [
       { k: 'Marktgebühr', v: '8 %', color: 'o' },
-      { k: 'Auto-Verkauf', v: 'aktiv', color: 'g' },
-      { k: 'Arbeiter', v: '1', color: 'w' },
-      { k: 'Lohn', v: '2 C/min', color: 'o' },
     ],
   },
   lager: {
-    title: 'LAGER', icon: 'lager', side: 'left', overlayRate: '4.2K/6K', workers: 1,
+    title: 'LAGER', icon: 'lager', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
     rows: [
-      { k: 'Gesamtlimit', v: '4.2K / 6.0K', color: 'w' },
-      { k: 'Erträge', v: 'keine', color: 'm' },
-      { k: 'Betrieb', v: '−3 C/min', color: 'o' },
-      { k: 'Arbeiter · Lohn', v: '1 · 2 C/min', color: 'o' },
-      { k: 'Auto-Verkauf', v: 'zum Tagespreis', color: 'y' },
+      { k: 'Gesamtlimit', v: '→ Dialog', color: 'w' },
+      { k: 'Auto-Verkauf', v: 'bei Überfluss', color: 'y' },
     ],
-    note: 'Lager produziert nichts — es kostet nur und hebt das Limit, das für alle Ressourcen zusammen gerechnet wird. Alles was darüber produziert wird, verkauft sich automatisch zum aktuellen Preis, auch wenn der schlecht steht.',
+    note: 'Wenn das Lager voll ist, wird Überproduktion automatisch zum aktuellen Marktpreis verkauft.',
   },
   hof: {
-    title: 'BAUERNHOF', icon: 'mehl', side: 'right', overlayRate: '+2.1/s', workers: 3,
+    title: 'BAUERNHOF', icon: 'mehl', side: 'right', overlayRate: '+2.1/s', workers: 3, wagePerMin: 6,
     resource: 'FLOUR',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+2.1/s', color: 'g' },
@@ -63,7 +56,7 @@ export const BUILDING_INFO = {
     ],
   },
   huhn: {
-    title: 'HÜHNERHOF', icon: 'eier', side: 'right', overlayRate: '+0.8/s', workers: 2,
+    title: 'HÜHNERHOF', icon: 'eier', side: 'right', overlayRate: '+0.8/s', workers: 2, wagePerMin: 4,
     resource: 'EGGS',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+0.8/s', color: 'g' },
@@ -73,7 +66,7 @@ export const BUILDING_INFO = {
     ],
   },
   butter: {
-    title: 'BUTTEREI', icon: 'butter', side: 'right', overlayRate: '+0.6/s', workers: 1,
+    title: 'BUTTEREI', icon: 'butter', side: 'right', overlayRate: '+0.6/s', workers: 1, wagePerMin: 2,
     resource: 'BUTTER',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+0.6/s', color: 'g' },
@@ -83,7 +76,7 @@ export const BUILDING_INFO = {
     ],
   },
   kakao: {
-    title: 'PLANTAGE', icon: 'schoko', side: 'left', overlayRate: '+1.2/s', workers: 2,
+    title: 'PLANTAGE', icon: 'schoko', side: 'left', overlayRate: '+1.2/s', workers: 2, wagePerMin: 4,
     resource: 'CHOCOLATE',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+1.2/s', color: 'g' },
@@ -93,7 +86,7 @@ export const BUILDING_INFO = {
     ],
   },
   kuh: {
-    title: 'KUHSTALL', icon: 'milch', side: 'left', overlayRate: '+4.8/s', workers: 4,
+    title: 'KUHSTALL', icon: 'milch', side: 'left', overlayRate: '+4.8/s', workers: 4, wagePerMin: 8,
     resource: 'MILK',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+4.8/s', color: 'g' },

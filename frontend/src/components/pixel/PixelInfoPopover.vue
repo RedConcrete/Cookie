@@ -8,10 +8,10 @@
       :class="barPlacement === 'edge' ? 'pip-bar-edge' : 'pip-bar-chip'"
       :style="{ opacity: running ? 1 : 0 }"
     >
-      <div class="pip-bar-fill" :style="{ width: (state.progress * 100) + '%', background: state.phase === 'drain' ? 'var(--px-drain)' : 'var(--px-fill)' }"></div>
+      <div class="pip-bar-fill" :style="{ width: (state.progress * 100) + '%', background: state.phase.startsWith('drain') ? 'var(--px-drain)' : 'var(--px-fill)' }"></div>
     </div>
 
-    <div v-if="state.visible" class="pip-panel" :class="sideClass" :style="{ width: width + 'px', zIndex: z }">
+    <div v-if="state.visible" ref="panelRef" class="pip-panel" :class="dynamicSideClass" :style="{ width: width + 'px', zIndex: z }">
       <div v-if="title" class="pip-header">
         <PixelIcon v-if="icon" :name="icon" :size="16" />
         <span class="pip-title">{{ title }}</span>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import PixelIcon from './PixelIcon.vue'
 import { useHoverReveal } from '../../composables/useHoverReveal.js'
 
@@ -53,7 +53,25 @@ function handleLeave() { onLeave(); emit('leave') }
 const COLORS = { g: '#a9ff88', y: '#ffd76b', w: '#fff6e0', o: '#e0873a', m: '#8a7a5c', b: '#8fd3ff' }
 function colorFor(c) { return COLORS[c] || COLORS.w }
 
-const sideClass = computed(() => `pip-side-${props.side}`)
+const panelRef   = ref(null)
+const resolvedSide = ref(props.side)
+
+watch(() => state.visible, async (vis) => {
+  if (!vis) { resolvedSide.value = props.side; return }
+  await nextTick()
+  const el = panelRef.value
+  if (!el) return
+  const r  = el.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  let s = props.side
+  if ((s === 'right' || s === 'below-right') && r.right  > vw - 8) s = s === 'right' ? 'left'  : 'below-left'
+  if ((s === 'left'  || s === 'below-left')  && r.left   < 8)       s = s === 'left'  ? 'right' : 'below-right'
+  if (s.startsWith('below') && r.bottom > vh - 8) s = s === 'below-left' ? 'left' : 'right'
+  resolvedSide.value = s
+})
+
+const dynamicSideClass = computed(() => `pip-side-${resolvedSide.value}`)
 </script>
 
 <style scoped>

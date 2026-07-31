@@ -3,6 +3,7 @@ package cookie.server.service;
 import cookie.server.dto.PrestigeStatusDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.BakeJobRepository;
+import cookie.server.repository.PlayerBuildingRepository;
 import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
@@ -17,15 +18,18 @@ public class PrestigeService {
     private final UserRepository userRepository;
     private final PlayerUpgradeRepository playerUpgradeRepository;
     private final BakeJobRepository bakeJobRepository;
+    private final PlayerBuildingRepository playerBuildingRepository;
     private final NetWorthService netWorthService;
 
     public PrestigeService(UserRepository userRepository,
                            PlayerUpgradeRepository playerUpgradeRepository,
                            BakeJobRepository bakeJobRepository,
+                           PlayerBuildingRepository playerBuildingRepository,
                            @Lazy NetWorthService netWorthService) {
         this.userRepository = userRepository;
         this.playerUpgradeRepository = playerUpgradeRepository;
         this.bakeJobRepository = bakeJobRepository;
+        this.playerBuildingRepository = playerBuildingRepository;
         this.netWorthService = netWorthService;
     }
 
@@ -76,6 +80,7 @@ public class PrestigeService {
 
         playerUpgradeRepository.deleteAll(playerUpgradeRepository.findByUserId(userId));
         bakeJobRepository.deleteAll(bakeJobRepository.findAllByUserIdAndClaimedFalse(userId));
+        playerBuildingRepository.deleteByUserId(userId);
 
         return getStatus(userId);
     }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { initGame, getNetWorth } from '../services/api.js'
+import { ref, computed } from 'vue'
+import { initGame, getNetWorth, getBuildingLayout, buyCitizens as apiBuyCitizens } from '../services/api.js'
 import { connectMarketWebSocket } from '../services/websocket.js'
 import { useMarketStore } from './market.js'
 
@@ -13,6 +13,9 @@ export const usePlayerStore = defineStore('player', () => {
   const butter     = ref(0)
   const chocolate  = ref(0)
   const milk       = ref(0)
+  const workersIdle      = ref(false)
+  const totalResourceCap = ref(100)
+  const ownedCitizens    = ref(0)
   const netWorth      = ref(0)
   const nwCookies     = ref(0)
   const nwResources   = ref(0)
@@ -20,6 +23,16 @@ export const usePlayerStore = defineStore('player', () => {
   const loading       = ref(false)
   const error         = ref(null)
   const recipes       = ref([])
+  const ownedBuildings = ref([])  // PlayerBuildingDto[], all buildings (level 0 = not owned)
+
+  const ownedOnly      = computed(() => ownedBuildings.value.filter(b => b.level > 0))
+  const totalWage      = computed(() => ownedOnly.value.reduce((s, b) => s + (b.wagePerMin ?? 0), 0))
+  const assignedCitizens = computed(() => ownedOnly.value.reduce((s, b) => s + (b.workers ?? 0), 0))
+  const idleCitizens   = computed(() => Math.max(0, ownedCitizens.value - assignedCitizens.value))
+  const maxCitizens    = computed(() => {
+    const rat = ownedBuildings.value.find(b => b.id === 'rathaus')
+    return rat && rat.level > 0 ? rat.level * 4 : 0
+  })
 
   let netWorthTimer = null
 
@@ -30,6 +43,7 @@ export const usePlayerStore = defineStore('player', () => {
     try {
       const data = await initGame(id)
       updateFromDto(data.user)
+      if (data.buildings) ownedBuildings.value = data.buildings
 
       const marketStore = useMarketStore()
       marketStore.setHistory(data.markets)
@@ -39,7 +53,6 @@ export const usePlayerStore = defineStore('player', () => {
         marketStore.setHistory(snapshots)
       })
 
-      // Net Worth alle 10s aktualisieren
       await refreshNetWorth()
       netWorthTimer = setInterval(refreshNetWorth, 10000)
     } catch (e) {
@@ -61,6 +74,21 @@ export const usePlayerStore = defineStore('player', () => {
     } catch {}
   }
 
+  async function buyCitizenAction(count = 1) {
+    if (!steamId.value) return
+    try {
+      const dto = await apiBuyCitizens(steamId.value, count)
+      updateFromDto(dto)
+    } catch {}
+  }
+
+  async function loadBuildings() {
+    if (!steamId.value) return
+    try {
+      ownedBuildings.value = await getBuildingLayout(steamId.value)
+    } catch {}
+  }
+
   function updateFromDto(dto) {
     cookies.value   = dto.cookies
     sugar.value     = dto.sugar
@@ -69,11 +97,16 @@ export const usePlayerStore = defineStore('player', () => {
     butter.value    = dto.butter
     chocolate.value = dto.chocolate
     milk.value      = dto.milk
+    if (dto.workersIdle !== undefined)      workersIdle.value      = dto.workersIdle
+    if (dto.totalResourceCap !== undefined) totalResourceCap.value = dto.totalResourceCap
+    if (dto.ownedCitizens !== undefined)    ownedCitizens.value    = dto.ownedCitizens
   }
 
   return {
     steamId, cookies, sugar, flour, eggs, butter, chocolate, milk,
+    workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
+    ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     netWorth, nwCookies, nwResources, nwUpgrades, loading, error, recipes,
-    init, updateFromDto, refreshNetWorth,
+    init, updateFromDto, refreshNetWorth, loadBuildings, buyCitizenAction,
   }
 })

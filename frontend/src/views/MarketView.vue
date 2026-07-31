@@ -195,7 +195,7 @@ function fmtTime(date) { const d = new Date(date); return `${d.getHours().toStri
 
 .mv-table { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 16px; background: var(--px-cream2); display: flex; flex-direction: column; gap: 3px; }
 .mv-row {
-  display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 130px 190px 150px;
+  display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 130px 190px 200px;
   gap: 10px; align-items: center; padding: 7px 10px; min-width: 900px;
 }
 .mv-head { background: var(--px-wood); border: 3px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
@@ -218,8 +218,8 @@ function fmtTime(date) { const d = new Date(date); return `${d.getHours().toStri
 .mv-action-btn { flex: 1; padding: 6px 0; text-align: center; font-size: 10px; }
 
 .mv-cost { text-align: right; }
-.mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
-.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 9px; color: #3d6b25; margin-top: 3px; }
+.mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
+.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 11px; color: #3d6b25; margin-top: 4px; }
 
 .mv-footer { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 8px; }
 .mv-footer-hint { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 8px; background: var(--px-cream3); border: 2px solid var(--px-brown2); color: var(--px-tan-hd); }

@@ -420,6 +420,14 @@ public class MarketService {
         }
     }
 
+    public double getCurrentPrice(cookie.server.enums.ResourceName resource) {
+        return getPrice(getOrCreateCurrentMarket(), resource);
+    }
+
+    public double getSellFeeRate() {
+        return marketConfig.getSellFeeRate();
+    }
+
     public MarketEntity getOrCreateCurrentMarket() {
         List<MarketEntity> markets = marketRepository.findAllByOrderByDateDesc(PageRequest.of(0, 1));
         if (markets.isEmpty()) {

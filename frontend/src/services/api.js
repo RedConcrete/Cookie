@@ -130,3 +130,28 @@ export function bakeStatus(steamId) {
 export function bakeClaim(steamId) {
   return request('POST', `/api/v1/game/bake/claim/${steamId}`)
 }
+
+// Fetch all buildings with ownership/level info for this player.
+export function getBuildingLayout(steamId) {
+  return request('GET', `/api/v1/farm/buildings/${steamId}`)
+}
+
+// Buy or upgrade a building. Returns full updated building list.
+export function buyBuilding(steamId, buildingId) {
+  return request('POST', `/api/v1/farm/buildings/buy/${steamId}`, { buildingId })
+}
+
+// Change worker count for a building (+1 or -1). Returns full updated building list.
+export function changeWorkers(steamId, buildingId, delta) {
+  return request('POST', `/api/v1/farm/buildings/workers/${steamId}`, { buildingId, delta })
+}
+
+// Buy N citizens (requires Rathaus). Returns updated UserInformationDto.
+export function buyCitizens(steamId, count = 1) {
+  return request('POST', `/api/v1/farm/citizens/buy/${steamId}`, { count })
+}
+
+// Reset player data (dev mode only, no token needed for DEV_PLAYER_001).
+export function adminResetPlayer(steamId) {
+  return request('POST', `/api/v1/admin/reset/${steamId}`)
+}

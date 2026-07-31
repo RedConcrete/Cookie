@@ -1,5 +1,6 @@
 package cookie.server.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -23,6 +24,11 @@ public class UserEntity {
     private double lifetimeCookiesBaked;
     private int prestigeLevel;
     private int totalPrestiges;
+    @Column(name = "workers_idle", columnDefinition = "boolean default false")
+    private boolean workersIdle;
+
+    @Column(name = "owned_citizens", columnDefinition = "integer default 0")
+    private int ownedCitizens = 0;
 
     public String getSteamId() {
         return steamId;
@@ -119,4 +125,9 @@ public class UserEntity {
     public void setTotalPrestiges(int totalPrestiges) {
         this.totalPrestiges = totalPrestiges;
     }
+
+    public boolean isWorkersIdle() { return workersIdle; }
+    public void setWorkersIdle(boolean workersIdle) { this.workersIdle = workersIdle; }
+    public int getOwnedCitizens() { return ownedCitizens; }
+    public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
 }

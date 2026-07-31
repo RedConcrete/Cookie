@@ -11,7 +11,7 @@
     <div class="barrel-ring"></div>
     <div class="milk-can"></div>
     <div class="milk-lid"></div>
-    <div class="churner">
+    <div v-if="workers > 0" class="churner">
       <PixelWorker anim="bob" :dur="0.7" hat="#fffaf0" torso="#4a3f7a"
         :tool="{ anim: 'churn', dur: 0.7, color: '#a97b4a', top: '4px', height: '18px' }" />
     </div>
@@ -20,6 +20,8 @@
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
+
+defineProps({ workers: { type: Number, default: 0 } })
 </script>
 
 <style scoped>

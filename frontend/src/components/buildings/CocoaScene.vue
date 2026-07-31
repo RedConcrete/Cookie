@@ -17,19 +17,23 @@
     <div class="rack"></div>
     <div class="rack-legs"></div>
 
-    <div class="picker">
-      <PixelWorker anim="reach" :dur="1.5" hat="#4a7c2f" skin="#e8b489" torso="#6b4f2a"
-        :tool="{ anim: 'swing', dur: 1.5, color: '#40230f', top: '2px', height: '16px' }" />
-    </div>
-    <div class="rowwalker">
-      <TravelingWorker travel-anim="rowwalk" :travel-dur="4.4" hat="#4a7c2f" torso="#8a5a34" />
-    </div>
+    <template v-if="workers > 0">
+      <div class="picker">
+        <PixelWorker anim="reach" :dur="1.5" hat="#4a7c2f" skin="#e8b489" torso="#6b4f2a"
+          :tool="{ anim: 'swing', dur: 1.5, color: '#40230f', top: '2px', height: '16px' }" />
+      </div>
+      <div class="rowwalker">
+        <TravelingWorker travel-anim="rowwalk" :travel-dur="4.4" hat="#4a7c2f" torso="#8a5a34" />
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
 import TravelingWorker from './TravelingWorker.vue'
+
+defineProps({ workers: { type: Number, default: 0 } })
 
 const row1 = [10, 58, 106, 154]
 const row2 = [24, 72, 120]

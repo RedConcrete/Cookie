@@ -101,7 +101,8 @@ public class UserService {
     }
 
     @Transactional
-    public UserInformationDto harvest(String userId, ResourceName resource) {
+    public UserInformationDto harvest(String userId, ResourceName resource,
+                                      double storageCap, double marketPrice, double sellFeeRate) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
@@ -112,13 +113,24 @@ public class UserService {
         double prestigeMultiplier = PrestigeService.calcMultiplier(user.getPrestigeLevel());
         double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier;
 
+        double totalRes = user.getSugar() + user.getFlour() + user.getEggs()
+                        + user.getButter() + user.getChocolate() + user.getMilk();
+        double available = Math.max(0, storageCap - totalRes);
+        double overflow  = Math.max(0, amount - available);
+        double toAdd     = amount - overflow;
+
+        if (overflow > 0) {
+            double payout = overflow * marketPrice * (1.0 - sellFeeRate);
+            user.setCookies(user.getCookies() + payout);
+        }
+
         switch (resource) {
-            case SUGAR     -> user.setSugar(user.getSugar()         + amount);
-            case FLOUR     -> user.setFlour(user.getFlour()         + amount);
-            case EGGS      -> user.setEggs(user.getEggs()           + amount);
-            case BUTTER    -> user.setButter(user.getButter()       + amount);
-            case CHOCOLATE -> user.setChocolate(user.getChocolate() + amount);
-            case MILK      -> user.setMilk(user.getMilk()           + amount);
+            case SUGAR     -> user.setSugar(user.getSugar()         + toAdd);
+            case FLOUR     -> user.setFlour(user.getFlour()         + toAdd);
+            case EGGS      -> user.setEggs(user.getEggs()           + toAdd);
+            case BUTTER    -> user.setButter(user.getButter()       + toAdd);
+            case CHOCOLATE -> user.setChocolate(user.getChocolate() + toAdd);
+            case MILK      -> user.setMilk(user.getMilk()           + toAdd);
         }
         userRepository.save(user);
         return toDto(user);
@@ -141,6 +153,8 @@ public class UserService {
         dto.setButter(entity.getButter());
         dto.setChocolate(entity.getChocolate());
         dto.setMilk(entity.getMilk());
+        dto.setWorkersIdle(entity.isWorkersIdle());
+        dto.setOwnedCitizens(entity.getOwnedCitizens());
         return dto;
     }
 }

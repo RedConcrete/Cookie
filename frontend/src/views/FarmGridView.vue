@@ -7,104 +7,96 @@
     @mouseup="panEnd"
     @mouseleave="panEnd"
   >
-    <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
-      <!-- ground + paths -->
-      <div class="ground"></div>
-      <div class="road road-h"></div>
-      <div class="road road-v"></div>
-
-      <!-- ══ HUD ══ -->
-      <div class="hud">
-        <div class="hud-chips">
-          <PixelInfoPopover :rows="cookieRows" title="COOKIES" side="below-left" :width="272" :z="95">
-            <div class="hud-chip hud-chip-cookie">
-              <PixelIcon name="cookie" :size="24" />
-              <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
-            </div>
-          </PixelInfoPopover>
-
-          <PixelInfoPopover
-            v-for="r in hudResources" :key="r.name"
-            :rows="r.rows" :title="r.label" :icon="r.icon" side="below-left" :width="272" :z="95"
-          >
-            <div class="hud-chip">
-              <PixelIcon :name="r.icon" :size="24" />
-              <div class="hud-chip-val">{{ r.val }}</div>
-              <div class="hud-chip-label">{{ r.label }}</div>
-            </div>
-          </PixelInfoPopover>
-        </div>
-
-        <PixelInfoPopover :rows="netWorthRows" title="NET WORTH" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
-          <div class="hud-networth" @click="dialog = 'networth'" title="Net Worth Verlauf">
-            <div class="hud-networth-label">NET WORTH</div>
-            <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
+    <!-- ══ HUD (fixed overlay, outside canvas so it stays put while panning) ══ -->
+    <div class="hud">
+      <div class="hud-chips">
+        <PixelInfoPopover :rows="cookieRows" title="COOKIES" side="below-left" :width="272" :z="95">
+          <div class="hud-chip hud-chip-cookie">
+            <PixelIcon name="cookie" :size="24" />
+            <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
           </div>
         </PixelInfoPopover>
 
-        <div class="hud-actions">
-          <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">UPGRADES</button>
-          <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">PRESTIGE</button>
-          <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
-          <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
-          <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
-            <span class="hud-avatar-icon">&#128100;</span>
-          </button>
-        </div>
+        <PixelInfoPopover
+          v-for="r in hudResources" :key="r.name"
+          :rows="r.rows" :title="r.label" :icon="r.icon" side="below-left" :width="272" :z="95"
+        >
+          <div class="hud-chip">
+            <PixelIcon :name="r.icon" :size="24" />
+            <div class="hud-chip-val">{{ r.val }}</div>
+            <div class="hud-chip-label">{{ r.label }}</div>
+          </div>
+        </PixelInfoPopover>
       </div>
+
+      <PixelInfoPopover :rows="netWorthRows" title="NET WORTH" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
+        <div class="hud-networth" @click="dialog = 'networth'" title="Net Worth Verlauf">
+          <div class="hud-networth-label">NET WORTH</div>
+          <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
+        </div>
+      </PixelInfoPopover>
+
+      <div class="hud-actions">
+        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" title="DEV: Reset">&#8635; DEV</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'buildshop'" title="Gebäude bauen">BAUVORHABEN</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'citizens'" title="Einwohner">
+          EINW. <span class="hud-citizen-badge">{{ playerStore.ownedCitizens }}/{{ playerStore.maxCitizens }}</span>
+        </button>
+        <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">UPGRADES</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">PRESTIGE</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
+        <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
+        <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
+          <span class="hud-avatar-icon">&#128100;</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
+    <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
+
+      <!-- Grass world — large enough to cover any pan distance -->
+      <div class="grass-world"></div>
 
       <!-- ══ Buildings ══ -->
       <BuildingFrame
         v-for="b in buildings" :key="b.id"
+        :building-id="b.id"
         :base="BASE[b.id]" :title="b.title" :icon="b.icon" :rate="b.overlayRate" :workers="b.workers"
-        :rows="b.rows" :note="b.note" :side="b.side" :scene-height="SCENE_H[b.id]"
-        :drop-ok="(pos) => dropOk(b.id, pos)" :custom-tooltip="b.id === 'pond'"
+        :rows="buildingRows(b)" :note="b.note" :side="b.side" :scene-height="SCENE_H[b.id]"
+        :drop-ok="(pos) => dropOk(b.id, pos)"
+        :zoom="zoom"
+        :class="{ 'building-idle': playerStore.workersIdle && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
         @harvest-start="b.resource && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
+        @moved="onBuildingMoved(b.id, $event)"
       >
-        <component :is="b.comp" @harvest-start="b.resource && startHarvest(b.id, b.resource)" @harvest-stop="b.resource && stopHarvest(b.resource)" />
+        <component :is="b.comp" :workers="b.workers" />
       </BuildingFrame>
 
-      <!-- Idle wanderers -->
-      <div class="idle-wanderer idle-wanderer-a">
-        <TravelingWorker travel-anim="wander" :travel-dur="9" :leg-dur="0.45" hat="#5aa0e0" torso="#4a3f7a" />
-      </div>
-      <div class="idle-wanderer idle-wanderer-b">
-        <TravelingWorker travel-anim="wander2" :travel-dur="11" :travel-delay="1.5" :leg-dur="0.55" hat="#b83232" skin="#e8b489" torso="#6b4f2a" />
-      </div>
-      <div class="idle-wanderer idle-wanderer-c">
-        <TravelingWorker travel-anim="wander" :travel-dur="13" :travel-delay="3" :leg-dur="0.6" hat="#3d6b25" torso="#8a5a34" />
-      </div>
-      <div class="idle-label">3 IDLE</div>
-
-      <!-- Bauplatz -->
-      <div class="build-slot">
-        <div class="build-plus">+</div>
-        <div>
-          <div class="build-title">BAUPLATZ</div>
-          <div class="build-cost">500<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
+      <!-- Dynamic idle wanderers (one per idle citizen, max 5 shown) -->
+      <template v-for="(w, i) in idleWanderers" :key="i">
+        <div class="idle-wanderer" :style="w.style">
+          <TravelingWorker :travel-anim="w.anim" :travel-dur="w.dur" :travel-delay="w.delay" :leg-dur="w.legDur" :hat="w.hat" :skin="w.skin" :torso="w.torso" />
         </div>
+      </template>
+      <div v-if="playerStore.idleCitizens > 0" class="idle-label" :class="{ 'idle-label-warn': playerStore.workersIdle }">
+        {{ playerStore.idleCitizens }} IDLE
       </div>
 
       <FarmNumbers />
-
-      <!-- Camera controls -->
-      <div class="cam-controls">
-        <button class="cam-center" title="Zentrieren" @click="resetView">&#8857;</button>
-        <div class="cam-hint">ZENTRIEREN &middot; HOTKEY LEER</div>
-      </div>
-      <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
-
-      <!-- Ticker -->
-      <div class="ticker">
-        <div class="ticker-pop">EINWOHNER 12/16 &middot; LOHN 24<PixelIcon name="cookie" :size="12" style="margin:0 5px;vertical-align:-2px" />/MIN</div>
-        <div class="ticker-net">+18.4 C/S</div>
-      </div>
     </div>
 
-    <!-- Mobile bottom nav (Steam Deck / Handy) — replaces the desktop header nav -->
+    <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
+    <div class="cam-controls">
+      <button class="cam-center" title="Zentrieren (LEERTASTE)" @click="resetView">&#8857;</button>
+      <div class="cam-hint">ZENTRIEREN &middot; LEERTASTE</div>
+    </div>
+    <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
+
+    <!-- Mobile bottom nav -->
     <div class="mobile-nav">
       <button v-for="n in mobileNavItems" :key="n.label" class="mobile-nav-item" @click="n.action">
         <PixelIcon :name="n.icon" :size="20" />
@@ -113,25 +105,31 @@
     </div>
 
     <!-- Dialogs -->
-    <MarketDialog v-if="dialog === 'market'" @close="dialog = null" />
-    <BakeDialog   v-if="dialog === 'bake'"   @close="dialog = null" />
-    <BuildingDetailDialog v-if="detailBuilding" :building="detailBuilding" @close="detailBuilding = null" />
+    <MarketDialog       v-if="dialog === 'market'"      @close="dialog = null" />
+    <BakeDialog         v-if="dialog === 'bake'"        @close="dialog = null" />
+    <BuildingDetailDialog v-if="detailBuilding"         :building="detailBuilding" @close="detailBuilding = null" />
     <UpgradeDialog      v-if="dialog === 'upgrades'"    @close="dialog = null" />
     <PrestigeDialog     v-if="dialog === 'prestige'"    @close="dialog = null" />
     <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
     <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
-    <PlayerProfileDialog v-if="dialog === 'profile'" :steamId="playerStore.steamId" @close="dialog = null" />
-    <NetWorthDialog v-if="dialog === 'networth'" :steamId="playerStore.steamId" @close="dialog = null" />
+    <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
+    <NetWorthDialog     v-if="dialog === 'networth'"    :steamId="playerStore.steamId" @close="dialog = null" />
+    <OrdenDialog        v-if="dialog === 'badges'"      :steamId="playerStore.steamId" @close="dialog = null" />
+    <BuildShopDialog    v-if="dialog === 'buildshop'"   @close="dialog = null" />
+    <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
+    <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
+    <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, getUpgrades } from '../services/api.js'
+import { harvestResource, getUpgrades, trade, adminResetPlayer } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
+import { useHotkeys, keyLabelFromEvent } from '../composables/useHotkeys.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
@@ -160,10 +158,18 @@ import LeaderboardDialog from '../components/LeaderboardDialog.vue'
 import SettingsDialog from '../components/SettingsDialog.vue'
 import PlayerProfileDialog from '../components/PlayerProfileDialog.vue'
 import NetWorthDialog from '../components/NetWorthDialog.vue'
+import OrdenDialog from '../components/OrdenDialog.vue'
+import BuildShopDialog from '../components/BuildShopDialog.vue'
+import CitizenDialog from '../components/CitizenDialog.vue'
+import RathausDialog from '../components/RathausDialog.vue'
+import LagerDialog from '../components/LagerDialog.vue'
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
+const { state: hotkeyState } = useHotkeys()
+
+const isDev = playerStore.steamId === 'DEV_PLAYER_001'
 
 const dialog = ref(null)
 const detailBuilding = ref(null)
@@ -171,15 +177,68 @@ const viewEl   = ref(null)
 const canvasEl = ref(null)
 const upgrades = ref([])
 
+// Track each building's current drag offset for collision detection + number spawning
+const buildingOffsets = reactive(
+  Object.fromEntries(Object.keys(BASE).map(id => [id, { x: 0, y: 0 }]))
+)
+function onBuildingMoved(id, offset) { buildingOffsets[id] = offset }
+
 const SCENE_COMP = {
   pond: SugarPondScene, ofen: OvenScene, rathaus: TownHallScene, markt: MarketScene,
   lager: WarehouseScene, hof: FarmScene, huhn: ChickenScene, butter: ButterScene,
   kakao: CocoaScene, kuh: CowScene,
 }
 
-const buildings = Object.keys(BUILDING_INFO).map(id => ({ id, comp: SCENE_COMP[id], ...BUILDING_INFO[id] }))
+const buildings = computed(() =>
+  Object.keys(BUILDING_INFO)
+    .map(id => {
+      const owned = playerStore.ownedBuildings.find(b => b.id === id)
+      if (!owned || owned.level === 0) return null
+      return { id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], workers: owned.workers ?? 0 }
+    })
+    .filter(Boolean)
+)
 
-function dropOk(id, pos) { return dropOkLayout(id, pos) }
+function dropOk(id, pos) { return dropOkLayout(id, pos, buildingOffsets) }
+
+async function devReset() {
+  try {
+    await adminResetPlayer(playerStore.steamId)
+    await playerStore.init(playerStore.steamId)
+  } catch (e) { console.error('[devReset]', e) }
+}
+
+// Which buildings this player owns (level > 0 from backend)
+function isBuildingOwned(id) {
+  const b = playerStore.ownedBuildings.find(x => x.id === id)
+  return b ? b.level > 0 : false
+}
+
+// Use real owned-building data for rows if available, else fall back to static BUILDING_INFO
+function buildingRows(b) {
+  const owned = playerStore.ownedBuildings.find(x => x.id === b.id)
+  if (!owned || owned.level === 0) return b.rows
+  return b.rows
+}
+
+const totalWorkers = computed(() => playerStore.assignedCitizens)
+
+// Idle wanderers — up to 5, dynamic based on idle citizens
+const WANDERER_CONFIGS = [
+  { anim:'wander',  dur:9,  delay:0,   legDur:0.45, hat:'#5aa0e0', skin:'#f0c9a0', torso:'#4a3f7a', style:{left:'210px',top:'404px'} },
+  { anim:'wander2', dur:11, delay:1.5, legDur:0.55, hat:'#b83232', skin:'#e8b489', torso:'#6b4f2a', style:{left:'700px',top:'426px'} },
+  { anim:'wander',  dur:13, delay:3,   legDur:0.6,  hat:'#3d6b25', skin:'#f0c9a0', torso:'#8a5a34', style:{left:'420px',top:'430px'} },
+  { anim:'wander2', dur:10, delay:2,   legDur:0.5,  hat:'#8b5a2b', skin:'#e8b489', torso:'#5a3a22', style:{left:'560px',top:'418px'} },
+  { anim:'wander',  dur:8,  delay:4,   legDur:0.4,  hat:'#7a50b0', skin:'#f0c9a0', torso:'#42311f', style:{left:'320px',top:'440px'} },
+]
+const idleWanderers = computed(() =>
+  WANDERER_CONFIGS.slice(0, Math.min(5, playerStore.idleCitizens))
+)
+
+const totalResources = computed(() =>
+  (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
+  (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
+)
 
 const mobileNavItems = [
   { label: 'HOF',    icon: 'haus',  action: () => { dialog.value = null; resetView() } },
@@ -190,8 +249,10 @@ const mobileNavItems = [
 ]
 
 function onOpenBuilding(b) {
-  if (b.id === 'ofen') dialog.value = 'bake'
-  else if (b.id === 'markt') dialog.value = 'market'
+  if (b.id === 'ofen')    dialog.value = 'bake'
+  else if (b.id === 'markt')   dialog.value = 'market'
+  else if (b.id === 'rathaus') dialog.value = 'rathaus'
+  else if (b.id === 'lager')   dialog.value = 'lager'
   else detailBuilding.value = b
 }
 
@@ -220,7 +281,7 @@ const RESOURCES = [
 const hudResources = computed(() => RESOURCES.map(r => {
   const amount = playerStore[r.key] ?? 0
   const price  = marketStore.priceOf(r.name)
-  const sellVal = amount * price * 0.92 // net of the market fee, see MarketDialog for the exact rate
+  const sellVal = amount * price * 0.92
   return {
     name: r.name, icon: r.icon, label: RESOURCE_LABEL[r.name],
     val: fmt(amount),
@@ -239,7 +300,7 @@ const netWorthRows = computed(() => [
   { k: 'Summe',      v: fmtBig(playerStore.netWorth), color: 'g' },
 ])
 
-// ── Pan + zoom (canvas is a fixed 1280×800 pixel-art stage) ─
+// ── Pan + zoom ───────────────────────────────────────────
 const panX = ref(0)
 const panY = ref(0)
 const zoom = ref(0.85)
@@ -253,6 +314,7 @@ let dragging = false
 let lastX = 0, lastY = 0
 function panStart(e) {
   if (e.button !== 0) return
+  if (e.target.closest?.('.bf-root')) return  // building handles its own pointer events
   dragging = true
   lastX = e.clientX
   lastY = e.clientY
@@ -274,7 +336,40 @@ function onWheel(e) {
   zoom.value = Math.min(MAX_ZOOM, Math.max(0.4, zoom.value * factor))
 }
 
-// ── Harvest (hover-to-collect, real API) ────────────────────
+// ── Hotkeys ──────────────────────────────────────────────
+async function sellAll() {
+  for (const r of RESOURCES) {
+    const amt = playerStore[r.key] ?? 0
+    if (amt <= 0) continue
+    try {
+      const res = await trade(playerStore.steamId, 'SELL', r.name, amt)
+      playerStore.updateFromDto(res.user ?? res)
+    } catch {}
+  }
+}
+
+function onKeydown(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  const label = keyLabelFromEvent(e)
+  const binding = hotkeyState.bindings.find(b => b.key === label)
+  if (!binding) return
+  e.preventDefault()
+  const actions = {
+    center:      () => resetView(),
+    zoomreset:   () => resetView(),
+    bake:        () => { dialog.value = 'bake' },
+    market:      () => { dialog.value = 'market' },
+    upgrades:    () => { dialog.value = 'upgrades' },
+    leaderboard: () => { dialog.value = 'leaderboard' },
+    settings:    () => { dialog.value = 'settings' },
+    recipes:     () => { dialog.value = 'bake' },
+    badges:      () => { dialog.value = 'badges' },
+    sellall:     () => sellAll(),
+  }
+  actions[binding.id]?.()
+}
+
+// ── Harvest ──────────────────────────────────────────────
 const harvestIntervals = {}
 const harvestDelays = {}
 const HARVEST_DELAY_MS = 300
@@ -287,7 +382,8 @@ async function doHarvest(buildingId, name) {
     playerStore.updateFromDto(updated)
     const gained = (playerStore[name.toLowerCase()] ?? 0) - before
     if (gained > 0) {
-      spawnFarmNumber(gained, BASE[buildingId].x + BASE[buildingId].w / 2, BASE[buildingId].y + 60)
+      const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
+      spawnFarmNumber(gained, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60)
     }
   } catch {}
 }
@@ -309,17 +405,33 @@ async function loadUpgrades() {
 }
 
 let upgradeTimer = null
+let passiveTimer  = null
+
+function spawnPassiveNumbers() {
+  for (const b of playerStore.ownedBuildings) {
+    if (!b.passiveRatePerTick || b.passiveRatePerTick <= 0) continue
+    const off = buildingOffsets[b.id] || { x: 0, y: 0 }
+    const base = BASE[b.id]
+    if (!base) continue
+    spawnFarmNumber(b.passiveRatePerTick, base.x + off.x + base.w / 2, base.y + off.y + 60)
+  }
+}
+
 onMounted(() => {
   bakeStore.start(playerStore.steamId)
   loadUpgrades()
-  upgradeTimer = setInterval(loadUpgrades, 10000)
+  upgradeTimer  = setInterval(loadUpgrades, 10000)
+  passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
+  window.addEventListener('keydown', onKeydown)
 })
 onUnmounted(() => {
   clearInterval(upgradeTimer)
+  clearInterval(passiveTimer)
   Object.values(harvestDelays).forEach(clearTimeout)
   Object.values(harvestIntervals).forEach(clearInterval)
   viewEl.value?.removeEventListener('wheel', onWheel)
+  window.removeEventListener('keydown', onKeydown)
 })
 </script>
 
@@ -329,8 +441,18 @@ onUnmounted(() => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: var(--px-bg);
+  background: #6a8535;
   cursor: grab;
+}
+
+.grass-world {
+  position: absolute;
+  left: -5000px; top: -5000px;
+  width: 11280px; height: 10800px;
+  background: #7d9a41;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px);
 }
 .hof-root:active { cursor: grabbing; }
 
@@ -340,30 +462,17 @@ onUnmounted(() => {
   width: 1280px; height: 800px;
   margin-left: -640px; margin-top: -400px;
   transform-origin: center center;
-  border: 4px solid var(--px-ink);
-  box-shadow: 0 10px 0 rgba(0,0,0,.5);
-  overflow: hidden;
-  font-family: 'Pixelify Sans', system-ui, sans-serif;
+  overflow: visible;
 }
 
-.ground {
-  position: absolute; inset: 0;
-  background: #7d9a41;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.05) 32px 64px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.05) 32px 64px);
-}
-.road { position: absolute; background: #b98f57; background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.07) 0 16px, rgba(255,255,255,.06) 16px 32px); }
-.road-h { left: 0; right: 0; top: 392px; height: 64px; border-top: 4px solid #8d6a3d; border-bottom: 4px solid #8d6a3d; }
-.road-v { top: 120px; bottom: 0; left: 608px; width: 64px; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 16px, rgba(255,255,255,.06) 16px 32px); border-left: 4px solid #8d6a3d; border-right: 4px solid #8d6a3d; }
 
-/* ── HUD ─────────────────────────────────────────────── */
+/* ── HUD (absolutely positioned in root, stays fixed during pan) ─ */
 .hud {
   position: absolute; top: 0; left: 0; right: 0; height: 76px;
   display: flex; align-items: center; gap: 10px; padding: 0 14px;
   background: var(--px-wood); border-bottom: 4px solid var(--px-ink);
   box-shadow: inset 0 3px 0 var(--px-wood-lt);
-  z-index: 40;
+  z-index: 50;
 }
 .hud-chips { display: flex; gap: 6px; }
 .hud-chip {
@@ -386,6 +495,8 @@ onUnmounted(() => {
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
 .hud-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.hud-dev-btn { background: #3a1a5a !important; color: #c8a8ff !important; border-color: #7a50b0 !important; font-size: 9px !important; }
+.hud-citizen-badge { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); margin-left: 4px; }
 .hud-avatar {
   width: 52px; height: 52px; background: var(--px-wood3); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 #6d5133; display: flex; align-items: center; justify-content: center;
@@ -403,36 +514,48 @@ onUnmounted(() => {
   font-family: 'Silkscreen', monospace; font-size: 9px; padding: 2px 5px;
   background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink);
 }
+.idle-label-warn {
+  background: #5a1a1a; color: #ff8888; border-color: #8b3333;
+  animation: idle-blink 1.2s step-end infinite;
+}
+@keyframes idle-blink { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+
+/* Idle buildings get a subtle desaturated overlay */
+.building-idle { filter: saturate(0.5) brightness(0.85); }
 
 /* ── Build slot ──────────────────────────────────────── */
 .build-slot {
   position: absolute; left: 900px; top: 716px; width: 180px; height: 66px;
   border: 4px dashed var(--px-paper-txt); background: rgba(16,11,7,.28);
   display: flex; align-items: center; justify-content: center; gap: 10px; z-index: 12;
+  cursor: pointer; transition: background 0.15s;
 }
+.build-slot:hover { background: rgba(16,11,7,.45); }
 .build-plus  { font-family: 'Silkscreen', monospace; font-size: 22px; color: var(--px-paper-txt); }
 .build-title { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-paper-txt); }
 .build-cost  { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); margin-top: 3px; }
 
-/* ── Camera / ticker ─────────────────────────────────── */
-.cam-controls { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 20; }
+/* ── Camera / ticker (outside canvas, fixed overlays) ── */
+.cam-controls { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
 .cam-center {
   width: 48px; height: 48px; background: var(--px-cream2); border: 4px solid var(--px-ink);
   box-shadow: inset -2px -2px 0 #d3bb8f; display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); cursor: pointer;
 }
 .cam-hint { font-family: 'Silkscreen', monospace; font-size: 8px; padding: 3px 5px; background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink); }
-.zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff6e0; text-shadow: 2px 2px 0 var(--px-ink); z-index: 20; }
+.zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff6e0; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
 
-.ticker { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 20; }
+.ticker { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 50; }
 .ticker-pop {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 9px 12px; background: var(--px-wood);
   border: 3px solid var(--px-ink); color: var(--px-paper-txt); box-shadow: inset 2px 2px 0 #55402a;
-  display: flex; align-items: center;
+  display: flex; align-items: center; white-space: nowrap;
 }
-.ticker-net {
+.ticker-pop.ticker-idle { background: #5a1a1a; border-color: #8b3333; color: #ff8888; }
+.ticker-cap {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 9px 12px; background: var(--px-green-panel);
   border: 3px solid var(--px-ink); color: var(--px-green-txt); box-shadow: inset 2px 2px 0 var(--px-green-panel2);
+  white-space: nowrap;
 }
 
 /* ── Mobile bottom nav ───────────────────────────────── */
@@ -447,10 +570,8 @@ onUnmounted(() => {
 }
 .mobile-nav-item span { font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-paper-txt); }
 
-/* ── Mobile (Steam Deck / Handy): bottom-nav instead of header nav, HUD stays
-   two-line, camera controls hidden, dialogs act as full-screen sheets ─────── */
 @media (max-width: 860px) {
-  .hof-canvas { transform: none !important; left: 0; top: 76px; margin: 0; width: 100%; height: calc(100% - 76px - 78px); border-width: 0; overflow: auto; }
+  .hof-canvas { transform: none !important; left: 0; top: 76px; margin: 0; width: 100%; height: calc(100% - 76px - 78px); overflow: auto; }
   .cam-controls, .zoom-readout, .ticker { display: none; }
   .hud { position: fixed; height: auto; flex-wrap: wrap; padding: 8px 10px; gap: 6px; z-index: 61; }
   .hud-desktop-only { display: none; }

@@ -13,23 +13,27 @@
     <div class="row row-mowed"></div>
     <div class="fence"></div>
     <div class="hay"></div>
-    <div class="mower mower-1">
-      <PixelWorker anim="bend" :dur="0.9" hat="#e8c766" torso="#8a5a34"
-        :tool="{ anim: 'swing', dur: 0.9, color: '#c9b06a', height: '17px' }" />
-    </div>
-    <div class="mower mower-2">
-      <PixelWorker anim="bend" :dur="0.9" :delay="0.45" hat="#c9702a" skin="#e8b489" torso="#4a3f7a"
-        :tool="{ anim: 'swing', dur: 0.9, delay: 0.45, color: '#c9b06a', height: '17px' }" />
-    </div>
-    <div class="commute">
-      <TravelingWorker travel-anim="commute" :travel-dur="8" hat="#4a7c2f" torso="#6b4f2a" />
-    </div>
+    <template v-if="workers > 0">
+      <div class="mower mower-1">
+        <PixelWorker anim="bend" :dur="0.9" hat="#e8c766" torso="#8a5a34"
+          :tool="{ anim: 'swing', dur: 0.9, color: '#c9b06a', height: '17px' }" />
+      </div>
+      <div class="mower mower-2">
+        <PixelWorker anim="bend" :dur="0.9" :delay="0.45" hat="#c9702a" skin="#e8b489" torso="#4a3f7a"
+          :tool="{ anim: 'swing', dur: 0.9, delay: 0.45, color: '#c9b06a', height: '17px' }" />
+      </div>
+      <div class="commute">
+        <TravelingWorker travel-anim="commute" :travel-dur="8" hat="#4a7c2f" torso="#6b4f2a" />
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
 import TravelingWorker from './TravelingWorker.vue'
+
+defineProps({ workers: { type: Number, default: 0 } })
 </script>
 
 <style scoped>

@@ -1,5 +1,3 @@
-// Hof canvas is 1280×800. HUD bar occupies the top 76px (+4px border = 84px).
-// Wegkreuz (road cross) stays clear: vertical road x 608-680, horizontal road y 392-464.
 export const CANVAS = { w: 1280, h: 800 }
 
 export const BASE = {
@@ -15,27 +13,34 @@ export const BASE = {
   kuh:     { x: 1010,y: 484, w: 250 },
 }
 
-// Collision height per building (a little taller than the visible scene box).
 export const HGT = {
   pond: 128, ofen: 92, rathaus: 126, markt: 124, lager: 128,
   hof: 158, huhn: 128, butter: 124, kakao: 138, kuh: 138,
 }
 
-// Visible scene box height (what's actually drawn).
 export const SCENE_H = {
   pond: 120, ofen: 84, rathaus: 118, markt: 116, lager: 120,
   hof: 150, huhn: 120, butter: 116, kakao: 130, kuh: 130,
 }
 
-export const ROADS = [
-  { x: 608, y: 120, w: 72, h: 680 },
-  { x: 0,   y: 392, w: 1280, h: 72 },
-]
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+}
 
-export function dropOk(id, offset) {
+// Returns false only when dragged building overlaps another building.
+// No canvas-boundary or road restrictions — buildings can be placed anywhere on the grass.
+export function dropOk(id, offset, otherOffsets = {}) {
   const b = BASE[id]
   const h = HGT[id] || 120
   const a = { x: b.x + offset.x, y: b.y + offset.y, w: b.w, h }
-  if (a.x < 4 || a.y < 84 || a.x + a.w > CANVAS.w - 4 || a.y + a.h > CANVAS.h - 4) return false
-  return !ROADS.some(r => a.x < r.x + r.w && r.x < a.x + a.w && a.y < r.y + r.h && r.y < a.y + a.h)
+
+  for (const [otherId, otherOff] of Object.entries(otherOffsets)) {
+    if (otherId === id) continue
+    const ob = BASE[otherId]
+    if (!ob) continue
+    const oh = HGT[otherId] || 120
+    const o = { x: ob.x + otherOff.x, y: ob.y + otherOff.y, w: ob.w, h: oh }
+    if (rectsOverlap(a, o)) return false
+  }
+  return true
 }

@@ -9,6 +9,8 @@ public class UserInformationDto {
     private double butter;
     private double chocolate;
     private double milk;
+    private boolean workersIdle;
+    private double totalResourceCap;
 
     public String getSteamId() {
         return steamId;
@@ -73,5 +75,14 @@ public class UserInformationDto {
     public void setMilk(double milk) {
         this.milk = milk;
     }
+
+    public boolean isWorkersIdle() { return workersIdle; }
+    public void setWorkersIdle(boolean workersIdle) { this.workersIdle = workersIdle; }
+    public double getTotalResourceCap() { return totalResourceCap; }
+    public void setTotalResourceCap(double totalResourceCap) { this.totalResourceCap = totalResourceCap; }
+
+    private int ownedCitizens;
+    public int getOwnedCitizens() { return ownedCitizens; }
+    public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
 }
 

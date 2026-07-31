@@ -14,16 +14,31 @@
 
       <div class="bd-body">
         <div class="bd-col bd-col-crew">
-          <div class="bd-label">ZUGEWIESENE EINWOHNER</div>
+          <div class="bd-label">EINWOHNER {{ workerCount }}/{{ maxWorkers }}</div>
           <div class="bd-crew">
-            <div v-for="c in crew" :key="c.name" class="bd-crew-cell" :class="{ idle: c.idle }">
-              <PixelWorker variant="work" :anim="c.idle ? 'bob' : bodyAnim" :dur="c.idle ? 1.5 : 1.1"
-                :tool="c.idle ? null : { anim: 'tap', dur: 1.1, color: '#9fb3c2' }" />
-              <div class="bd-crew-name">{{ c.name }}</div>
-              <div class="bd-crew-tag" :class="{ idle: c.idle }">{{ c.idle ? 'IDLE' : building.act || 'AKTIV' }}</div>
+            <!-- Active worker slots — each has a red X to unassign -->
+            <div v-for="i in workerCount" :key="'a'+i" class="bd-crew-cell bd-crew-cell-active">
+              <button class="bd-crew-x" @click="adjustWorkers(-1)" title="Entfernen">×</button>
+              <PixelWorker variant="work"
+                :anim="playerStore.workersIdle ? 'bob' : bodyAnim"
+                :dur="1.1"
+                :tool="!playerStore.workersIdle ? { anim: 'tap', dur: 1.1, color: '#9fb3c2' } : null" />
+              <div class="bd-crew-name">{{ crewNames[(i - 1) % crewNames.length] }}</div>
+              <div class="bd-crew-tag" :class="{ idle: playerStore.workersIdle }">
+                {{ playerStore.workersIdle ? 'IDLE' : (building.act || 'AKTIV') }}
+              </div>
             </div>
-            <div class="bd-crew-add">+</div>
-            <div class="bd-crew-locked">GE&shy;SPERRT</div>
+            <!-- Add slot — shown if available citizens exist and slots remain -->
+            <button
+              v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0"
+              class="bd-crew-add"
+              @click="adjustWorkers(1)"
+              title="Einwohner zuweisen"
+            >+</button>
+            <!-- Locked slot hint -->
+            <div v-else-if="workerCount < maxWorkers" class="bd-crew-locked">
+              {{ playerStore.ownedCitizens === 0 ? 'KEINE EINW.' : 'ALLE ZUG.' }}
+            </div>
           </div>
 
           <div class="bd-stats">
@@ -41,15 +56,19 @@
         </div>
 
         <div class="bd-col bd-col-build">
-          <div class="bd-label">AUSBAU</div>
-          <div v-for="u in buildUps" :key="u.name" class="bd-buildup">
+          <div class="bd-label">STATUS</div>
+          <div class="bd-buildup">
             <div>
-              <div class="bd-buildup-name">{{ u.name }}</div>
-              <div class="bd-buildup-note">{{ u.note }}</div>
+              <div class="bd-buildup-name">Stufe {{ level }}</div>
+              <div class="bd-buildup-note">{{ level > 0 ? 'Gebäude in Betrieb' : 'Noch nicht gebaut' }}</div>
             </div>
-            <button class="px-btn px-btn-accent" @click="notReady">
-              {{ u.cost }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
-            </button>
+            <div class="bd-level-badge">{{ level > 0 ? '&#10003;' : '—' }}</div>
+          </div>
+          <div class="bd-buildup" v-if="ownedData && ownedData.storageCapBonus">
+            <div>
+              <div class="bd-buildup-name">Lager-Cap</div>
+              <div class="bd-buildup-note">+{{ (ownedData.storageCapBonus / 1000).toFixed(0) }}K pro Level</div>
+            </div>
           </div>
           <div v-if="notice" class="bd-notice">{{ notice }}</div>
 
@@ -67,6 +86,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
+import { changeWorkers } from '../services/api.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 import { RESOURCE_LABEL } from './buildings/buildingInfo.js'
@@ -76,37 +96,40 @@ const emit = defineEmits(['close'])
 
 const playerStore = usePlayerStore()
 
-const level = 3
 const resourceLabel = computed(() => RESOURCE_LABEL[props.building.resource] ?? props.building.title)
+
+// Get real building data from store (level, workers, maxWorkers)
+const ownedData = computed(() => playerStore.ownedBuildings.find(b => b.id === props.building.id))
+const level     = computed(() => ownedData.value?.level ?? 0)
+const workerCount   = computed(() => ownedData.value?.workers ?? 0)
+const maxWorkers    = computed(() => ownedData.value?.maxWorkers ?? props.building.workers ?? 1)
 
 const bodyAnim = computed(() => ({
   hof: 'bend', huhn: 'bend', butter: 'bob', kakao: 'reach', kuh: 'milk', pond: 'bend',
 }[props.building.id] ?? 'bob'))
 
-const crewNames = ['ANNA', 'BEN', 'CLARA', 'DIRK']
-const crew = computed(() => {
-  const n = Math.min(4, props.building.workers || 1)
-  return Array.from({ length: n }, (_, i) => ({ name: crewNames[i] ?? `EINW. ${i + 1}`, idle: i === n - 1 && n > 2 }))
-})
+const crewNames = ['ANNA', 'BEN', 'CLARA', 'DIRK', 'EVA', 'FRANK', 'GRETA', 'HANS']
 
 const wageRow  = computed(() => props.building.rows.find(r => r.k === 'Lohn'))
 const yieldRow = computed(() => props.building.rows.find(r => /Passiv/.test(r.k)))
 
-const buildUps = [
-  { name: 'Stufe ' + (level + 1), note: '+30 % Basisertrag', cost: '320' },
-  { name: 'Lagerausbau', note: `+400 Lagerplatz für ${resourceLabel.value}`, cost: '180' },
-  { name: 'Automatisierung', note: 'produziert ohne Hover weiter', cost: '200' },
-]
-
 const stock = computed(() => (props.building.resource ? playerStore[props.building.resource.toLowerCase()] ?? 0 : 0))
-const storageCap = 1300
-const storagePct = computed(() => Math.min(100, (stock.value / storageCap) * 100))
-const storageText = computed(() => `${stock.value.toFixed(1)} / ${(storageCap / 1000).toFixed(1)}K`)
+const storageCap = computed(() => playerStore.totalResourceCap)
+const storagePct = computed(() => Math.min(100, (stock.value / storageCap.value) * 100))
+const storageText = computed(() => {
+  const cap = storageCap.value
+  return `${stock.value.toFixed(1)} / ${cap >= 1000 ? (cap / 1000).toFixed(1) + 'K' : cap}`
+})
 
 const notice = ref('')
-function notReady() {
-  notice.value = 'Ausbau-System folgt in einem späteren Update.'
-  setTimeout(() => { notice.value = '' }, 2500)
+async function adjustWorkers(delta) {
+  try {
+    const updated = await changeWorkers(playerStore.steamId, props.building.id, delta)
+    playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
+  } catch (e) {
+    notice.value = 'Fehler beim Ändern der Einwohner.'
+    setTimeout(() => { notice.value = '' }, 2000)
+  }
 }
 </script>
 
@@ -136,18 +159,34 @@ function notReady() {
   width: 64px; padding: 10px 0 7px; background: var(--px-cream3); border: 3px solid var(--px-brown2);
   display: flex; flex-direction: column; align-items: center; gap: 7px;
 }
-.bd-crew-cell.idle { background: #f4ecd6; border-color: #c8b18a; }
+.bd-crew-cell-active { position: relative; background: var(--px-cream3); border-color: var(--px-brown2); }
+.bd-crew-cell-active .bd-crew-tag.idle { background: #e8dcbc; border-color: #b9a888; color: #7a6a4e; }
 .bd-crew-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood-lt); }
 .bd-crew-tag {
   font-family: 'Silkscreen', monospace; font-size: 8px; padding: 2px 4px;
   background: #dff0d0; border: 2px solid var(--px-green); color: #3d6b25;
 }
-.bd-crew-tag.idle { background: #e8dcbc; border-color: #b9a888; color: #7a6a4e; }
-.bd-crew-add, .bd-crew-locked {
-  width: 64px; height: 74px; border: 3px dashed var(--px-brown2); display: flex; align-items: center; justify-content: center;
-  font-family: 'Silkscreen', monospace; font-size: 20px; color: var(--px-brown2);
+.bd-crew-tag.idle     { background: #e8dcbc; border-color: #b9a888; color: #7a6a4e; }
+.bd-crew-tag.inactive { background: #ddd8cc; border-color: #b0a898; color: #8a7a6a; }
+.bd-crew-x {
+  position: absolute; top: 2px; right: 2px; width: 16px; height: 16px;
+  background: var(--px-red); border: 2px solid #8b1a1a; color: #fff;
+  font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-weight: bold; padding: 0; z-index: 5;
 }
-.bd-crew-locked { border-color: #c8b18a; font-size: 9px; color: #c8b18a; text-align: center; }
+.bd-crew-x:hover { background: #c01010; }
+.bd-crew-add {
+  width: 64px; height: 74px; border: 3px dashed var(--px-green); background: rgba(60,100,40,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Silkscreen', monospace; font-size: 24px; color: var(--px-green); cursor: pointer;
+}
+.bd-crew-add:hover { background: var(--px-green-panel); }
+.bd-crew-locked {
+  width: 64px; height: 74px; border: 3px dashed #c8b18a;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Silkscreen', monospace; font-size: 8px; color: #c8b18a; text-align: center; padding: 4px;
+}
+.bd-level-badge { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-green-txt); }
 
 .bd-stats { display: flex; gap: 10px; }
 .bd-stat { flex: 1; padding: 10px 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }

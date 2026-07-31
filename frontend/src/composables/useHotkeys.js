@@ -33,7 +33,7 @@ watch(() => state.bindings, (bindings) => {
   localStorage.setItem('cookieHotkeys', JSON.stringify(flat))
 }, { deep: true })
 
-function keyLabelFromEvent(e) {
+export function keyLabelFromEvent(e) {
   const parts = []
   if (e.shiftKey) parts.push('SHIFT')
   if (e.ctrlKey)  parts.push('CTRL')

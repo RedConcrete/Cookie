@@ -1,31 +1,47 @@
-import { reactive, onUnmounted } from 'vue'
+import { reactive, computed, onUnmounted } from 'vue'
 
-const HOVER_MS = 700   // fill duration until pinned
-const DRAIN_MS = 900   // drain duration after mouse leaves, until close
+const HOVER_MS      = 700   // fill duration
+const DRAIN_SLOW_MS = 2500  // drain after fill complete — tooltip stays visible until 0
+const DRAIN_FAST_MS = 100   // drain when mouse leaves before fill — tooltip hides immediately
 
 /**
- * Hover-reveal state machine used for HUD/building info panels in the Hof view.
+ * State machine for hover-reveal tooltips.
  *
- * Behaviour (per chat "Tooltip-Verhalten und Lagerverwaltung"):
- * - Panel opens immediately on mouse-enter; a fill bar runs underneath.
- * - Once the bar is full the panel is "pinned" (stays open, bar hidden).
- * - On mouse-leave the same bar drains back down; empty = panel closes.
- * - Re-entering while draining resumes filling from the current point (timer resets).
+ * fill      → bar fills over HOVER_MS, tooltip visible
+ * drain-slow → fill reached 1 → bar drains over DRAIN_SLOW_MS, tooltip stays visible
+ * drain-fast → mouse left before fill → tooltip hides immediately, bar drains quickly
+ * off        → hidden
+ *
+ * Re-entering during any drain resumes fill from current progress.
+ * Leaving during drain-slow is ignored — tooltip fades on its own schedule.
  */
 export function useHoverReveal() {
   const state = reactive({ visible: false, phase: 'off', progress: 0 })
-  let t0 = null
+  let t0  = null
   let raf = null
+
+  function cancel() { cancelAnimationFrame(raf); raf = null }
 
   function tick() {
     if (state.phase === 'fill') {
-      const el = Date.now() - t0
-      state.progress = Math.min(1, el / HOVER_MS)
-      if (state.progress >= 1) { state.phase = 'pin'; return }
-    } else if (state.phase === 'drain') {
-      const el = Date.now() - t0
-      state.progress = Math.max(0, 1 - el / DRAIN_MS)
-      if (state.progress <= 0) { state.phase = 'off'; state.visible = false; return }
+      state.progress = Math.min(1, (Date.now() - t0) / HOVER_MS)
+      if (state.progress >= 1) {
+        state.phase = 'drain-slow'
+        t0 = Date.now()
+      }
+    } else if (state.phase === 'drain-slow') {
+      state.progress = Math.max(0, 1 - (Date.now() - t0) / DRAIN_SLOW_MS)
+      if (state.progress <= 0) {
+        state.phase = 'off'
+        state.visible = false
+        return
+      }
+    } else if (state.phase === 'drain-fast') {
+      state.progress = Math.max(0, 1 - (Date.now() - t0) / DRAIN_FAST_MS)
+      if (state.progress <= 0) {
+        state.phase = 'off'
+        return
+      }
     } else {
       return
     }
@@ -33,7 +49,7 @@ export function useHoverReveal() {
   }
 
   function onEnter() {
-    cancelAnimationFrame(raf)
+    cancel()
     state.visible = true
     t0 = Date.now() - state.progress * HOVER_MS
     state.phase = 'fill'
@@ -41,20 +57,20 @@ export function useHoverReveal() {
   }
 
   function onLeave() {
-    if (!state.visible) return
-    cancelAnimationFrame(raf)
-    t0 = Date.now() - (1 - state.progress) * DRAIN_MS
-    state.phase = 'drain'
+    // During slow drain: let it run to completion, don't interrupt
+    if (state.phase === 'drain-slow' || state.phase === 'off') return
+    // Left before fill complete → hide tooltip immediately, drain bar quickly
+    cancel()
+    state.visible = false
+    t0 = Date.now() - (1 - state.progress) * DRAIN_FAST_MS
+    state.phase = 'drain-fast'
     tick()
   }
 
-  onUnmounted(() => cancelAnimationFrame(raf))
+  onUnmounted(cancel)
 
-  return {
-    state,
-    onEnter,
-    onLeave,
-    get running() { return state.phase === 'fill' || state.phase === 'drain' },
-    get pinned()  { return state.phase === 'pin' },
-  }
+  const running = computed(() => state.phase !== 'off')
+  const pinned  = computed(() => state.phase === 'drain-slow')
+
+  return { state, onEnter, onLeave, running, pinned }
 }
