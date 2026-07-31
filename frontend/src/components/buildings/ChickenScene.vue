@@ -1,24 +1,11 @@
 <template>
   <div class="chicken-scene">
-    <div class="roof"></div>
-    <div class="wall"></div>
-    <div class="door"></div>
-    <div class="window"></div>
-    <div class="trough"></div>
-    <div class="fence-posts"></div>
-    <div class="fence-rail fence-rail-top"></div>
-    <div class="fence-rail fence-rail-mid"></div>
+    <img class="scene-bg" :src="bgSrc" alt="" />
 
-    <div v-for="(h, i) in hens" :key="i" class="hen-wrap" :style="{ left: h.left + 'px', bottom: h.bottom + 'px' }">
-      <div class="hen" :style="{ animationDelay: h.delay + 's' }">
-        <div class="hen-body" :style="{ background: h.color }"></div>
-        <div class="hen-head" :style="{ background: h.color }"></div>
-        <div class="hen-comb"></div>
-        <div class="hen-beak"></div>
-        <div class="hen-leg hen-leg-l"></div>
-        <div class="hen-leg hen-leg-r"></div>
-      </div>
-    </div>
+    <svg v-for="(h, i) in hens" :key="i" class="hen" viewBox="0 0 11 11" width="20" height="20"
+         :style="{ left: h.left + 'px', bottom: h.bottom + 'px', animationDelay: h.delay + 's' }">
+      <rect v-for="(cell, j) in henCells(h.color)" :key="j" :x="cell.x" :y="cell.y" width="1" height="1" :fill="cell.fill" />
+    </svg>
 
     <div v-if="workers > 0" class="patroller">
       <TravelingWorker travel-anim="patrol" :travel-dur="5.5" :leg-dur="0.55" hat="#4a3f7a" torso="#8a5a34" />
@@ -28,6 +15,8 @@
 
 <script setup>
 import TravelingWorker from './TravelingWorker.vue'
+import bgSrc from '../../assets/buildings/huhn.svg'
+import { buildSpriteCells, dots } from '../pixel/spriteGrid.js'
 
 defineProps({ workers: { type: Number, default: 0 } })
 
@@ -36,33 +25,32 @@ const hens = [
   { left: 116, bottom: 56, color: '#f3e6cc', delay: 0.5 },
   { left: 146, bottom: 38, color: '#d9c39a', delay: 1 },
 ]
+
+// 11x11 pixel grid, side view: comb, head w/ eye + beak, body, two legs.
+const HEN_GRID = [
+  dots(7) + 'r' + dots(3),
+  dots(6) + 'c'.repeat(4) + dots(1),
+  dots(6) + 'c'.repeat(2) + 'e' + 'c' + dots(1),
+  dots(6) + 'c'.repeat(4) + 'y',
+  'c'.repeat(10) + dots(1),
+  'c'.repeat(10) + dots(1),
+  'c'.repeat(10) + dots(1),
+  'c'.repeat(7) + dots(4),
+  'c'.repeat(7) + dots(4),
+  dots(1) + 'yy' + dots(1) + 'yy' + dots(5),
+  dots(1) + 'yy' + dots(1) + 'yy' + dots(5),
+]
+
+function henCells(color) {
+  return buildSpriteCells(HEN_GRID, { c: color, r: '#b83232', e: '#1a120b', y: '#e8b93c' })
+}
 </script>
 
 <style scoped>
-.chicken-scene {
-  position: absolute; inset: 0;
-  background: #cdae7c;
-  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 6px, transparent 6px 12px);
-}
-.roof { position: absolute; left: 6px; top: 8px; width: 66px; height: 12px; background: #8d3f28; box-shadow: 0 0 0 2px #3a2a1c; }
-.wall { position: absolute; left: 10px; top: 20px; width: 58px; height: 44px; background: #b8623a; box-shadow: 0 0 0 2px #3a2a1c; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.1) 0 6px, transparent 6px 12px); }
-.door   { position: absolute; left: 33px; top: 46px; width: 12px; height: 18px; background: #3a2a1c; }
-.window { position: absolute; left: 15px; top: 28px; width: 9px; height: 8px; background: #e8b93c; box-shadow: 0 0 0 2px #3a2a1c; }
-.trough { position: absolute; left: 80px; bottom: 34px; width: 34px; height: 7px; background: #8d6a3d; box-shadow: 0 0 0 2px #3a2a1c; background-image: repeating-linear-gradient(90deg, #e8c766 0 2px, transparent 2px 5px); }
-.fence-posts { position: absolute; left: 0; right: 0; bottom: 6px; height: 26px; background-image: repeating-linear-gradient(90deg, #a97b4a 0 5px, transparent 5px 26px); }
-.fence-rail { position: absolute; left: 0; right: 0; height: 4px; background: #8d6a3d; }
-.fence-rail-top { bottom: 26px; }
-.fence-rail-mid { bottom: 14px; }
+.chicken-scene { position: absolute; inset: 0; }
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 
-.hen-wrap { position: absolute; }
-.hen { position: relative; width: 11px; height: 13px; animation: px-peck 1.6s ease-in-out infinite; }
-.hen-body { position: absolute; left: 0; top: 5px; width: 11px; height: 7px; box-shadow: 0 0 0 1px #3a2a1c; }
-.hen-head { position: absolute; left: 6px; top: 0;  width: 5px; height: 5px; box-shadow: 0 0 0 1px #3a2a1c; }
-.hen-comb { position: absolute; left: 7px; top: -2px; width: 3px; height: 2px; background: #b83232; }
-.hen-beak { position: absolute; left: 11px; top: 2px; width: 3px; height: 2px; background: #e8b93c; }
-.hen-leg  { position: absolute; top: 12px; width: 2px; height: 2px; background: #e8b93c; }
-.hen-leg-l { left: 2px; }
-.hen-leg-r { left: 7px; }
+.hen { position: absolute; animation: px-peck 1.6s ease-in-out infinite; }
 
 .patroller { position: absolute; left: 96px; bottom: 34px; z-index: 4; }
 </style>

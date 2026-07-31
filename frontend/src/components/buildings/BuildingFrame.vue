@@ -94,12 +94,13 @@ const rootStyle = computed(() => ({
 .bf-scene-custom { overflow: visible; }
 
 .bf-overlay {
-  position: absolute; left: 0; right: 0; top: 0;
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 4px);
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 4px 6px;
   background: rgba(16,11,7,.62);
   z-index: 5;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.12s;
 }
 .bf-root:hover .bf-overlay { opacity: 1; }

@@ -2,16 +2,11 @@
   <div class="pip-wrap" @mouseenter="handleEnter" @mouseleave="handleLeave">
     <slot />
 
-    <div
-      v-if="barPlacement !== 'none'"
-      class="pip-bar"
-      :class="barPlacement === 'edge' ? 'pip-bar-edge' : 'pip-bar-chip'"
-      :style="{ opacity: running ? 1 : 0 }"
-    >
-      <div class="pip-bar-fill" :style="{ width: (state.progress * 100) + '%', background: state.phase.startsWith('drain') ? 'var(--px-drain)' : 'var(--px-fill)' }"></div>
-    </div>
-
     <div v-if="state.visible" ref="panelRef" class="pip-panel" :class="dynamicSideClass" :style="{ width: width + 'px', zIndex: z }">
+      <div v-if="barPlacement !== 'none'" class="pip-bar">
+        <div class="pip-bar-fill" :style="{ width: (state.progress * 100) + '%', background: state.phase.startsWith('drain') ? 'var(--px-drain)' : 'var(--px-fill)' }"></div>
+      </div>
+
       <div v-if="title" class="pip-header">
         <PixelIcon v-if="icon" :name="icon" :size="16" />
         <span class="pip-title">{{ title }}</span>
@@ -41,11 +36,11 @@ const props = defineProps({
   side:  { type: String, default: 'right' },   // right | left | below-left | below-right
   width: { type: Number, default: 268 },
   z:     { type: Number, default: 95 },
-  barPlacement: { type: String, default: 'chip' }, // chip | edge | none
+  barPlacement: { type: String, default: 'chip' }, // any value shows the bar, 'none' hides it
 })
 
 const emit = defineEmits(['enter', 'leave'])
-const { state, onEnter, onLeave, running, pinned } = useHoverReveal()
+const { state, onEnter, onLeave, pinned } = useHoverReveal()
 
 function handleEnter() { onEnter(); emit('enter') }
 function handleLeave() { onLeave(); emit('leave') }
@@ -77,10 +72,6 @@ const dynamicSideClass = computed(() => `pip-side-${resolvedSide.value}`)
 <style scoped>
 .pip-wrap { position: relative; width: 100%; }
 
-.pip-bar-chip { position: absolute; left: 0; right: 0; bottom: -9px; height: 7px; background: var(--px-ink); box-shadow: 0 0 0 2px var(--px-ink); z-index: 92; }
-.pip-bar-edge { position: absolute; left: 0; right: 0; bottom: 0; height: 7px; background: rgba(16,11,7,.75); }
-.pip-bar-fill { height: 100%; transition: none; }
-
 .pip-panel {
   position: absolute;
   background: var(--px-wood);
@@ -89,6 +80,11 @@ const dynamicSideClass = computed(() => `pip-side-${resolvedSide.value}`)
   padding: 12px 14px;
   font-family: 'Pixelify Sans', system-ui, sans-serif;
 }
+
+/* Progress bar bleeds to the panel's outer edges, flush with its top border */
+.pip-bar { margin: -12px -14px 10px -14px; height: 7px; background: rgba(16,11,7,.75); box-shadow: 0 2px 0 var(--px-ink); overflow: hidden; }
+.pip-bar-fill { height: 100%; transition: none; }
+
 .pip-side-right      { top: 0; left: calc(100% + 12px); }
 .pip-side-left        { top: 0; right: calc(100% + 12px); }
 .pip-side-below-left  { top: calc(100% + 14px); left: 0; }

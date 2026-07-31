@@ -28,6 +28,14 @@
             <div class="hud-chip-label">{{ r.label }}</div>
           </div>
         </PixelInfoPopover>
+
+        <PixelInfoPopover :rows="citizenRows" title="EINWOHNER" side="below-left" :width="240" :z="95">
+          <div class="hud-chip hud-chip-clickable" @click="dialog = 'citizens'">
+            <PixelIcon name="einw" :size="24" />
+            <div class="hud-chip-val">{{ playerStore.ownedCitizens }}/{{ playerStore.maxCitizens }}</div>
+            <div class="hud-chip-label">EINW.</div>
+          </div>
+        </PixelInfoPopover>
       </div>
 
       <PixelInfoPopover :rows="netWorthRows" title="NET WORTH" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
@@ -39,10 +47,6 @@
 
       <div class="hud-actions">
         <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" title="DEV: Reset">&#8635; DEV</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'buildshop'" title="Gebäude bauen">BAUVORHABEN</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'citizens'" title="Einwohner">
-          EINW. <span class="hud-citizen-badge">{{ playerStore.ownedCitizens }}/{{ playerStore.maxCitizens }}</span>
-        </button>
         <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">UPGRADES</button>
         <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">PRESTIGE</button>
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
@@ -95,6 +99,9 @@
       <div class="cam-hint">ZENTRIEREN &middot; LEERTASTE</div>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
+
+    <!-- Floating build button (bottom-right) -->
+    <button class="build-fab" title="Gebäude bauen" @click="dialog = 'buildshop'">+</button>
 
     <!-- Mobile bottom nav -->
     <div class="mobile-nav">
@@ -293,6 +300,11 @@ const hudResources = computed(() => RESOURCES.map(r => {
   }
 }))
 
+const citizenRows = computed(() => [
+  { k: 'Angesiedelt', v: `${playerStore.ownedCitizens}/${playerStore.maxCitizens}`, color: 'w' },
+  { k: 'Frei', v: playerStore.idleCitizens, color: 'g' },
+])
+
 const netWorthRows = computed(() => [
   { k: 'Cookies',    v: fmt2(playerStore.nwCookies) + ' C', color: 'w' },
   { k: 'Ressourcen', v: fmt2(playerStore.nwResources) + ' C', color: 'w' },
@@ -468,18 +480,19 @@ onUnmounted(() => {
 
 /* ── HUD (absolutely positioned in root, stays fixed during pan) ─ */
 .hud {
-  position: absolute; top: 0; left: 0; right: 0; height: 76px;
-  display: flex; align-items: center; gap: 10px; padding: 0 14px;
+  position: absolute; top: 0; left: 0; right: 0; min-height: 76px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px;
   background: var(--px-wood); border-bottom: 4px solid var(--px-ink);
   box-shadow: inset 0 3px 0 var(--px-wood-lt);
   z-index: 50;
 }
-.hud-chips { display: flex; gap: 6px; }
+.hud-chips { display: flex; flex-wrap: nowrap; gap: 6px; }
 .hud-chip {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 5px 10px; background: var(--px-wood2); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 #57402a;
 }
+.hud-chip-clickable { cursor: pointer; }
 .hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset 2px 2px 0 #7d5a30; }
 .hud-chip-val   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 .hud-chip-cookie .hud-chip-val { font-size: 13px; color: var(--px-gold-txt); }
@@ -494,10 +507,10 @@ onUnmounted(() => {
 .hud-networth-label { font-size: 11px; color: #a9c48f; line-height: 1; }
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
-.hud-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .hud-dev-btn { background: #3a1a5a !important; color: #c8a8ff !important; border-color: #7a50b0 !important; font-size: 9px !important; }
-.hud-citizen-badge { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); margin-left: 4px; }
 .hud-avatar {
+  flex-shrink: 0;
   width: 52px; height: 52px; background: var(--px-wood3); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 #6d5133; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
@@ -545,6 +558,16 @@ onUnmounted(() => {
 .cam-hint { font-family: 'Silkscreen', monospace; font-size: 8px; padding: 3px 5px; background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink); }
 .zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff6e0; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
 
+.build-fab {
+  position: absolute; right: 16px; bottom: 56px; z-index: 55;
+  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Silkscreen', monospace; font-size: 26px; line-height: 1; padding: 0;
+  background: var(--px-orange); border: 4px solid var(--px-ink); color: var(--px-cream);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.45);
+  cursor: pointer;
+}
+.build-fab:hover { filter: brightness(1.08); }
+
 .ticker { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 50; }
 .ticker-pop {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 9px 12px; background: var(--px-wood);
@@ -578,5 +601,6 @@ onUnmounted(() => {
   .hud-chip-label { display: none; }
   .hud-chip { padding: 4px 6px; }
   .mobile-nav { display: flex; }
+  .build-fab { bottom: 94px; }
 }
 </style>

@@ -26,18 +26,16 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 - Backend-Validierung ist Pflicht bei allem, was Ressourcen/Cookies bewegt
   (Client-Werte nie vertrauen)
 
-## Aktueller Stand (2026-06-25)
+## Aktueller Stand (2026-07-31)
 
 Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
 Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
-Markt-Preisgraph mit %-Modus und Zoom.
+Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint).
 
-Nächste Schritte (nächste Session):
-1. **Unity-Reste aufräumen** — `.meta`-Dateien (149 Stück), `.sfk`-Dateien,
-   ungenutzte Sprites/Assets aus `src/assets/` entfernen
-2. **Steam-Upload vorbereiten** — Build testen, Depots konfigurieren, Upload via
-   SteamCMD (siehe Plan unten)
-3. **Server-Deployment** — produktiven Server aufsetzen/aktualisieren
+**Vollständige Fix-/Roadmap-Liste (Bugs, Aufräumarbeiten, Build/Deployment,
+Design-Doc-Pflege): `ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob der
+Punkt schon abgehakt ist — Duplizierung vermeiden, Datei ist die einzige
+Quelle für offene Baustellen.
 
 ## Steam-Upload-Plan
 

@@ -7,9 +7,10 @@ const DRAIN_FAST_MS = 100   // drain when mouse leaves before fill — tooltip h
 /**
  * State machine for hover-reveal tooltips.
  *
- * fill      → bar fills over HOVER_MS, tooltip visible
- * drain-slow → fill reached 1 → bar drains over DRAIN_SLOW_MS, tooltip stays visible
- * drain-fast → mouse left before fill → tooltip hides immediately, bar drains quickly
+ * fill       → bar fills over HOVER_MS, tooltip visible
+ * hold       → fill reached 1, mouse still in → bar stays full, tooltip stays visible
+ * drain-slow → mouse left after hold → bar drains over DRAIN_SLOW_MS, tooltip stays visible
+ * drain-fast → mouse left before fill completed → tooltip hides immediately, bar drains quickly
  * off        → hidden
  *
  * Re-entering during any drain resumes fill from current progress.
@@ -26,8 +27,8 @@ export function useHoverReveal() {
     if (state.phase === 'fill') {
       state.progress = Math.min(1, (Date.now() - t0) / HOVER_MS)
       if (state.progress >= 1) {
-        state.phase = 'drain-slow'
-        t0 = Date.now()
+        state.phase = 'hold'
+        return
       }
     } else if (state.phase === 'drain-slow') {
       state.progress = Math.max(0, 1 - (Date.now() - t0) / DRAIN_SLOW_MS)
@@ -59,11 +60,17 @@ export function useHoverReveal() {
   function onLeave() {
     // During slow drain: let it run to completion, don't interrupt
     if (state.phase === 'drain-slow' || state.phase === 'off') return
-    // Left before fill complete → hide tooltip immediately, drain bar quickly
     cancel()
-    state.visible = false
-    t0 = Date.now() - (1 - state.progress) * DRAIN_FAST_MS
-    state.phase = 'drain-fast'
+    if (state.phase === 'hold') {
+      // Was full while hovering → start the slow drain now that mouse left
+      t0 = Date.now()
+      state.phase = 'drain-slow'
+    } else {
+      // Left before fill complete → hide tooltip immediately, drain bar quickly
+      state.visible = false
+      t0 = Date.now() - (1 - state.progress) * DRAIN_FAST_MS
+      state.phase = 'drain-fast'
+    }
     tick()
   }
 

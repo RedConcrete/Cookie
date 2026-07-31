@@ -5,9 +5,14 @@ REPO="$(cd "$(dirname "$0")" && pwd)"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-# Homebrew (Java 21 + Node 20)
-export PATH="/home/linuxbrew/.linuxbrew/opt/openjdk@21/bin:/home/linuxbrew/.linuxbrew/opt/node@20/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
-export JAVA_HOME="/home/linuxbrew/.linuxbrew/opt/openjdk@21"
+# Java 21 (falls JAVA_HOME nicht gesetzt oder falsch, per which java ableiten)
+if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+  JAVA_BIN="$(command -v java)"
+  if [ -n "$JAVA_BIN" ]; then
+    export JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$JAVA_BIN")")")"
+    export PATH="$JAVA_HOME/bin:$PATH"
+  fi
+fi
 
 LOG_DIR="$REPO/.logs"
 mkdir -p "$LOG_DIR"

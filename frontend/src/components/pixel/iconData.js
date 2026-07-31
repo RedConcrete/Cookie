@@ -1,5 +1,7 @@
 // 8×8 pixel-grid icon defs, ported from the Cookie Layouts design.
 // Each glyph is an 8-row string grid; digits index into that icon's palette.
+// Source-of-truth for the generated SVG assets in ../../assets/icons/ (PixelIcon.vue
+// renders those images now) — kept here for regenerating/editing the pixel art.
 export const GRID = {
   cookie: ['..1111..', '.111311.', '11111111', '11311111', '11111311', '13111111', '.111111.', '..1111..'],
   zucker: ['........', '..1111..', '.122221.', '.122221.', '11222111', '12222211', '11111111', '........'],
@@ -46,14 +48,4 @@ export const PAL = {
 export const RESOURCE_ICON = {
   SUGAR: 'zucker', FLOUR: 'mehl', EGGS: 'eier',
   BUTTER: 'butter', CHOCOLATE: 'schoko', MILK: 'milch',
-}
-
-export function iconBoxShadow(name, sizePx) {
-  const g = GRID[name], c = PAL[name]
-  if (!g || !c) return ''
-  const sh = []
-  g.forEach((row, y) => row.split('').forEach((ch, x) => {
-    if (c[ch]) sh.push(`${x * sizePx}px ${y * sizePx}px 0 0 ${c[ch]}`)
-  }))
-  return sh.join(',')
 }

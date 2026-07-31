@@ -1,27 +1,11 @@
 <template>
   <div class="cow-scene">
-    <div class="roof"></div>
-    <div class="wall"></div>
-    <div class="door"></div>
-    <div class="window"></div>
-    <div class="feed-line"></div>
+    <img class="scene-bg" :src="bgSrc" alt="" />
 
-    <div v-for="(c, i) in cows" :key="i" class="cow-wrap" :style="{ left: c.left + 'px', bottom: c.bottom + 'px' }">
-      <div class="cow" :style="{ animationDelay: c.delay + 's' }">
-        <div class="cow-body" :style="{ background: c.body }"></div>
-        <div class="cow-spot cow-spot-1" :style="{ background: c.spot }"></div>
-        <div class="cow-spot cow-spot-2" :style="{ background: c.spot }"></div>
-        <div class="cow-head" :style="{ background: c.body }"></div>
-        <div class="cow-snout"></div>
-        <div class="cow-leg cow-leg-l" :style="{ background: c.spot }"></div>
-        <div class="cow-leg cow-leg-r" :style="{ background: c.spot }"></div>
-      </div>
-    </div>
-
-    <div class="trough"></div>
-    <div class="fence-posts"></div>
-    <div class="fence-rail fence-rail-top"></div>
-    <div class="fence-rail fence-rail-mid"></div>
+    <svg v-for="(c, i) in cows" :key="i" class="cow" viewBox="0 0 16 11" width="32" height="22"
+         :style="{ left: c.left + 'px', bottom: c.bottom + 'px', animationDelay: c.delay + 's' }">
+      <rect v-for="(cell, j) in cowCells(c.body, c.spot)" :key="j" :x="cell.x" :y="cell.y" width="1" height="1" :fill="cell.fill" />
+    </svg>
 
     <div v-if="workers > 0" class="milker">
       <PixelWorker anim="milk" :dur="1.1" hat="#5aa0e0" torso="#4a3f7a"
@@ -32,6 +16,8 @@
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
+import bgSrc from '../../assets/buildings/kuh.svg'
+import { buildSpriteCells, dots } from '../pixel/spriteGrid.js'
 
 defineProps({ workers: { type: Number, default: 0 } })
 
@@ -39,36 +25,32 @@ const cows = [
   { left: 12, bottom: 46, body: '#fffaf0', spot: '#3a2a1c', delay: 0 },
   { left: 66, bottom: 42, body: '#f3e6cc', spot: '#6b4f2a', delay: 0.9 },
 ]
+
+// 16x11 pixel grid, side view: horns, head w/ eye, spotted body, four legs.
+const COW_GRID = [
+  dots(12) + 'h' + '.' + 'h' + '.',
+  dots(10) + 'b'.repeat(6),
+  dots(10) + 'b'.repeat(6),
+  'b'.repeat(14) + 'e' + 'b',
+  'bb' + 'ss' + 'b'.repeat(11) + 'n',
+  'bb' + 'ss' + 'b'.repeat(11) + 'n',
+  'b'.repeat(16),
+  'b'.repeat(12) + dots(4),
+  'b'.repeat(12) + dots(4),
+  dots(2) + 'll' + dots(4) + 'll' + dots(6),
+  dots(2) + 'll' + dots(4) + 'll' + dots(6),
+]
+
+function cowCells(body, spot) {
+  return buildSpriteCells(COW_GRID, { b: body, s: spot, h: '#e8dcc0', e: '#1a120b', n: '#f0b8b8', l: '#1a120b' })
+}
 </script>
 
 <style scoped>
-.cow-scene {
-  position: absolute; inset: 0;
-  background: #8fae5c;
-  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 8px, transparent 8px 16px);
-}
-.roof { position: absolute; left: 146px; top: 8px;  width: 86px; height: 12px; background: #b83232; box-shadow: 0 0 0 2px #3a2a1c; }
-.wall { position: absolute; left: 150px; top: 20px; width: 78px; height: 52px; background: #f7edd4; box-shadow: 0 0 0 2px #3a2a1c; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.1) 0 6px, transparent 6px 12px); }
-.door      { position: absolute; left: 183px; top: 54px; width: 12px; height: 18px; background: #5a4023; }
-.window    { position: absolute; left: 155px; top: 28px; width: 9px;  height: 8px;  background: #e8b93c; box-shadow: 0 0 0 2px #3a2a1c; }
-.feed-line { position: absolute; left: 158px; top: 64px; width: 62px; height: 8px;  background: #8d6a3d; }
+.cow-scene { position: absolute; inset: 0; }
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 
-.cow-wrap { position: absolute; }
-.cow { position: relative; width: 30px; height: 20px; animation: px-chew 2.4s ease-in-out infinite; }
-.cow-body   { position: absolute; left: 0;  top: 4px;  width: 22px; height: 12px; box-shadow: 0 0 0 2px #3a2a1c; }
-.cow-spot   { position: absolute; }
-.cow-spot-1 { left: 4px;  top: 6px;  width: 7px; height: 5px; }
-.cow-spot-2 { left: 14px; top: 10px; width: 5px; height: 4px; }
-.cow-head   { position: absolute; left: 20px; top: 6px; width: 9px; height: 8px; box-shadow: 0 0 0 2px #3a2a1c; }
-.cow-snout  { position: absolute; left: 26px; top: 10px; width: 4px; height: 4px; background: #f0b8b8; }
-.cow-leg    { position: absolute; top: 16px; width: 3px; height: 4px; }
-.cow-leg-l { left: 2px; }
-.cow-leg-r { left: 15px; }
+.cow { position: absolute; animation: px-chew 2.4s ease-in-out infinite; }
 
-.trough { position: absolute; left: 110px; bottom: 40px; width: 30px; height: 8px; background: #8d6a3d; box-shadow: 0 0 0 2px #3a2a1c; background-image: repeating-linear-gradient(90deg, #8fae5c 0 3px, transparent 3px 6px); }
-.fence-posts { position: absolute; left: 0; right: 0; bottom: 6px; height: 26px; background-image: repeating-linear-gradient(90deg, #a97b4a 0 5px, transparent 5px 26px); }
-.fence-rail { position: absolute; left: 0; right: 0; height: 4px; background: #8d6a3d; }
-.fence-rail-top { bottom: 26px; }
-.fence-rail-mid { bottom: 14px; }
 .milker { position: absolute; left: 44px; bottom: 38px; z-index: 4; }
 </style>

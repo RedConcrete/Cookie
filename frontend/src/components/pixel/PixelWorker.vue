@@ -1,15 +1,15 @@
 <template>
   <div class="pw-root" :style="rootStyle">
-    <div class="pw-hat"   :style="{ background: hat }"></div>
-    <div class="pw-face"  :style="{ background: skin }"></div>
-    <div class="pw-torso" :style="{ background: torso }"></div>
-    <div class="pw-feet"></div>
+    <svg class="pw-body" viewBox="0 0 10 16" width="16" height="26">
+      <rect v-for="(cell, i) in cells" :key="i" :x="cell.x" :y="cell.y" width="1" height="1" :fill="cell.fill" />
+    </svg>
     <div v-if="tool" class="pw-tool" :style="toolStyle"></div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { buildSpriteCells, dots } from './spriteGrid.js'
 
 const props = defineProps({
   // 'work' = per-building work loop (ease-in-out), 'walk' = 2-frame walk cycle (steps)
@@ -22,6 +22,30 @@ const props = defineProps({
   torso:   { type: String, default: '#8a5a34' },
   tool:    { type: Object, default: null },    // { anim, dur, delay, color, top, left, width, height }
 })
+
+// 10x16 pixel grid, side view: cap, head w/ eye, torso, two legs+feet.
+const GRID = [
+  dots(2) + 'h'.repeat(6) + dots(2),
+  dots(2) + 'h'.repeat(6) + dots(2),
+  dots(2) + 's'.repeat(6) + dots(2),
+  dots(2) + 's'.repeat(4) + 'e' + 's' + dots(2),
+  dots(2) + 's'.repeat(6) + dots(2),
+  dots(2) + 's'.repeat(6) + dots(2),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(1) + 't'.repeat(8) + dots(1),
+  dots(2) + 't'.repeat(2) + dots(2) + 't'.repeat(2) + dots(2),
+  dots(2) + 't'.repeat(2) + dots(2) + 't'.repeat(2) + dots(2),
+  dots(2) + 'd'.repeat(2) + dots(2) + 'd'.repeat(2) + dots(2),
+  dots(2) + 'd'.repeat(2) + dots(2) + 'd'.repeat(2) + dots(2),
+]
+
+const cells = computed(() => buildSpriteCells(GRID, {
+  h: props.hat, s: props.skin, t: props.torso, e: '#1a120b', d: '#1a120b',
+}))
 
 const rootStyle = computed(() => ({
   width: '16px', height: '26px', position: 'relative',
@@ -40,7 +64,7 @@ const toolStyle = computed(() => {
     width:  t.width  ?? '4px',
     height: t.height ?? '15px',
     background: t.color ?? '#8d6a3d',
-    boxShadow: '0 0 0 2px #3a2a1c',
+    boxShadow: '0 0 0 2px #1a120b',
     transformOrigin: '50% 90%',
     animation: `px-${t.anim} ${t.dur}s ease-in-out ${t.delay ?? 0}s infinite`,
   }
@@ -48,8 +72,5 @@ const toolStyle = computed(() => {
 </script>
 
 <style scoped>
-.pw-hat   { position: absolute; left: 3px; top: 0;  width: 10px; height: 5px; }
-.pw-face  { position: absolute; left: 4px; top: 5px; width: 8px; height: 7px; box-shadow: 0 0 0 2px #3a2a1c; }
-.pw-torso { position: absolute; left: 2px; top: 12px; width: 12px; height: 10px; box-shadow: 0 0 0 2px #3a2a1c; }
-.pw-feet  { position: absolute; left: 2px; top: 22px; width: 12px; height: 4px; background: #3a2a1c; }
+.pw-body { position: absolute; left: 0; top: 0; display: block; shape-rendering: crispEdges; }
 </style>

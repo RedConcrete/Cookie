@@ -1,48 +1,20 @@
 <template>
-  <div class="market-scene">
-    <div v-for="(s, i) in stands" :key="i" class="stand" :style="{ left: s.left + 'px' }">
-      <div class="awning" :style="{ backgroundImage: `repeating-linear-gradient(90deg, ${s.color} 0 8px, #fffaf0 8px 16px)` }"></div>
-      <div class="post post-l"></div>
-      <div class="post post-r"></div>
-      <div class="counter"></div>
-      <div class="crate"></div>
-      <div class="jar"></div>
-    </div>
-    <div class="front-counter"></div>
+  <div >
+    <img class="scene-bg" :src="bgSrc" alt="" />
     <div class="patrol">
       <TravelingWorker travel-anim="patrol" :travel-dur="5" hat="#e05a4a" torso="#4a3f7a" />
     </div>
-    <div class="coin"></div>
   </div>
 </template>
 
 <script setup>
 import TravelingWorker from './TravelingWorker.vue'
+import bgSrc from '../../assets/buildings/markt.svg'
 
 defineProps({ workers: { type: Number, default: 0 } })
-
-const stands = [
-  { left: 8,   color: '#e05a4a' },
-  { left: 88,  color: '#5aa0e0' },
-  { left: 168, color: '#8fae5c' },
-]
 </script>
 
 <style scoped>
-.market-scene {
-  position: absolute; inset: 0;
-  background: #cfa972;
-  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.08) 0 8px, transparent 8px 16px);
-}
-.stand   { position: absolute; top: 0; width: 66px; }
-.awning  { position: absolute; top: 14px; left: 0; width: 66px; height: 12px; border-bottom: 2px solid #3a2a1c; }
-.post    { position: absolute; top: 26px; width: 4px; height: 44px; background: #8d6a3d; }
-.post-l  { left: 2px; }
-.post-r  { left: 60px; }
-.counter { position: absolute; top: 60px; left: 0; width: 66px; height: 10px; background: #a97b4a; box-shadow: 0 0 0 2px #3a2a1c; }
-.crate   { position: absolute; top: 44px; left: 9px; width: 20px; height: 16px; background: #a97b4a; box-shadow: 0 0 0 2px #3a2a1c; background-image: linear-gradient(45deg, transparent 44%, #6b4f2a 44% 56%, transparent 56%); }
-.jar     { position: absolute; top: 46px; left: 40px; width: 8px; height: 14px; background: #cfe6f5; box-shadow: 0 0 0 2px #3a2a1c; }
-.front-counter { position: absolute; left: 0; right: 0; bottom: 0; height: 28px; background: #b98f57; background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 10px, transparent 10px 20px); }
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .patrol { position: absolute; left: 14px; bottom: 2px; z-index: 3; }
-.coin { position: absolute; right: 10px; bottom: 6px; width: 14px; height: 14px; background: #e8b93c; box-shadow: 0 0 0 2px #b48b1e; }
 </style>

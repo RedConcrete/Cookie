@@ -27,7 +27,7 @@
             <div v-if="b.level > 0" class="bs-level">LEVEL {{ b.level }}</div>
           </div>
           <div class="bs-row-action">
-            <template v-if="!b.canUpgrade">
+            <template v-if="b.level > 0 && !b.canUpgrade">
               <div class="bs-owned-badge">&#10003; GEBAUT</div>
             </template>
             <template v-else>
