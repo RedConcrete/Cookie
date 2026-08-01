@@ -9,7 +9,7 @@
 
       <div class="bs-notice" v-if="notice" :class="{ error: noticeError }">{{ notice }}</div>
 
-      <div class="bs-list">
+      <div class="bs-list px-scroll">
         <div
           v-for="b in buildings" :key="b.id"
           class="bs-row"
@@ -28,7 +28,7 @@
           </div>
           <div class="bs-row-action">
             <template v-if="b.level > 0 && !b.canUpgrade">
-              <div class="bs-owned-badge">&#10003; GEBAUT</div>
+              <div class="bs-owned-badge"><PixelIcon name="check" :size="10" style="vertical-align:-1px;margin-right:3px" />GEBAUT</div>
             </template>
             <template v-else>
               <div class="bs-cost">{{ fmtK(b.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" /></div>
@@ -57,10 +57,12 @@ import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO } from './buildings/buildingInfo.js'
+import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
+const audio = useAudio()
 
 const buying      = ref(null)
 const notice      = ref('')
@@ -96,6 +98,7 @@ async function buy(buildingId) {
 }
 
 onMounted(async () => {
+  audio.playBookOpen()
   if (!playerStore.ownedBuildings.length) await playerStore.loadBuildings()
 })
 </script>

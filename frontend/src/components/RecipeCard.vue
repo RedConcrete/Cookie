@@ -22,7 +22,7 @@
     </div>
 
     <!-- ── Right: selected recipe ─────────────────────── -->
-    <div class="rc-right">
+    <div class="rc-right px-scroll">
       <button class="px-close rc-close" @click="emit('close')">&times;</button>
 
       <template v-if="selected">
@@ -191,7 +191,7 @@ async function claim() {
   try {
     const updated = await bakeClaim(playerStore.steamId)
     playerStore.updateFromDto(updated)
-    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#ef9f27' })
+    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#ef9f27', icon: 'cookie' })
     await bakeStore.poll()
     showFeedback(`+${earned} Cookies!`, 'ok')
   } catch (e) { showFeedback(e.message, 'err') }
@@ -215,7 +215,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 </script>
 
 <style scoped>
-.rc-inner { display: flex; width: 100%; height: 100%; font-family: 'Pixelify Sans', system-ui, sans-serif; }
+.rc-inner { display: flex; width: 100%; height: 100%; font-family: 'Silkscreen', monospace; }
 
 .rc-left {
   width: 260px; flex-shrink: 0; background: var(--px-cream3);

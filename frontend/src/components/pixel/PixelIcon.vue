@@ -26,10 +26,16 @@ import lager  from '../../assets/icons/lager.svg'
 import medal  from '../../assets/icons/medal.svg'
 import krone  from '../../assets/icons/krone.svg'
 import stern  from '../../assets/icons/stern.svg'
+import upgrade from '../../assets/icons/upgrade.svg'
+import check   from '../../assets/icons/check.svg'
+import music   from '../../assets/icons/music.svg'
+import sound   from '../../assets/icons/sound.svg'
+import mute    from '../../assets/icons/mute.svg'
 
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
+  upgrade, check, music, sound, mute,
 }
 
 defineProps({

@@ -30,7 +30,7 @@
 
         <!-- Worker assignment list -->
         <div class="rh-section-label">EINWOHNER-ZUWEISUNG</div>
-        <div class="rh-assign-list">
+        <div class="rh-assign-list px-scroll">
           <div v-for="b in assignedBuildings" :key="b.id" class="rh-assign-row">
             <PixelIcon :name="b.icon" :size="16" />
             <div class="rh-assign-name">{{ b.title }}</div>
@@ -67,14 +67,18 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO } from './buildings/buildingInfo.js'
+import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 
 const upgrading   = ref(false)
 const notice      = ref('')

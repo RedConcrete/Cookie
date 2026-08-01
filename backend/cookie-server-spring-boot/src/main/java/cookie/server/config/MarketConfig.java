@@ -6,26 +6,16 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Konfiguration für die Marktpreisberechnung.
  *
- * Formel für Handelseinfluss: p_neu = p_alt ± (amount × totalResourceAmount) / tradeDivisor
- * Formel für Zufallsschwankung: P = p ± (random × totalResourceAmount) / randomDivisor
+ * Preismodell: AMM (constant product, wie Uniswap). Jede Ressource ist ein Pool aus
+ * Ressourcen-Reserve (Lagerbestand) gegen eine virtuelle Cookie-Reserve, beide multipliziert
+ * ergeben die Konstante K = initialStock² × initialPrice. Preis = K / stock, leitet sich also
+ * immer direkt aus dem aktuellen Bestand ab -- kein separater Preisdeckel/-boden noetig.
+ * Handel bewegt den Stock direkt; der Zufalls-Tick bewegt den Stock um kleine Phantom-Betraege
+ * (siehe stockFluctuationRatio), nicht den Preis selbst.
  */
 @Configuration
 @ConfigurationProperties(prefix = "market")
 public class MarketConfig {
-
-    /**
-     * Divisor für den Handelseinfluss auf den Preis.
-     * Je höher der Wert, desto geringer der Einfluss von Trades.
-     * Standard: 10
-     */
-    private double tradeDivisor = 10.0;
-
-    /**
-     * Divisor für die zufällige Preisschwankung.
-     * Je höher der Wert, desto geringer die Zufallsschwankungen.
-     * Standard: 100
-     */
-    private double randomDivisor = 100.0;
 
     /**
      * Intervall in Millisekunden für die zufällige Preisanpassung.
@@ -34,30 +24,19 @@ public class MarketConfig {
     private int updateIntervalMs = 2000;
 
     /**
-     * Minimaler Preis für alle Ressourcen (verhindert negative Preise).
+     * Absolute Notbremse: minimaler Preis für alle Ressourcen (verhindert negative/Null-Preise
+     * durch Rundungsfehler). Kein Gameplay-Deckel, nur numerische Sicherheit.
      * Standard: 0.01
      */
     private double minPrice = 0.01;
 
     /**
-     * Maximaler Preis für alle Ressourcen.
-     * Standard: 10000.0
+     * Anteil des Ausgangsbestands, der beim Zufalls-Tick maximal als Phantom-Kauf/-Verkauf
+     * zwischen Markt und Pool bewegt wird (z.B. 0.02 = bis zu 2 % des Ausgangsbestands pro Tick).
+     * Simuliert Hintergrund-Marktaktivitaet ohne echten Spieler dahinter.
+     * Standard: 0.02
      */
-    private double maxPrice = 10000.0;
-
-    /**
-     * Multiplikator für den Handelseinfluss.
-     * Höhere Werte = stärkerer Preiseinfluss durch Trades.
-     * Standard: 1.0
-     */
-    private double tradeImpactMultiplier = 1.0;
-
-    /**
-     * Multiplikator für die Zufallsschwankung.
-     * Höhere Werte = stärkere zufällige Preisbewegungen.
-     * Standard: 1.0
-     */
-    private double randomImpactMultiplier = 1.0;
+    private double stockFluctuationRatio = 0.02;
 
     /**
      * Anteil des Verkaufserlöses, der als Gebühr vernichtet wird.
@@ -127,22 +106,6 @@ public class MarketConfig {
 
     // Getters and Setters
 
-    public double getTradeDivisor() {
-        return tradeDivisor;
-    }
-
-    public void setTradeDivisor(double tradeDivisor) {
-        this.tradeDivisor = tradeDivisor;
-    }
-
-    public double getRandomDivisor() {
-        return randomDivisor;
-    }
-
-    public void setRandomDivisor(double randomDivisor) {
-        this.randomDivisor = randomDivisor;
-    }
-
     public int getUpdateIntervalMs() {
         return updateIntervalMs;
     }
@@ -159,28 +122,12 @@ public class MarketConfig {
         this.minPrice = minPrice;
     }
 
-    public double getMaxPrice() {
-        return maxPrice;
+    public double getStockFluctuationRatio() {
+        return stockFluctuationRatio;
     }
 
-    public void setMaxPrice(double maxPrice) {
-        this.maxPrice = maxPrice;
-    }
-
-    public double getTradeImpactMultiplier() {
-        return tradeImpactMultiplier;
-    }
-
-    public void setTradeImpactMultiplier(double tradeImpactMultiplier) {
-        this.tradeImpactMultiplier = tradeImpactMultiplier;
-    }
-
-    public double getRandomImpactMultiplier() {
-        return randomImpactMultiplier;
-    }
-
-    public void setRandomImpactMultiplier(double randomImpactMultiplier) {
-        this.randomImpactMultiplier = randomImpactMultiplier;
+    public void setStockFluctuationRatio(double stockFluctuationRatio) {
+        this.stockFluctuationRatio = stockFluctuationRatio;
     }
 
     public double getSellFeeRate() {

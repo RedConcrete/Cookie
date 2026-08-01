@@ -1,22 +1,10 @@
 <template>
   <div class="chart-root">
     <div class="chart-toolbar">
-      <div class="chart-toggles">
-        <button
-          v-for="r in RESOURCES"
-          :key="r"
-          class="toggle-btn"
-          :class="{ inactive: !visible[r] }"
-          :style="{ '--dot': COLORS[r] }"
-          @click="toggle(r)"
-        >
-          <span class="dot"></span>{{ LABELS[r] }}
-        </button>
-      </div>
       <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" title="% Änderung">%</button>
-      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false }" title="Zoom zurücksetzen">⊙</button>
+      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" title="Zoom zurücksetzen">RESET</button>
     </div>
-    <div class="chart-wrap">
+    <div class="chart-wrap" @mouseleave="onChartLeave">
       <canvas ref="canvasRef"></canvas>
     </div>
   </div>
@@ -43,6 +31,11 @@ const pctMode     = ref(false)
 let chart         = null
 let fullHistory   = []   // always sorted oldest→newest
 let userHasMoved  = false
+
+function onChartLeave() {
+  emit('hover-resource', null)
+  emit('hover-point', null)
+}
 
 const RESOURCES = ['SUGAR', 'FLOUR', 'EGGS', 'BUTTER', 'CHOCOLATE', 'MILK']
 const PRICE_KEY = {
@@ -100,16 +93,30 @@ function setXRange(minMs, maxMs) {
 }
 
 
+// Nur die Punkte im aktuell sichtbaren (gezoomten/verschobenen) X-Bereich —
+// sonst bleibt die Y-Achse am Allzeit-Hoch haengen und man sieht beim Reinzoomen nur Striche.
+function visibleHistory() {
+  const xMin = chart?.options?.scales?.x?.min
+  const xMax = chart?.options?.scales?.x?.max
+  if (xMin == null || xMax == null) return fullHistory
+  const windowed = fullHistory.filter(m => {
+    const t = new Date(m.date).getTime()
+    return t >= xMin && t <= xMax
+  })
+  return windowed.length ? windowed : fullHistory
+}
+
 function computeYRange() {
   const visibleResources = RESOURCES.filter(r => visible[r])
   if (!visibleResources.length || !fullHistory.length) return null
+  const source = visibleHistory()
 
   let min = Infinity, max = -Infinity
 
   if (pctMode.value) {
     for (const r of visibleResources) {
       const key = PRICE_KEY[r]
-      const raw = fullHistory.map(m => m[key] ?? 0)
+      const raw = source.map(m => m[key] ?? 0)
       const base = raw.find(v => v > 0) ?? 1
       for (const v of raw) {
         const pct = ((v - base) / base) * 100
@@ -118,7 +125,7 @@ function computeYRange() {
       }
     }
   } else {
-    for (const entry of fullHistory) {
+    for (const entry of source) {
       for (const r of visibleResources) {
         const v = entry[PRICE_KEY[r]] ?? 0
         if (v > 0) { if (v < min) min = v; if (v > max) max = v }
@@ -127,8 +134,10 @@ function computeYRange() {
   }
 
   if (!isFinite(min)) return null
-  const pad = (max - min) * 0.08 || Math.abs(max) * 0.05 || 0.1
-  return { min: pctMode.value ? min - pad : Math.max(0, min - pad), max: max + pad }
+  // Oben immer +10% Puffer über dem sichtbaren Maximum, damit Linien nicht am Rand kleben.
+  const topPad = Math.abs(max) * 0.1 || 0.1
+  const botPad = (max - min) * 0.08 || Math.abs(max) * 0.05 || 0.1
+  return { min: pctMode.value ? min - botPad : Math.max(0, min - botPad), max: max + topPad }
 }
 
 function applyYRange() {
@@ -180,10 +189,10 @@ function initChart() {
 
       ctx.save()
       ctx.font = 'bold 10px monospace'
-      ctx.textAlign = 'left'
+      ctx.textAlign = 'right'
       for (const { color, label, x, y } of items) {
         ctx.fillStyle = color
-        ctx.fillText(label, x + 6, Math.min(y + 4, yScale.bottom - 2))
+        ctx.fillText(label, x - 6, Math.min(y + 4, yScale.bottom - 2))
       }
       ctx.restore()
     },
@@ -226,13 +235,13 @@ function initChart() {
           pan: {
             enabled: true,
             mode: 'x',
-            onPanComplete: () => { userHasMoved = true },
+            onPanComplete: () => { userHasMoved = true; applyYRange(); chart.update('none') },
           },
           zoom: {
             wheel: { enabled: true },
             pinch: { enabled: true },
             mode: 'x',
-            onZoomComplete: () => { userHasMoved = true },
+            onZoomComplete: () => { userHasMoved = true; applyYRange(); chart.update('none') },
           },
         },
       },
@@ -251,6 +260,7 @@ function initChart() {
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
+          position: 'right',
           ticks: { color: '#999', maxTicksLimit: 6 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
@@ -273,6 +283,7 @@ watch(() => marketStore.history, (incoming) => {
     const newMax = latestMs()
     const viewWidth = chart.scales.x.max - chart.scales.x.min
     setXRange(newMax - viewWidth, newMax)
+    applyYRange()
     chart.update('none')
   }
 })
@@ -302,6 +313,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => chart?.destroy())
+
+defineExpose({ toggle, visible })
 </script>
 
 <style scoped>
@@ -316,54 +329,28 @@ onUnmounted(() => chart?.destroy())
 .chart-toolbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
 
-.chart-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex: 1;
-}
-
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface2);
-  color: var(--text);
-  font-size: 12px;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.toggle-btn.inactive { opacity: 0.35; }
-.toggle-btn:hover    { opacity: 1; }
-
-.dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--dot);
-  flex-shrink: 0;
-}
-
 .pct-btn {
-  padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface2);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-family: 'Silkscreen', monospace;
+  padding: 5px 10px;
+  border: 3px solid var(--px-ink);
+  color: var(--px-cream);
+  background: var(--px-wood3);
+  box-shadow: inset -2px -2px 0 #4a3419, inset 2px 2px 0 #8e6c3c;
+  font-size: 11px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.pct-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pct-btn:hover { filter: brightness(1.08); }
+.pct-btn.active {
+  background: var(--px-orange);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt);
+}
 
 .chart-wrap {
   flex: 1;

@@ -14,7 +14,7 @@ const TOTAL_DURATION = RISE_DURATION + HOLD_DURATION + FADE_DURATION
 const RISE_PX        = 135
 const STACK_STEP     = 0
 
-export function spawnFarmNumber(value, x, y, { crit = false, color = null } = {}) {
+export function spawnFarmNumber(value, x, y, { crit = false, color = null, icon = null } = {}) {
   const id    = nextId++
   const c     = crit ? '#E24B4A' : (color ?? COLORS[Math.floor(Math.random() * COLORS.length)])
   const size  = crit ? 24 : SIZES[Math.floor(Math.random() * SIZES.length)]
@@ -35,6 +35,7 @@ export function spawnFarmNumber(value, x, y, { crit = false, color = null } = {}
   numbers.value.push({
     id, key,
     label: '+' + (Number.isInteger(value) ? value : Number(value).toFixed(1)),
+    icon,
     startX: x, restX,
     startY: y, restY,
     rotate,

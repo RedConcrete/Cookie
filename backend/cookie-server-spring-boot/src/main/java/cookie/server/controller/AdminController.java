@@ -8,6 +8,7 @@ import cookie.server.repository.BakeJobRepository;
 import cookie.server.repository.PlayerBuildingRepository;
 import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
+import cookie.server.service.MarketService;
 import cookie.server.service.SeasonService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +28,14 @@ public class AdminController {
     private final PlayerUpgradeRepository upgradeRepository;
     private final PlayerBuildingRepository buildingRepository;
     private final BakeJobRepository bakeJobRepository;
+    private final MarketService marketService;
 
     public AdminController(AppConfig appConfig, PlayerConfig playerConfig,
                            SeasonService seasonService, UserRepository userRepository,
                            PlayerUpgradeRepository upgradeRepository,
                            PlayerBuildingRepository buildingRepository,
-                           BakeJobRepository bakeJobRepository) {
+                           BakeJobRepository bakeJobRepository,
+                           MarketService marketService) {
         this.appConfig = appConfig;
         this.playerConfig = playerConfig;
         this.seasonService = seasonService;
@@ -40,6 +43,7 @@ public class AdminController {
         this.upgradeRepository = upgradeRepository;
         this.buildingRepository = buildingRepository;
         this.bakeJobRepository = bakeJobRepository;
+        this.marketService = marketService;
     }
 
     private boolean badToken(String token) {
@@ -87,5 +91,14 @@ public class AdminController {
         bakeJobRepository.deleteAll(bakeJobRepository.findAllByUserIdAndClaimedFalse(userId));
 
         return ResponseEntity.ok(Map.of("ok", true, "cookies", startCookies));
+    }
+
+    /** Setzt den Markt (Stock + Preise) auf die Ausgangswerte zurueck. In dev mode ohne Token. */
+    @PostMapping("/market/reset")
+    public ResponseEntity<?> resetMarket(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        marketService.resetMarket();
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 }

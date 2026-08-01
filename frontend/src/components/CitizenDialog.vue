@@ -72,13 +72,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
+import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 
 const buying     = ref(false)
 const notice     = ref('')

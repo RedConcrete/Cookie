@@ -9,13 +9,13 @@
       <div class="nw-layout">
 
         <!-- ── Links: Breakdown ───────────────────────── -->
-        <div class="nw-left">
+        <div class="nw-left px-scroll">
 
           <div class="nw-section-label">Aufschlüsselung</div>
 
           <div v-if="nw" class="breakdown">
             <div class="bk-row">
-              <span class="bk-icon">🍪</span>
+              <PixelIcon name="cookie" :size="16" class="bk-icon" />
               <span class="bk-label">Cookies</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#ef9f27' }"></div>
@@ -24,7 +24,7 @@
             </div>
 
             <div class="bk-row">
-              <span class="bk-icon">🌾</span>
+              <PixelIcon name="mehl" :size="16" class="bk-icon" />
               <span class="bk-label">Ressourcen</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#4a9c40' }"></div>
@@ -33,7 +33,7 @@
             </div>
 
             <div class="bk-row">
-              <span class="bk-icon">⬆</span>
+              <PixelIcon name="upgrade" :size="16" class="bk-icon" />
               <span class="bk-label">Upgrades</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#7F77DD' }"></div>
@@ -98,11 +98,14 @@ import 'chartjs-adapter-date-fns'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { getNetWorth, getNetWorthHistory } from '../services/api.js'
 import { usePlayerStore } from '../stores/player.js'
+import { useAudio } from '../composables/useAudio.js'
+import PixelIcon from './pixel/PixelIcon.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
 const props = defineProps({ steamId: { type: String, required: true } })
 const emit  = defineEmits(['close'])
+const audio = useAudio()
 
 const playerStore = usePlayerStore()
 
@@ -321,6 +324,7 @@ async function refreshHistory() {
 }
 
 onMounted(async () => {
+  audio.playBookOpen()
   const [nwData, history] = await Promise.all([
     getNetWorth(props.steamId).catch(() => null),
     getNetWorthHistory(props.steamId).catch(() => []),
@@ -362,7 +366,7 @@ onUnmounted(() => {
 
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .bk-row { display: flex; align-items: center; gap: 8px; }
-.bk-icon  { font-size: 16px; flex-shrink: 0; }
+.bk-icon  { flex-shrink: 0; }
 .bk-label { width: 80px; flex-shrink: 0; font-size: 13px; color: var(--px-ink-txt); }
 .bk-bar-wrap {
   flex: 1; height: 10px; background: var(--px-ink);

@@ -11,8 +11,14 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import MarketView from '../views/MarketView.vue'
+import { useAudio } from '../composables/useAudio.js'
+
 const emit = defineEmits(['close'])
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 </script>
 
 <style scoped>

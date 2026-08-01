@@ -4,7 +4,7 @@
 
     <template v-else-if="data">
       <div class="pp-header">
-        <div class="pp-avatar"><span>&#128100;</span></div>
+        <div class="pp-avatar"><PixelIcon name="einw" :size="24" /></div>
         <div class="pp-title">
           <div class="pp-name">{{ data.steamId }}</div>
           <div class="pp-rank">Platz #{{ data.rank }} &middot; Prestige {{ data.prestigeLevel }}</div>
@@ -103,7 +103,7 @@ onMounted(load)
 .pp-loading { color: var(--px-tan-ink); text-align: center; padding: 24px; }
 
 .pp-header { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 3px solid var(--px-tan); }
-.pp-avatar { width: 56px; height: 56px; background: var(--px-wood3); border: 3px solid var(--px-ink); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+.pp-avatar { width: 56px; height: 56px; background: var(--px-wood3); border: 3px solid var(--px-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .pp-title { flex: 1; }
 .pp-name { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); word-break: break-all; }
 .pp-rank { font-size: 13px; color: var(--px-tan-ink); margin-top: 4px; }

@@ -1,6 +1,6 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="ud-box px-panel">
+    <div class="ud-box px-panel px-scroll">
       <div class="px-titlebar">
         <span>UPGRADE-SHOP</span>
         <button class="px-close" @click="emit('close')">&times;</button>
@@ -11,8 +11,14 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import UpgradeShopView from './UpgradeShopView.vue'
+import { useAudio } from '../composables/useAudio.js'
+
 const emit = defineEmits(['close'])
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 </script>
 
 <style scoped>

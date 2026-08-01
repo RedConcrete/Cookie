@@ -13,36 +13,33 @@
     :style="{ opacity: state.armed || state.pressing ? 1 : 0, borderColor: blocked ? '#e05a4a' : (state.armed ? '#a9ff88' : '#e8b93c'), background: blocked ? 'rgba(224,90,74,.22)' : 'transparent' }">
   </div>
 
-    <!-- Standard PixelInfoPopover tooltip (used for all buildings) -->
-    <PixelInfoPopover
-      :rows="rows" :title="title" :icon="icon" :note="note"
-      :side="side" :width="popoverWidth" :z="70" bar-placement="edge"
-      @enter="emit('harvest-start')" @leave="emit('harvest-stop')"
-    >
-      <!-- bf-scene-custom: overflow visible so custom slot content (e.g. nested tooltips) can extend outside -->
-      <div class="bf-scene bf-scene-custom" :style="{ height: sceneHeight + 'px' }">
-        <slot />
-        <div class="bf-overlay">
-          <div class="bf-overlay-left">
-            <PixelIcon :name="icon" :size="12" />
-            <span class="bf-name">{{ title }}</span>
-          </div>
-          <div class="bf-overlay-right">
-            <span class="bf-rate">{{ rate }}</span>
-            <span v-if="workers !== null" class="bf-workers">
-              <PixelIcon name="einw" :size="12" />{{ workers }}
-            </span>
-          </div>
-        </div>
+    <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
+    <div class="bf-overlay">
+      <div class="bf-overlay-left">
+        <PixelIcon :name="icon" :size="12" />
+        <span class="bf-name">{{ title }}</span>
       </div>
-    </PixelInfoPopover>
+      <div class="bf-overlay-right">
+        <!--<span class="bf-rate">{{ rate }}</span>-->
+        <span v-if="workers !== null" class="bf-workers">
+          <PixelIcon name="einw" :size="12" />{{ workers }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Hover over the scene = harvest (no tooltip; @open still handles click) -->
+    <div
+      class="bf-scene bf-scene-custom" :style="{ height: sceneHeight + 'px' }"
+      @mouseenter="emit('harvest-start')" @mouseleave="emit('harvest-stop')"
+    >
+      <slot />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import PixelIcon from '../pixel/PixelIcon.vue'
-import PixelInfoPopover from '../pixel/PixelInfoPopover.vue'
 import { useHoldDrag } from '../../composables/useHoldDrag.js'
 
 const props = defineProps({
@@ -58,16 +55,16 @@ const props = defineProps({
   sceneHeight:{ type: Number, default: 120 },
   dropOk:     { type: Function, required: true },
   zoom:       { type: Number, default: 1 },
+  offset:     { type: Object, default: () => ({ x: 0, y: 0 }) },  // last saved drag offset
 })
 const emit = defineEmits(['open', 'harvest-start', 'harvest-stop', 'moved'])
-
-const popoverWidth = computed(() => Math.max(250, props.base.w + 70))
 
 const { state, onPointerDown } = useHoldDrag(
   (pos) => props.dropOk(pos),
   () => emit('open'),
   (finalPos) => emit('moved', finalPos),
   () => props.zoom,
+  props.offset,
 )
 
 const blocked = computed(() => state.armed && !props.dropOk(state.pos))
@@ -85,7 +82,7 @@ const rootStyle = computed(() => ({
 </script>
 
 <style scoped>
-.bf-root { user-select: none; }
+.bf-root { user-select: none; display: flex; flex-direction: column; }
 
 .bf-scene {
   position: relative;
@@ -94,16 +91,12 @@ const rootStyle = computed(() => ({
 .bf-scene-custom { overflow: visible; }
 
 .bf-overlay {
-  position: absolute; left: 0; right: 0; bottom: calc(100% + 4px);
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 4px 6px;
   background: rgba(16,11,7,.62);
   z-index: 5;
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s;
 }
-.bf-root:hover .bf-overlay { opacity: 1; }
 .bf-overlay-left  { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .bf-overlay-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
 .bf-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff6e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -52,7 +52,7 @@
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
         <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
         <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
-          <span class="hud-avatar-icon">&#128100;</span>
+          <PixelIcon name="einw" :size="20" />
         </button>
       </div>
     </div>
@@ -71,24 +71,25 @@
         :rows="buildingRows(b)" :note="b.note" :side="b.side" :scene-height="SCENE_H[b.id]"
         :drop-ok="(pos) => dropOk(b.id, pos)"
         :zoom="zoom"
+        :offset="buildingOffsets[b.id]"
         :class="{ 'building-idle': playerStore.workersIdle && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
         @harvest-start="b.resource && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
         @moved="onBuildingMoved(b.id, $event)"
       >
-        <component :is="b.comp" :workers="b.workers" />
+        <component
+          :is="b.comp" :workers="b.workers"
+          v-bind="b.id === 'rathaus' ? { idleCount: playerStore.idleCitizens, idleWarn: playerStore.workersIdle } : {}"
+        />
       </BuildingFrame>
 
-      <!-- Dynamic idle wanderers (one per idle citizen, max 5 shown) -->
+      <!-- Dynamic idle wanderers (one per idle citizen, max 5 shown) — follow the Rathaus when it's moved -->
       <template v-for="(w, i) in idleWanderers" :key="i">
         <div class="idle-wanderer" :style="w.style">
           <TravelingWorker :travel-anim="w.anim" :travel-dur="w.dur" :travel-delay="w.delay" :leg-dur="w.legDur" :hat="w.hat" :skin="w.skin" :torso="w.torso" />
         </div>
       </template>
-      <div v-if="playerStore.idleCitizens > 0" class="idle-label" :class="{ 'idle-label-warn': playerStore.workersIdle }">
-        {{ playerStore.idleCitizens }} IDLE
-      </div>
 
       <FarmNumbers />
     </div>
@@ -134,7 +135,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, getUpgrades, trade, adminResetPlayer } from '../services/api.js'
+import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useHotkeys, keyLabelFromEvent } from '../composables/useHotkeys.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
@@ -143,7 +144,7 @@ import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
 import { BASE, SCENE_H, dropOk as dropOkLayout } from '../components/buildings/farmLayout.js'
-import { BUILDING_INFO, RESOURCE_LABEL } from '../components/buildings/buildingInfo.js'
+import { BUILDING_INFO, RESOURCE_LABEL, RESOURCE_ICON } from '../components/buildings/buildingInfo.js'
 
 import SugarPondScene from '../components/buildings/SugarPondScene.vue'
 import OvenScene      from '../components/buildings/OvenScene.vue'
@@ -177,6 +178,7 @@ const bakeStore   = useBakeStore()
 const { state: hotkeyState } = useHotkeys()
 
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
+const sellFeeRate = ref(0.08)
 
 const dialog = ref(null)
 const detailBuilding = ref(null)
@@ -185,10 +187,19 @@ const canvasEl = ref(null)
 const upgrades = ref([])
 
 // Track each building's current drag offset for collision detection + number spawning
+// Persisted per player so moved buildings stay put across reloads.
+const OFFSETS_KEY = `cookieBuildingOffsets_${playerStore.steamId}`
+function loadOffsets() {
+  try { return JSON.parse(localStorage.getItem(OFFSETS_KEY)) ?? {} } catch { return {} }
+}
+const savedOffsets = loadOffsets()
 const buildingOffsets = reactive(
-  Object.fromEntries(Object.keys(BASE).map(id => [id, { x: 0, y: 0 }]))
+  Object.fromEntries(Object.keys(BASE).map(id => [id, savedOffsets[id] ?? { x: 0, y: 0 }]))
 )
-function onBuildingMoved(id, offset) { buildingOffsets[id] = offset }
+function onBuildingMoved(id, offset) {
+  buildingOffsets[id] = offset
+  localStorage.setItem(OFFSETS_KEY, JSON.stringify(buildingOffsets))
+}
 
 const SCENE_COMP = {
   pond: SugarPondScene, ofen: OvenScene, rathaus: TownHallScene, markt: MarketScene,
@@ -231,16 +242,24 @@ function buildingRows(b) {
 const totalWorkers = computed(() => playerStore.assignedCitizens)
 
 // Idle wanderers — up to 5, dynamic based on idle citizens
+// Idle citizens gather in front of (below) the Rathaus, wherever it currently is —
+// positions are offsets relative to BASE.rathaus so they follow the building when it's moved.
 const WANDERER_CONFIGS = [
-  { anim:'wander',  dur:9,  delay:0,   legDur:0.45, hat:'#5aa0e0', skin:'#f0c9a0', torso:'#4a3f7a', style:{left:'210px',top:'404px'} },
-  { anim:'wander2', dur:11, delay:1.5, legDur:0.55, hat:'#b83232', skin:'#e8b489', torso:'#6b4f2a', style:{left:'700px',top:'426px'} },
-  { anim:'wander',  dur:13, delay:3,   legDur:0.6,  hat:'#3d6b25', skin:'#f0c9a0', torso:'#8a5a34', style:{left:'420px',top:'430px'} },
-  { anim:'wander2', dur:10, delay:2,   legDur:0.5,  hat:'#8b5a2b', skin:'#e8b489', torso:'#5a3a22', style:{left:'560px',top:'418px'} },
-  { anim:'wander',  dur:8,  delay:4,   legDur:0.4,  hat:'#7a50b0', skin:'#f0c9a0', torso:'#42311f', style:{left:'320px',top:'440px'} },
+  { anim:'wander',  dur:9,  delay:0,   legDur:0.45, hat:'#5aa0e0', skin:'#f0c9a0', torso:'#4a3f7a', dx:40,  dy:150 },
+  { anim:'wander2', dur:11, delay:1.5, legDur:0.55, hat:'#b83232', skin:'#e8b489', torso:'#6b4f2a', dx:100, dy:168 },
+  { anim:'wander',  dur:13, delay:3,   legDur:0.6,  hat:'#3d6b25', skin:'#f0c9a0', torso:'#8a5a34', dx:160, dy:156 },
+  { anim:'wander2', dur:10, delay:2,   legDur:0.5,  hat:'#8b5a2b', skin:'#e8b489', torso:'#5a3a22', dx:90,  dy:180 },
+  { anim:'wander',  dur:8,  delay:4,   legDur:0.4,  hat:'#7a50b0', skin:'#f0c9a0', torso:'#42311f', dx:150, dy:176 },
 ]
-const idleWanderers = computed(() =>
-  WANDERER_CONFIGS.slice(0, Math.min(5, playerStore.idleCitizens))
-)
+const idleWanderers = computed(() => {
+  const rOff  = buildingOffsets.rathaus || { x: 0, y: 0 }
+  const baseX = BASE.rathaus.x + rOff.x
+  const baseY = BASE.rathaus.y + rOff.y
+  return WANDERER_CONFIGS.slice(0, Math.min(5, playerStore.idleCitizens)).map(w => ({
+    ...w,
+    style: { left: (baseX + w.dx) + 'px', top: (baseY + w.dy) + 'px' },
+  }))
+})
 
 const totalResources = computed(() =>
   (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
@@ -362,6 +381,12 @@ async function sellAll() {
 
 function onKeydown(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  if (e.key === 'Escape' && (dialog.value || detailBuilding.value)) {
+    e.preventDefault()
+    dialog.value = null
+    detailBuilding.value = null
+    return
+  }
   const label = keyLabelFromEvent(e)
   const binding = hotkeyState.bindings.find(b => b.key === label)
   if (!binding) return
@@ -389,13 +414,23 @@ const HARVEST_MS = 900
 
 async function doHarvest(buildingId, name) {
   try {
-    const before = playerStore[name.toLowerCase()] ?? 0
+    const beforeRes     = playerStore[name.toLowerCase()] ?? 0
+    const beforeCookies = playerStore.cookies ?? 0
     const updated = await harvestResource(playerStore.steamId, name)
     playerStore.updateFromDto(updated)
-    const gained = (playerStore[name.toLowerCase()] ?? 0) - before
-    if (gained > 0) {
+    const gainedRes     = (playerStore[name.toLowerCase()] ?? 0) - beforeRes
+    const gainedCookies = (playerStore.cookies ?? 0) - beforeCookies
+
+    // Storage full -> overflow gets auto-sold into cookies instead of stored.
+    // Back-compute the harvested amount from the payout so a number still shows.
+    let amount = gainedRes
+    if (amount <= 0 && gainedCookies > 0) {
+      const price = marketStore.priceOf(name)
+      if (price > 0) amount = gainedCookies / (price * (1 - sellFeeRate.value))
+    }
+    if (amount > 0) {
       const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
-      spawnFarmNumber(gained, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60)
+      spawnFarmNumber(amount, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
     }
   } catch {}
 }
@@ -425,13 +460,15 @@ function spawnPassiveNumbers() {
     const off = buildingOffsets[b.id] || { x: 0, y: 0 }
     const base = BASE[b.id]
     if (!base) continue
-    spawnFarmNumber(b.passiveRatePerTick, base.x + off.x + base.w / 2, base.y + off.y + 60)
+    const resource = BUILDING_INFO[b.id]?.resource
+    spawnFarmNumber(b.passiveRatePerTick, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[resource] })
   }
 }
 
 onMounted(() => {
   bakeStore.start(playerStore.steamId)
   loadUpgrades()
+  getConfig().then(cfg => { sellFeeRate.value = cfg.sellFeeRate ?? 0.08 }).catch(() => {})
   upgradeTimer  = setInterval(loadUpgrades, 10000)
   passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
@@ -515,23 +552,9 @@ onUnmounted(() => {
   box-shadow: inset 2px 2px 0 #6d5133; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
-.hud-avatar-icon { font-size: 22px; }
 
 /* ── Idle wanderers ──────────────────────────────────── */
 .idle-wanderer { position: absolute; z-index: 12; }
-.idle-wanderer-a { left: 210px; top: 404px; }
-.idle-wanderer-b { left: 700px; top: 426px; }
-.idle-wanderer-c { left: 420px; top: 430px; }
-.idle-label {
-  position: absolute; left: 64px; top: 404px; z-index: 12;
-  font-family: 'Silkscreen', monospace; font-size: 9px; padding: 2px 5px;
-  background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink);
-}
-.idle-label-warn {
-  background: #5a1a1a; color: #ff8888; border-color: #8b3333;
-  animation: idle-blink 1.2s step-end infinite;
-}
-@keyframes idle-blink { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
 
 /* Idle buildings get a subtle desaturated overlay */
 .building-idle { filter: saturate(0.5) brightness(0.85); }

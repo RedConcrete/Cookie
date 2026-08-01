@@ -101,3 +101,8 @@ export const RESOURCE_LABEL = {
   SUGAR: 'Zucker', FLOUR: 'Mehl', EGGS: 'Eier',
   BUTTER: 'Butter', CHOCOLATE: 'Schokolade', MILK: 'Milch',
 }
+
+export const RESOURCE_ICON = {
+  SUGAR: 'zucker', FLOUR: 'mehl', EGGS: 'eier',
+  BUTTER: 'butter', CHOCOLATE: 'schoko', MILK: 'milch',
+}

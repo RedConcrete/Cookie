@@ -36,7 +36,7 @@
           <span>ADMIN &middot; ORDEN VERLEIHEN</span>
           <span class="orden-admin-badge">NUR ADMIN</span>
         </div>
-        <div class="orden-admin-body">
+        <div class="orden-admin-body px-scroll">
           <div>
             <div class="orden-label">SPIELER</div>
             <div class="orden-search">
@@ -83,12 +83,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import { useBadges } from '../composables/useBadges.js'
+import { useAudio } from '../composables/useAudio.js'
 
 const props = defineProps({ steamId: { type: String, default: 'DEV_PLAYER_001' } })
 const emit = defineEmits(['close'])
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 
 const { badges, templates, grant } = useBadges()
 

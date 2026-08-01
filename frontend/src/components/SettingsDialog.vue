@@ -1,6 +1,6 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="sd-box px-panel">
+    <div class="sd-box px-panel px-scroll">
       <div class="px-titlebar">
         <span>EINSTELLUNGEN</span>
         <button class="px-close" @click="emit('close')">&times;</button>
@@ -8,14 +8,14 @@
 
       <div class="sd-body">
         <div class="sd-slider-row">
-          <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value">{{ audio.musicMuted.value ? '🔇' : '🎵' }}</button></div>
+          <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
           <input type="range" min="0" max="1" step="0.01" :value="audio.musicVolume.value"
             @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider" />
           <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
         </div>
 
         <div class="sd-slider-row">
-          <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value">{{ audio.sfxMuted.value ? '🔇' : '🔊' }}</button></div>
+          <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value"><PixelIcon :name="audio.sfxMuted.value ? 'mute' : 'sound'" :size="14" /></button></div>
           <input type="range" min="0" max="1" step="0.01" :value="audio.sfxVolume.value"
             @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider" />
           <span class="sd-slider-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
@@ -54,15 +54,18 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAudio } from '../composables/useAudio.js'
 import { useHotkeys } from '../composables/useHotkeys.js'
+import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const hotkeys = useHotkeys()
 const wageWarning = ref(true)
 const pixelSnap = ref(false)
+
+onMounted(() => audio.playBookOpen())
 </script>
 
 <style scoped>
@@ -71,7 +74,7 @@ const pixelSnap = ref(false)
 
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
 .sd-slider-label { width: 130px; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; }
-.sd-mute { background: none; border: none; cursor: pointer; font-size: 14px; }
+.sd-mute { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; }
 .sd-slider { flex: 1; accent-color: var(--px-orange); }
 .sd-slider-val { width: 40px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 

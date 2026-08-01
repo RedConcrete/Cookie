@@ -62,7 +62,10 @@
               <div class="bd-buildup-name">Stufe {{ level }}</div>
               <div class="bd-buildup-note">{{ level > 0 ? 'Gebäude in Betrieb' : 'Noch nicht gebaut' }}</div>
             </div>
-            <div class="bd-level-badge">{{ level > 0 ? '&#10003;' : '—' }}</div>
+            <div class="bd-level-badge">
+              <PixelIcon v-if="level > 0" name="check" :size="14" />
+              <span v-else>&mdash;</span>
+            </div>
           </div>
           <div class="bd-buildup" v-if="ownedData && ownedData.storageCapBonus">
             <div>
@@ -84,15 +87,19 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { changeWorkers } from '../services/api.js'
+import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 import { RESOURCE_LABEL } from './buildings/buildingInfo.js'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 
 const playerStore = usePlayerStore()
 

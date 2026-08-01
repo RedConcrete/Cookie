@@ -78,7 +78,7 @@ const dynamicSideClass = computed(() => `pip-side-${resolvedSide.value}`)
   border: 4px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 #55402a, 0 6px 0 rgba(0,0,0,.45);
   padding: 12px 14px;
-  font-family: 'Pixelify Sans', system-ui, sans-serif;
+  font-family: 'Silkscreen', monospace;
 }
 
 /* Progress bar bleeds to the panel's outer edges, flush with its top border */
@@ -95,7 +95,7 @@ const dynamicSideClass = computed(() => `pip-side-${resolvedSide.value}`)
 
 .pip-rows { display: flex; flex-direction: column; gap: 5px; }
 .pip-row  { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #d6c6a6; white-space: nowrap; }
-.pip-row span:last-child { font-family: 'Silkscreen', monospace; font-size: 11px; }
+.pip-row span:last-child { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
 
 .pip-note { margin-top: 9px; padding-top: 8px; border-top: 3px solid #4d3a26; font-size: 13px; line-height: 1.5; color: #c8b795; }
 .pip-pin  { margin-top: 8px; font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-green-txt); }

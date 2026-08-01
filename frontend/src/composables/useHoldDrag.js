@@ -9,15 +9,15 @@ const HOLD_MS = 620
  * `dropOk(pos)` decides whether the drop position is valid (bounds / road corridors);
  * an invalid drop snaps back to the last valid position.
  */
-export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1) {
+export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initialPos = { x: 0, y: 0 }) {
   const state = reactive({
-    pos: { x: 0, y: 0 },
+    pos: { ...initialPos },
     pressing: false,
     armed: false,
     progress: 0,
   })
 
-  let lastOk = { x: 0, y: 0 }
+  let lastOk = { ...initialPos }
   let timer = null
   let t0 = 0
   let wasArmed = false

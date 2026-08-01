@@ -61,15 +61,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { buyBuilding } from '../services/api.js'
+import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
+const audio = useAudio()
+
+onMounted(() => audio.playBookOpen())
 
 const upgrading   = ref(false)
 const notice      = ref('')

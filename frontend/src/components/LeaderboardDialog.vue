@@ -1,6 +1,6 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="ld-box px-panel">
+    <div class="ld-box px-panel px-scroll">
       <div class="px-titlebar">
         <span>RANGLISTE</span>
         <button class="px-close" @click="emit('close')">&times;</button>
@@ -17,12 +17,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import LeaderboardView    from './LeaderboardView.vue'
 import PlayerProfileDialog from './PlayerProfileDialog.vue'
+import { useAudio } from '../composables/useAudio.js'
 
 const emit = defineEmits(['close'])
+const audio = useAudio()
 const profileSteamId = ref(null)
+
+onMounted(() => audio.playBookOpen())
 
 function openProfile(steamId) {
   profileSteamId.value = steamId

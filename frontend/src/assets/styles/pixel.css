@@ -1,8 +1,8 @@
 /* pixel.css — chunky pixel-art design system for Cookie
-   4px dark borders, 0px radii, Silkscreen for labels/numbers, Pixelify Sans for body text.
+   4px dark borders, 0px radii, Silkscreen everywhere.
    Ported from the "Cookie Layouts" design (Claude Design handoff). */
 
-@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
 
 :root {
   --px-ink:      #100b07;
@@ -44,7 +44,7 @@
 }
 
 .px-font-title { font-family: 'Silkscreen', monospace; }
-.px-font-body  { font-family: 'Pixelify Sans', system-ui, sans-serif; }
+.px-font-body  { font-family: 'Silkscreen', monospace; }
 
 /* ── Keyframes: worker animations ─────────────────────── */
 @keyframes px-walk    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-2px) } }
@@ -141,10 +141,17 @@
 .px-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--px-brown2) var(--px-cream2);
+  scrollbar-gutter: stable;
 }
-.px-scroll::-webkit-scrollbar { width: 10px; }
-.px-scroll::-webkit-scrollbar-track { background: var(--px-cream2); }
-.px-scroll::-webkit-scrollbar-thumb { background: var(--px-brown2); border: 2px solid var(--px-ink); }
+.px-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+.px-scroll::-webkit-scrollbar-track { background: var(--px-cream2); border-left: 2px solid var(--px-ink); }
+.px-scroll::-webkit-scrollbar-thumb {
+  background: var(--px-brown2);
+  border: 2px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 var(--px-brown), inset 2px 2px 0 var(--px-tan);
+}
+.px-scroll::-webkit-scrollbar-thumb:hover { background: var(--px-tan-hd); }
+.px-scroll::-webkit-scrollbar-corner { background: var(--px-cream2); }
 
 .px-dialog-overlay {
   position: fixed;

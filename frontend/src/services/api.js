@@ -10,7 +10,9 @@ async function request(method, path, body) {
   const res = await fetch(`${BASE_URL}${path}`, options)
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`${method} ${path} → ${res.status}: ${text}`)
+    let message = text
+    try { message = JSON.parse(text).error ?? text } catch { /* not JSON, use raw text */ }
+    throw new Error(message)
   }
   return res.json()
 }

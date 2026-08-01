@@ -2,28 +2,27 @@
   <div class="mv-root">
     <div class="mv-chart-row">
       <div class="mv-legend">
-        <div v-for="r in resources" :key="r.name" class="mv-legend-chip">
+        <button
+          v-for="r in resources" :key="r.name"
+          class="mv-legend-chip"
+          :class="{ inactive: chartRef && chartRef.visible[r.name] === false }"
+          @click="chartRef?.toggle(r.name)"
+        >
           <span class="mv-legend-dot" :style="{ background: COLORS[r.name] }"></span>{{ r.label }}
-        </div>
+          <span class="mv-legend-val">{{ legendValue(r) }}</span>
+        </button>
       </div>
       <div class="mv-chart-box">
         <PriceChart
+          ref="chartRef"
           @hover-resource="hoveredResource = $event"
           @hover-point="hoveredPoint = $event"
           @pct-mode-change="onPctModeChange"
         />
       </div>
-      <div class="mv-hover-bar">
-        <span class="mv-hover-time">{{ hoveredPoint ? fmtTime(hoveredPoint.date) : 'Aktuell' }}</span>
-        <span v-for="res in resources" :key="res.name" class="mv-hover-chip">
-          {{ res.label }}:
-          <template v-if="chartPctMode && chartBases[res.name]">{{ fmtPct((hoveredPoint ?? marketStore.current)?.[res.priceKey], chartBases[res.name]) }}</template>
-          <template v-else>{{ fmt((hoveredPoint ?? marketStore.current)?.[res.priceKey]) }}</template>
-        </span>
-      </div>
     </div>
 
-    <div class="mv-table">
+    <div class="mv-table px-scroll">
       <div class="mv-row mv-head">
         <div></div><div>RESSOURCE</div><div>PREIS</div><div>TREND</div><div>BESTAND</div><div>MENGE</div><div>AKTION</div>
         <div class="mv-col-cost">KOSTEN &darr;</div>
@@ -40,7 +39,13 @@
 
         <div class="mv-qty">
           <button class="mv-qty-btn" @mousedown="startHold(res.name, -1)" @mouseup="stopHold" @mouseleave="stopHold">&minus;</button>
-          <div class="mv-qty-val">{{ amounts[res.name] }}</div>
+          <input
+            class="mv-qty-val mv-qty-input"
+            type="text" inputmode="numeric"
+            :value="amounts[res.name]"
+            @input="onQtyInput(res, $event)"
+            @blur="onQtyBlur(res)"
+          />
           <button class="mv-qty-btn" @mousedown="startHold(res.name, 1)" @mouseup="stopHold" @mouseleave="stopHold">+</button>
         </div>
 
@@ -55,11 +60,6 @@
             <div class="mv-cost-sell">+{{ fmt(netPayout(res)) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
           </div>
         </PixelInfoPopover>
-      </div>
-
-      <div class="mv-footer">
-        <div class="mv-footer-hint">HOVER AUF KOSTEN = AUFSCHLÜSSELUNG</div>
-        <div class="mv-footer-fee">GEBÜHR {{ Math.round(sellFeeRate * 100) }} %</div>
       </div>
     </div>
 
@@ -85,6 +85,7 @@ import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
+const chartRef     = ref(null)
 
 const COLORS = {
   SUGAR: '#e05a4a', FLOUR: '#5aa0e0', EGGS: '#8fae5c',
@@ -106,6 +107,12 @@ const flashSuccess = reactive(Object.fromEntries(
 function onPctModeChange({ active, bases }) {
   chartPctMode.value = active
   chartBases.value   = bases
+}
+
+function legendValue(res) {
+  const point = hoveredPoint.value ?? marketStore.current
+  if (chartPctMode.value && chartBases.value[res.name]) return fmtPct(point?.[res.priceKey], chartBases.value[res.name])
+  return fmt(point?.[res.priceKey])
 }
 
 onMounted(async () => {
@@ -145,6 +152,15 @@ function stopHold() { clearTimeout(holdTimer); clearInterval(holdRepeat); holdTi
 function step(name, delta) { amounts[name] = Math.max(1, (amounts[name] || 1) + delta) }
 onUnmounted(stopHold)
 
+function onQtyInput(res, e) {
+  const digits = e.target.value.replace(/\D/g, '')
+  e.target.value = digits
+  amounts[res.name] = digits === '' ? '' : Number(digits)
+}
+function onQtyBlur(res) {
+  if (!amounts[res.name] || amounts[res.name] < 1) amounts[res.name] = 1
+}
+
 // ── Trade ───────────────────────────────────────────────
 function canBuy(res)    { return amounts[res.name] > 0 && playerStore.cookies >= buyCost(res) }
 function canSell(res)   { return amounts[res.name] > 0 && playerStore[res.key] >= amounts[res.name] }
@@ -155,8 +171,7 @@ function costRows(res) {
   return [
     { k: 'Menge × Preis', v: `${amounts[res.name]} × ${fmt(marketStore.priceOf(res.name))} C`, color: 'w' },
     { k: 'Kaufkosten', v: `−${fmt(buyCost(res))} C`, color: 'o' },
-    { k: `Marktgebühr ${Math.round(sellFeeRate.value * 100)} %`, v: `−${fmt(buyCost(res) * sellFeeRate.value)} C`, color: 'o' },
-    { k: 'Verkauf netto', v: `+${fmt(netPayout(res))} C`, color: 'g' },
+    { k: `Verkauf (−${Math.round(sellFeeRate.value * 100)}% Gebühr)`, v: `+${fmt(netPayout(res))} C`, color: 'g' },
   ]
 }
 
@@ -179,7 +194,6 @@ async function doTrade(res, action) {
 function fmt(v)  { return Number(v ?? 0).toFixed(2) }
 function fmt2(v) { return Number(v ?? 0).toFixed(1) }
 function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` }
-function fmtTime(date) { const d = new Date(date); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}` }
 </script>
 
 <style scoped>
@@ -187,11 +201,14 @@ function fmtTime(date) { const d = new Date(date); return `${d.getHours().toStri
 
 .mv-chart-row { flex: 0 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 4px solid var(--px-ink); }
 .mv-legend { display: flex; gap: 6px; flex-wrap: wrap; }
-.mv-legend-chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--px-cream2); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); }
+.mv-legend-chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--px-cream2); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); cursor: pointer; transition: opacity 0.15s; }
+.mv-legend-chip.inactive { opacity: 0.4; }
+.mv-legend-chip:hover { opacity: 1; }
 .mv-legend-dot { display: inline-block; width: 10px; height: 10px; box-shadow: 0 0 0 2px #3a2a1c; }
+.mv-legend-val { font-size: 12px; letter-spacing: 0.5px; color: var(--px-orange); margin-left: 2px; }
 .mv-chart-box { height: 196px; flex: 0 0 auto; position: relative; background: var(--px-ink); border: 4px solid var(--px-ink); padding: 14px; }
-.mv-hover-bar { display: flex; flex-wrap: wrap; gap: 10px; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); }
-.mv-hover-chip { color: var(--px-ink-txt); }
+
+.mv-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--px-wood3); border: 2px solid var(--px-ink); }
 
 .mv-table { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 16px; background: var(--px-cream2); display: flex; flex-direction: column; gap: 3px; }
 .mv-row {
@@ -205,25 +222,22 @@ function fmtTime(date) { const d = new Date(date); return `${d.getHours().toStri
 .mv-row.success { background: #dff0d0; }
 
 .mv-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
-.mv-price { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
-.mv-trend { font-family: 'Silkscreen', monospace; font-size: 11px; }
-.mv-stock { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
+.mv-price { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-orange); }
+.mv-trend { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
+.mv-stock { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-tan-ink); }
 
 .mv-qty { display: flex; align-items: center; border: 3px solid var(--px-ink); background: var(--px-cream2); width: max-content; }
 .mv-qty-btn { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 5px 9px; background: none; border: none; cursor: pointer; color: var(--px-ink-txt); }
 .mv-qty-btn:hover { background: #fff3c4; }
-.mv-qty-val { padding: 5px 10px; font-family: 'Silkscreen', monospace; font-size: 11px; border-left: 3px solid var(--px-ink); border-right: 3px solid var(--px-ink); color: var(--px-ink-txt); }
+.mv-qty-val { padding: 5px 10px; font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; border-left: 3px solid var(--px-ink); border-right: 3px solid var(--px-ink); color: var(--px-ink-txt); }
+.mv-qty-input { width: 38px; text-align: center; background: none; outline: none; box-sizing: content-box; }
 
 .mv-actions { display: flex; gap: 6px; }
 .mv-action-btn { flex: 1; padding: 6px 0; text-align: center; font-size: 10px; }
 
 .mv-cost { text-align: right; }
-.mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
-.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 11px; color: #3d6b25; margin-top: 4px; }
-
-.mv-footer { margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 8px; }
-.mv-footer-hint { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 8px; background: var(--px-cream3); border: 2px solid var(--px-brown2); color: var(--px-tan-hd); }
-.mv-footer-fee  { margin-left: auto; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); }
+.mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 15px; letter-spacing: 0.5px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
+.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: #3d6b25; margin-top: 4px; }
 
 .err-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .err-dialog { background: var(--px-cream); border: 4px solid var(--px-red); padding: 20px 24px; max-width: 320px; text-align: center; }
