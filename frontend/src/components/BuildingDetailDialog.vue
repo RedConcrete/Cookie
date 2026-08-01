@@ -73,6 +73,15 @@
               <div class="bd-buildup-note">+{{ (ownedData.storageCapBonus / 1000).toFixed(0) }}K pro Level</div>
             </div>
           </div>
+          <div v-if="level > 0" class="bd-buildup">
+            <div>
+              <div class="bd-buildup-name">Stufe {{ level }} &rarr; {{ level + 1 }}</div>
+              <div class="bd-buildup-note">+1 Einwohner-Slot &middot; {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
+            </div>
+            <button class="px-btn px-btn-accent" :disabled="upgrading || playerStore.cookies < upgradeCost" @click="upgradeBuilding">
+              AUSBAUEN
+            </button>
+          </div>
           <div v-if="notice" class="bd-notice">{{ notice }}</div>
 
           <div class="bd-storage">
@@ -89,7 +98,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
-import { changeWorkers } from '../services/api.js'
+import { changeWorkers, buyBuilding } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
@@ -110,6 +119,8 @@ const ownedData = computed(() => playerStore.ownedBuildings.find(b => b.id === p
 const level     = computed(() => ownedData.value?.level ?? 0)
 const workerCount   = computed(() => ownedData.value?.workers ?? 0)
 const maxWorkers    = computed(() => ownedData.value?.maxWorkers ?? props.building.workers ?? 1)
+const upgradeCost   = computed(() => ownedData.value?.nextLevelCost ?? 0)
+const upgrading     = ref(false)
 
 const bodyAnim = computed(() => ({
   hof: 'bend', huhn: 'bend', butter: 'bob', kakao: 'reach', kuh: 'milk', pond: 'bend',
@@ -136,6 +147,20 @@ async function adjustWorkers(delta) {
   } catch (e) {
     notice.value = 'Fehler beim Ändern der Einwohner.'
     setTimeout(() => { notice.value = '' }, 2000)
+  }
+}
+
+async function upgradeBuilding() {
+  if (upgrading.value) return
+  upgrading.value = true
+  try {
+    const updated = await buyBuilding(playerStore.steamId, props.building.id)
+    playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
+  } catch (e) {
+    notice.value = 'Nicht genug Cookies.'
+    setTimeout(() => { notice.value = '' }, 2000)
+  } finally {
+    upgrading.value = false
   }
 }
 </script>

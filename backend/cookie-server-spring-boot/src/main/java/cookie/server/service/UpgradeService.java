@@ -3,14 +3,12 @@ package cookie.server.service;
 import cookie.server.entity.PlayerUpgradeEntity;
 import cookie.server.entity.UpgradeEntity;
 import cookie.server.entity.UserEntity;
-import cookie.server.enums.ResourceName;
 import cookie.server.enums.UpgradeType;
 import cookie.server.dto.UpgradeWithStatusDto;
 import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UpgradeRepository;
 import cookie.server.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +32,16 @@ public class UpgradeService {
         this.userRepository = userRepository;
     }
 
+    // Alte Automation-Upgrade-IDs, ersetzt durch das Einwohner/Gebäude-Kapazitäts-System
+    // (siehe BuildingService: Produktionsgebäude sind jetzt selbst upgradeable für mehr
+    // Arbeiter-Slots). Wird bei jedem Start entfernt, falls aus einer aelteren DB noch vorhanden.
+    private static final List<String> REMOVED_UPGRADE_IDS = List.of(
+        "auto_sugar", "auto_flour", "auto_eggs", "auto_butter", "auto_chocolate", "auto_milk"
+    );
+
     @PostConstruct
     public void seedUpgrades() {
+        removeObsoleteUpgrades();
         if (upgradeRepository.count() > 0) return;
 
         upgradeRepository.saveAll(List.of(
@@ -53,15 +59,16 @@ public class UpgradeService {
 
             upgrade("extra_oven", "Zweiter Ofen",
                 "+1 gleichzeitiger Bake-Job-Slot",
-                UpgradeType.CAPACITY, null, 500, 1.0, 3),
-
-            upgrade("auto_sugar",     "Auto-Pflücker: Zucker",     "+0.5 Zucker/s automatisch",     UpgradeType.AUTOMATION, "SUGAR",     200, 0.5, 0),
-            upgrade("auto_flour",     "Auto-Pflücker: Mehl",       "+0.5 Mehl/s automatisch",       UpgradeType.AUTOMATION, "FLOUR",     200, 0.5, 0),
-            upgrade("auto_eggs",      "Auto-Pflücker: Eier",       "+0.5 Eier/s automatisch",       UpgradeType.AUTOMATION, "EGGS",      200, 0.5, 0),
-            upgrade("auto_butter",    "Auto-Pflücker: Butter",     "+0.5 Butter/s automatisch",     UpgradeType.AUTOMATION, "BUTTER",    200, 0.5, 0),
-            upgrade("auto_chocolate", "Auto-Pflücker: Schokolade", "+0.5 Schokolade/s automatisch", UpgradeType.AUTOMATION, "CHOCOLATE", 200, 0.5, 0),
-            upgrade("auto_milk",      "Auto-Pflücker: Milch",      "+0.5 Milch/s automatisch",      UpgradeType.AUTOMATION, "MILK",      200, 0.5, 0)
+                UpgradeType.CAPACITY, null, 500, 1.0, 3)
         ));
+    }
+
+    @Transactional
+    protected void removeObsoleteUpgrades() {
+        for (String id : REMOVED_UPGRADE_IDS) {
+            playerUpgradeRepository.deleteAll(playerUpgradeRepository.findByUpgradeId(id));
+            if (upgradeRepository.existsById(id)) upgradeRepository.deleteById(id);
+        }
     }
 
     private UpgradeEntity upgrade(String id, String name, String desc,
@@ -147,44 +154,6 @@ public class UpgradeService {
         return playerUpgradeRepository.findByUserIdAndUpgradeId(userId, upgradeId)
                 .map(PlayerUpgradeEntity::getLevel)
                 .orElse(0);
-    }
-
-    // Automation-Scheduler: alle 5s Ressourcen für aktive Auto-Pflücker gutschreiben
-    @Scheduled(fixedDelay = 5000)
-    @Transactional
-    public void runAutomation() {
-        List<PlayerUpgradeEntity> active = playerUpgradeRepository.findActiveAutomations();
-        if (active.isEmpty()) return;
-
-        // Gruppieren nach userId
-        Map<String, List<PlayerUpgradeEntity>> byUser = active.stream()
-                .collect(Collectors.groupingBy(PlayerUpgradeEntity::getUserId));
-
-        for (Map.Entry<String, List<PlayerUpgradeEntity>> entry : byUser.entrySet()) {
-            userRepository.findById(entry.getKey()).ifPresent(user -> {
-                for (PlayerUpgradeEntity pu : entry.getValue()) {
-                    // upgradeId = "auto_RESOURCENAME_lowercase" → ResourceName
-                    String resourcePart = pu.getUpgradeId().substring("auto_".length()).toUpperCase();
-                    try {
-                        ResourceName resource = ResourceName.valueOf(resourcePart);
-                        double amount = pu.getLevel() * 0.5 * 5; // effectPerLevel * tickSeconds
-                        addResource(user, resource, amount);
-                    } catch (IllegalArgumentException ignored) {}
-                }
-                userRepository.save(user);
-            });
-        }
-    }
-
-    private void addResource(UserEntity user, ResourceName resource, double amount) {
-        switch (resource) {
-            case SUGAR     -> user.setSugar(user.getSugar()         + amount);
-            case FLOUR     -> user.setFlour(user.getFlour()         + amount);
-            case EGGS      -> user.setEggs(user.getEggs()           + amount);
-            case BUTTER    -> user.setButter(user.getButter()       + amount);
-            case CHOCOLATE -> user.setChocolate(user.getChocolate() + amount);
-            case MILK      -> user.setMilk(user.getMilk()           + amount);
-        }
     }
 
     // cost(level) = baseCost × 1.15^level

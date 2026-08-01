@@ -17,8 +17,10 @@ public class BuildingService {
     public static final int    BASE_STORAGE_CAP         = 100;
     public static final int    STORAGE_PER_LEVEL        = 1000;
     public static final int    CITIZENS_PER_RAT_LEVEL   = 4;
-    public static final double CITIZEN_COST             = 50.0;
+    public static final double CITIZEN_BASE_COST        = 50.0;
+    public static final double CITIZEN_COST_GROWTH      = 1.15;   // exponentiell, wie Upgrade-Kosten (Design-Doku Abschnitt 6)
     public static final double PASSIVE_TICK_SECONDS     = 5.0;
+    public static final int    WORKERS_PER_LEVEL        = 1;      // je Ausbaustufe über Stufe 1 hinaus +1 Arbeiter-Slot
 
     record BuildingDef(
         String id, String name, int baseCost, double wagePerMin,
@@ -27,14 +29,16 @@ public class BuildingService {
     ) {}
 
     // Pre-built (ofen, rathaus, lager, markt) start at level 1 for every player.
-    // Rathaus + markt + lager are upgradeable; ofen is a fixed building.
+    // Alle Produktionsgebäude sind jetzt upgradeable -- höhere Stufe = mehr Arbeiter-Slots,
+    // Kosten steigen exponentiell (computeCost: baseCost × 2^level). maxWorkers hier ist die
+    // Basis-Kapazität bei Stufe 1, siehe effectiveMaxWorkers().
     private static final List<BuildingDef> BUILDINGS = List.of(
-        new BuildingDef("pond",    "Zuckerteich", 500, 4.0, false, false, 2, 0.7,  ResourceName.SUGAR),
-        new BuildingDef("hof",     "Bauernhof",   300, 6.0, false, false, 3, 0.7,  ResourceName.FLOUR),
-        new BuildingDef("huhn",    "Hühnerhof",   350, 4.0, false, false, 2, 0.4,  ResourceName.EGGS),
-        new BuildingDef("butter",  "Butterei",    280, 2.0, false, false, 1, 0.6,  ResourceName.BUTTER),
-        new BuildingDef("kakao",   "Plantage",    380, 4.0, false, false, 2, 0.6,  ResourceName.CHOCOLATE),
-        new BuildingDef("kuh",     "Kuhstall",    600, 8.0, false, false, 4, 1.2,  ResourceName.MILK),
+        new BuildingDef("pond",    "Zuckerteich", 500, 4.0, true, false, 2, 0.7,  ResourceName.SUGAR),
+        new BuildingDef("hof",     "Bauernhof",   300, 6.0, true, false, 3, 0.7,  ResourceName.FLOUR),
+        new BuildingDef("huhn",    "Hühnerhof",   350, 4.0, true, false, 2, 0.4,  ResourceName.EGGS),
+        new BuildingDef("butter",  "Butterei",    280, 2.0, true, false, 1, 0.6,  ResourceName.BUTTER),
+        new BuildingDef("kakao",   "Plantage",    380, 4.0, true, false, 2, 0.6,  ResourceName.CHOCOLATE),
+        new BuildingDef("kuh",     "Kuhstall",    600, 8.0, true, false, 4, 1.2,  ResourceName.MILK),
         new BuildingDef("ofen",    "Backhaus",    0,   0.0, false, true,  0, 0.0,  null),
         new BuildingDef("rathaus", "Rathaus",     400, 0.0, true,  true,  0, 0.0,  null),
         new BuildingDef("markt",   "Markt",       400, 0.0, true,  true,  0, 0.0,  null),
@@ -128,7 +132,7 @@ public class BuildingService {
             int available = user.getOwnedCitizens() - getAssignedCitizens(userId);
             if (available <= 0) throw new IllegalStateException("No available citizens");
         }
-        int newCount = Math.max(0, Math.min(def.maxWorkers(), ent.getWorkers() + delta));
+        int newCount = Math.max(0, Math.min(effectiveMaxWorkers(def, ent.getLevel()), ent.getWorkers() + delta));
         ent.setWorkers(newCount);
         buildingRepo.save(ent);
         return getBuildings(userId);
@@ -143,11 +147,26 @@ public class BuildingService {
         int canBuy = maxCitizens - user.getOwnedCitizens();
         if (canBuy <= 0) throw new IllegalStateException("Max citizens reached (" + maxCitizens + ")");
         int actualBuy = Math.min(count, canBuy);
-        double cost = actualBuy * CITIZEN_COST;
+
+        double cost = 0;
+        for (int i = 0; i < actualBuy; i++) {
+            cost += citizenCost(user.getOwnedCitizens() + i);
+        }
         if (user.getCookies() < cost) throw new IllegalStateException("Not enough cookies. Need " + cost);
         user.setCookies(user.getCookies() - cost);
         user.setOwnedCitizens(user.getOwnedCitizens() + actualBuy);
         return userRepo.save(user);
+    }
+
+    /** Kosten für den (ownedCount+1)-ten Bürger -- exponentiell wie die Upgrade-Kostenkurve. */
+    private double citizenCost(int ownedCount) {
+        return CITIZEN_BASE_COST * Math.pow(CITIZEN_COST_GROWTH, ownedCount);
+    }
+
+    /** Arbeiter-Kapazität eines Gebäudes bei gegebener Stufe: Basis + (Stufe-1) zusätzliche Slots. */
+    private int effectiveMaxWorkers(BuildingDef def, int level) {
+        if (level <= 0) return 0;
+        return def.maxWorkers() + (level - 1) * WORKERS_PER_LEVEL;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -222,7 +241,7 @@ public class BuildingService {
         dto.setCanUpgrade(def.upgradeable());
         dto.setNextLevelCost(def.upgradeable() || level == 0 ? computeCost(def, level) : 0);
         dto.setWorkers(workers);
-        dto.setMaxWorkers(def.maxWorkers());
+        dto.setMaxWorkers(effectiveMaxWorkers(def, level));
         dto.setPassiveRatePerTick(rate);
         dto.setPreBuilt(def.preBuilt());
         return dto;
