@@ -47,6 +47,7 @@
 
       <div class="hud-actions">
         <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" title="DEV: Reset">&#8635; DEV</button>
+        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="dialog = 'admin'" title="DEV: Admin-Panel">&#9881; ADMIN</button>
         <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">UPGRADES</button>
         <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">PRESTIGE</button>
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
@@ -127,6 +128,7 @@
     <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
+    <AdminDialog        v-if="dialog === 'admin'"       @close="dialog = null" />
   </div>
 </template>
 
@@ -171,6 +173,7 @@ import BuildShopDialog from '../components/BuildShopDialog.vue'
 import CitizenDialog from '../components/CitizenDialog.vue'
 import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
+import AdminDialog from '../components/AdminDialog.vue'
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()

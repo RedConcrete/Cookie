@@ -1,5 +1,6 @@
 package cookie.server.service;
 
+import cookie.server.config.GameBalanceConfig;
 import cookie.server.dto.PlayerBuildingDto;
 import cookie.server.entity.PlayerBuildingEntity;
 import cookie.server.entity.UserEntity;
@@ -13,14 +14,6 @@ import java.util.*;
 
 @Service
 public class BuildingService {
-
-    public static final int    BASE_STORAGE_CAP         = 100;
-    public static final int    STORAGE_PER_LEVEL        = 1000;
-    public static final int    CITIZENS_PER_RAT_LEVEL   = 4;
-    public static final double CITIZEN_BASE_COST        = 50.0;
-    public static final double CITIZEN_COST_GROWTH      = 1.15;   // exponentiell, wie Upgrade-Kosten (Design-Doku Abschnitt 6)
-    public static final double PASSIVE_TICK_SECONDS     = 5.0;
-    public static final int    WORKERS_PER_LEVEL        = 1;      // je Ausbaustufe über Stufe 1 hinaus +1 Arbeiter-Slot
 
     record BuildingDef(
         String id, String name, int baseCost, double wagePerMin,
@@ -54,10 +47,12 @@ public class BuildingService {
 
     private final PlayerBuildingRepository buildingRepo;
     private final UserRepository userRepo;
+    private final GameBalanceConfig balance;
 
-    public BuildingService(PlayerBuildingRepository buildingRepo, UserRepository userRepo) {
+    public BuildingService(PlayerBuildingRepository buildingRepo, UserRepository userRepo, GameBalanceConfig balance) {
         this.buildingRepo = buildingRepo;
         this.userRepo = userRepo;
+        this.balance = balance;
     }
 
     public static Map<String, BuildingDef> getDefMap() { return DEF_MAP; }
@@ -143,7 +138,7 @@ public class BuildingService {
         int ratLevel = getBuildingLevel(userId, "rathaus");
         if (ratLevel == 0) throw new IllegalStateException("Rathaus not built");
         UserEntity user = requireUser(userId);
-        int maxCitizens = ratLevel * CITIZENS_PER_RAT_LEVEL;
+        int maxCitizens = ratLevel * balance.getCitizensPerRatLevel();
         int canBuy = maxCitizens - user.getOwnedCitizens();
         if (canBuy <= 0) throw new IllegalStateException("Max citizens reached (" + maxCitizens + ")");
         int actualBuy = Math.min(count, canBuy);
@@ -160,20 +155,20 @@ public class BuildingService {
 
     /** Kosten für den (ownedCount+1)-ten Bürger -- exponentiell wie die Upgrade-Kostenkurve. */
     private double citizenCost(int ownedCount) {
-        return CITIZEN_BASE_COST * Math.pow(CITIZEN_COST_GROWTH, ownedCount);
+        return balance.getCitizenBaseCost() * Math.pow(balance.getCitizenCostGrowth(), ownedCount);
     }
 
     /** Arbeiter-Kapazität eines Gebäudes bei gegebener Stufe: Basis + (Stufe-1) zusätzliche Slots. */
     private int effectiveMaxWorkers(BuildingDef def, int level) {
         if (level <= 0) return 0;
-        return def.maxWorkers() + (level - 1) * WORKERS_PER_LEVEL;
+        return def.maxWorkers() + (level - 1) * balance.getWorkersPerLevel();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     public double getTotalCap(String userId) {
         int lagerLevel = getBuildingLevel(userId, "lager");
-        return BASE_STORAGE_CAP + (long) lagerLevel * STORAGE_PER_LEVEL;
+        return balance.getBaseStorageCap() + (long) lagerLevel * balance.getStoragePerLevel();
     }
 
     public double getTotalWage(String userId) {
@@ -192,7 +187,7 @@ public class BuildingService {
     }
 
     public int getMaxCitizens(String userId) {
-        return getBuildingLevel(userId, "rathaus") * CITIZENS_PER_RAT_LEVEL;
+        return getBuildingLevel(userId, "rathaus") * balance.getCitizensPerRatLevel();
     }
 
     public int getAssignedCitizens(String userId) {
@@ -224,20 +219,20 @@ public class BuildingService {
 
     private double computeCost(BuildingDef def, int currentLevel) {
         if (def.baseCost() == 0) return 0;
-        return def.baseCost() * Math.pow(2, currentLevel);
+        return def.baseCost() * Math.pow(balance.getBuildingCostGrowth(), currentLevel);
     }
 
     private PlayerBuildingDto toDto(BuildingDef def, PlayerBuildingEntity ent) {
         int level   = ent != null ? ent.getLevel() : 0;
         int workers = ent != null ? ent.getWorkers() : 0;
-        double rate = def.passiveRatePerSecPerWorker() * workers * PASSIVE_TICK_SECONDS;
+        double rate = def.passiveRatePerSecPerWorker() * workers * balance.getPassiveTickSeconds();
 
         PlayerBuildingDto dto = new PlayerBuildingDto();
         dto.setId(def.id());
         dto.setName(def.name());
         dto.setLevel(level);
         dto.setWagePerMin(effectiveWage(def, ent));
-        dto.setStorageCapBonus(def.upgradeable() && def.id().equals("lager") ? STORAGE_PER_LEVEL : 0);
+        dto.setStorageCapBonus(def.upgradeable() && def.id().equals("lager") ? (int) balance.getStoragePerLevel() : 0);
         dto.setCanUpgrade(def.upgradeable());
         dto.setNextLevelCost(def.upgradeable() || level == 0 ? computeCost(def, level) : 0);
         dto.setWorkers(workers);

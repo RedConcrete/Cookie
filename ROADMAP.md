@@ -11,18 +11,21 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
 
 ## 0. Sofort (Sicherheit / Datenintegrität)
 
-- [ ] **Negative-Amount-Exploit im Markt (kritisch).**
-  `MarketService.performAction()` prüft `amount` nie auf `> 0`. Ein `BUY`
-  mit negativem `amount` macht `totalCost` negativ →
-  `cookies < totalCost` ist immer `false` → `cookies -= totalCost`
-  **erhöht** das Cookie-Guthaben, während `addResourceToUser` Ressourcen
-  ohne Floor-Clamp abzieht. Ergebnis: Cookie-Duplizierung +
-  negative Ressourcenbestände.
-  **Fix:** Validierung `amount > 0` serverseitig in `performAction()`
-  (und idealerweise `@Positive` auf `MarketRequestDto.amount`), dazu
-  Clamp auf `resourceAmount >= 0` als zweite Verteidigungslinie.
-  Betrifft: `backend/.../service/MarketService.java`,
-  `backend/.../dto/MarketRequestDto.java`.
+- [x] **Negative-Amount-Exploit im Markt (kritisch).** — behoben 2026-08-02.
+  `MarketService.performAction()` prüfte `amount` nie auf `> 0`. Ein `BUY`
+  mit negativem `amount` machte die Kosten negativ → Cookie-Duplizierung;
+  ein `SELL` mit negativem `amount` erzeugte Ressourcen aus dem Nichts.
+  **Fix:** `amount <= 0` wird jetzt serverseitig in `performAction()`
+  abgelehnt (400), zusätzlich `@Positive` auf `ResourceDto.amount` +
+  `@Valid` durchgereicht als zweite Verteidigungslinie. Bonus: das
+  Marktpreismodell wurde in derselben Session komplett auf ein
+  Constant-Product-AMM umgebaut (kein linearer Preiseinfluss mehr) —
+  Details jetzt in `cookie-game-design.md` Abschnitt 6.
+  Betrifft: `MarketService.java`, `ResourceDto.java`,
+  `MarketRequestDto.java`, `MarketController.java`,
+  neu: `exception/GlobalExceptionHandler.java` (fängt seither auch alle
+  anderen `IllegalArgumentException`/`IllegalStateException`-Validierungsfehler
+  im ganzen Backend sauber als 400 statt als rohen 500 ab).
 
 ---
 
@@ -74,36 +77,13 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
 
 ## 3. Design-Dokument aktualisieren
 
-`cookie-game-design.md` Abschnitt 2 ("Ist-Zustand") ist veraltet — markiert
-Upgrade-System, Net Worth, Prestige, Season-Reset und Leaderboard/Profil
-komplett als ❌, obwohl alle fünf serverseitig implementiert und ans
-Frontend angebunden sind:
-
-- **Upgrade-System** ✅ — `UpgradeService`/`UpgradeController`,
-  `UpgradeShopView.vue`
-- **Net Worth** ✅ — `NetWorthService` (Berechnung + 30s-Snapshot-Scheduler),
-  `LeaderboardController`
-- **Prestige** ✅ — `PrestigeService` + `PrestigeView.vue`/`PrestigeDialog.vue`,
-  Formeln (`threshold`, `multiplier`) wie im Doc spezifiziert umgesetzt,
-  voller serverseitiger Reset inkl. Validierung der Mindest-Net-Worth
-- **Season-Reset** ✅ (aber nur manuell) — `SeasonService.closeSeason()` +
-  `AdminController` (`X-Admin-Token`-geschützt), archiviert Rangliste in
-  `SeasonResultEntity`, resettet alle Spieler. Kein Cron/Automatik — laut
-  Design so gewollt ("Trigger: manuell")
-- **Leaderboard/Profil** ✅ — volles Endpoint-Set vorhanden
-
-**Abweichung vom Doc:** Abschnitt 6 "Typ D" (Gebäude als Upgrade-Kauf) wurde
-nicht wie spezifiziert im generischen Upgrade-System (`UpgradeType`) gebaut,
-sondern als eigenständiges, umfangreicheres System (`BuildingService`,
-`BuildShopDialog.vue`) mit Bürger/Worker-Zuweisung, Löhnen, Lagerkapazität
-und Markt-Gebühr-Rabatten. Funktional weiter als geplant, aber
-architektonisch anders. Doc-Abschnitt 6 sollte auf die tatsächliche
-`BuildingService`-Architektur umgeschrieben werden statt als "offen" zu
-gelten.
-
-**Aktion:** Abschnitt 2 (Tabelle) und Abschnitt 6 in
-`cookie-game-design.md` überarbeiten, damit das Dokument wieder als
-verlässliche Quelle für den Implementierungsstand dient.
+- [x] Erledigt 2026-08-02: `cookie-game-design.md` komplett neu geschrieben
+  als Ist-Stand-Referenz statt Juni-Plan. Alle Systeme (Hof-Grid, Bürger,
+  AMM-Markt, Rezepte/Backen, Upgrades, Net Worth, Prestige, Season,
+  Pixel-Art-UI) beschreiben jetzt den tatsächlichen Code. Bekannte
+  Diskrepanzen (Gebäude fehlen in Net Worth, Season-Reset löscht keine
+  Gebäude, tote Legacy-Frontend-Dateien) stehen dort jetzt explizit in
+  einem eigenen Abschnitt 12 statt implizit unter "offen" zu verschwinden.
 
 ---
 
@@ -128,13 +108,13 @@ spezifiziert ist:
   (`AdminController`). Falls das Spiel produktiv läuft, überlegen ob ein
   Scheduler (`SeasonScheduler`, analog `MarketScheduler`) mit konfigu-
   rierbarem Intervall sinnvoller ist als "Dev drückt manuell einen Knopf"
-- [ ] **Pixel-Art-Rework (Abschnitt 16)** — DOM-basiertes Hof-Grid ist mit
-  `2142ecc`/`493354a` bereits Richtung Pixel-Art-Optik gegangen. Der
-  Design-Doc-Absatz beschreibt eine echte Render-Engine (PixiJS/Phaser)
-  mit freier Kamera als *langfristige* Vision — klären, ob das aktuelle
-  DOM+CSS-Ergebnis als "gut genug" gilt oder der Engine-Wechsel weiterhin
-  geplant ist. Falls DOM+CSS bleibt: Abschnitt 16 im Design-Doc auf
-  "erledigt/überholt" setzen, sonst als eigene große Iteration einplanen
+- [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
+  (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
+  "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert
+  aus dem Umfang der bisherigen Polish-Arbeit (Pixel-Icons, Sound, Hotkeys,
+  frei verschiebbare Gebäude), nicht explizit vom Dev bestätigt. Falls doch
+  noch PixiJS/Phaser mit freier Kamera geplant ist: Design-Doc Abschnitt 8
+  entsprechend zurückstufen.
 
 ---
 

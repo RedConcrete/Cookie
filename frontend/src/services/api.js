@@ -157,3 +157,35 @@ export function buyCitizens(steamId, count = 1) {
 export function adminResetPlayer(steamId) {
   return request('POST', `/api/v1/admin/reset/${steamId}`)
 }
+
+// Reset market stock/prices to initial values (dev mode only).
+export function adminResetMarket() {
+  return request('POST', '/api/v1/admin/market/reset')
+}
+
+// Live-tunable balance config: { market: MarketConfig, balance: GameBalanceConfig }.
+export function getAdminConfig() {
+  return request('GET', '/api/v1/admin/config')
+}
+export function updateAdminMarketConfig(config) {
+  return request('PUT', '/api/v1/admin/config/market', config)
+}
+export function updateAdminBalanceConfig(config) {
+  return request('PUT', '/api/v1/admin/config/balance', config)
+}
+
+// Upgrade definitions (baseCost/effectPerLevel/maxLevel), editable live.
+export function getAdminUpgrades() {
+  return request('GET', '/api/v1/admin/upgrades')
+}
+export function updateAdminUpgrade(id, upgrade) {
+  return request('PUT', `/api/v1/admin/upgrades/${id}`, upgrade)
+}
+
+// Recipe definitions (ingredients/output/bake time), editable live.
+export function getAdminRecipes() {
+  return request('GET', '/api/v1/admin/recipes')
+}
+export function updateAdminRecipe(id, recipe) {
+  return request('PUT', `/api/v1/admin/recipes/${id}`, recipe)
+}

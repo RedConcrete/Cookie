@@ -1,11 +1,13 @@
 package cookie.server.dto;
 
 import cookie.server.enums.ResourceName;
+import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDateTime;
 
 public class ResourceDto {
     private ResourceName name;
+    @Positive
     private double amount;
     private LocalDateTime version;
 

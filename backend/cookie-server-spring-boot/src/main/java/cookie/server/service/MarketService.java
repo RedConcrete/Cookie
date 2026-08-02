@@ -41,6 +41,7 @@ public class MarketService {
     private final UserRepository userRepository;
     private final MarketConfig marketConfig;
     private final cookie.server.handler.MarketWebSocketHandler webSocketHandler;
+    private final BuildingService buildingService;
 
     private final ReentrantLock marketLock = new ReentrantLock();
     private final AtomicInteger updateCounter = new AtomicInteger(0);
@@ -55,13 +56,15 @@ public class MarketService {
                          MarketSnapshotRepository snapshotRepository,
                          MarketStockRepository marketStockRepository,
                          UserRepository userRepository, MarketConfig marketConfig,
-                         cookie.server.handler.MarketWebSocketHandler webSocketHandler) {
+                         cookie.server.handler.MarketWebSocketHandler webSocketHandler,
+                         BuildingService buildingService) {
         this.marketRepository = marketRepository;
         this.snapshotRepository = snapshotRepository;
         this.marketStockRepository = marketStockRepository;
         this.userRepository = userRepository;
         this.marketConfig = marketConfig;
         this.webSocketHandler = webSocketHandler;
+        this.buildingService = buildingService;
     }
 
     /** Alle 5 Minuten einen Preis-Snapshot speichern (persistente Langzeit-History). */
@@ -206,12 +209,24 @@ public class MarketService {
         double amount = request.getResource().getAmount();
         MarketAction action = request.getAction();
 
+        // Negative/Null-Mengen wuerden Kosten/Auszahlung in der AMM-Formel umkehren
+        // (negativer Kaufpreis -> Cookies aus dem Nichts, negativer Verkauf -> Ressourcen
+        // aus dem Nichts). Muss serverseitig geprueft werden, Client-Wert nie vertrauen.
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive: " + amount);
+        }
+
         double marketStock = getStock(stock, resource);
 
         if (action == MarketAction.BUY) {
             // Ein Kauf kann den Pool nie ganz leerkaufen -- die Kosten explodieren vorher.
             if (amount >= marketStock) {
                 throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
+            }
+            double cap = buildingService.getTotalCap(request.getUserId());
+            double freeSpace = cap - totalUserResources(user);
+            if (amount > freeSpace) {
+                throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
             }
             double cost = buyCost(marketStock, resource, amount);
             if (user.getCookies() < cost) {
@@ -602,6 +617,11 @@ public class MarketService {
             case CHOCOLATE -> stock.setChocolateStock(safeStock);
             case MILK -> stock.setMilkStock(safeStock);
         }
+    }
+
+    private double totalUserResources(UserEntity user) {
+        return user.getSugar() + user.getFlour() + user.getEggs()
+             + user.getButter() + user.getChocolate() + user.getMilk();
     }
 
     private double getResourceFromUser(UserEntity user, ResourceName resource) {

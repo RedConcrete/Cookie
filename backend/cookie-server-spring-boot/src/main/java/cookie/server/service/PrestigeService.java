@@ -1,5 +1,6 @@
 package cookie.server.service;
 
+import cookie.server.config.GameBalanceConfig;
 import cookie.server.dto.PrestigeStatusDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.BakeJobRepository;
@@ -20,25 +21,28 @@ public class PrestigeService {
     private final BakeJobRepository bakeJobRepository;
     private final PlayerBuildingRepository playerBuildingRepository;
     private final NetWorthService netWorthService;
+    private final GameBalanceConfig balance;
 
     public PrestigeService(UserRepository userRepository,
                            PlayerUpgradeRepository playerUpgradeRepository,
                            BakeJobRepository bakeJobRepository,
                            PlayerBuildingRepository playerBuildingRepository,
-                           @Lazy NetWorthService netWorthService) {
+                           @Lazy NetWorthService netWorthService,
+                           GameBalanceConfig balance) {
         this.userRepository = userRepository;
         this.playerUpgradeRepository = playerUpgradeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.playerBuildingRepository = playerBuildingRepository;
         this.netWorthService = netWorthService;
+        this.balance = balance;
     }
 
-    public static double calcThreshold(int level) {
-        return 100_000 * Math.pow(1.5, level);
+    public double calcThreshold(int level) {
+        return balance.getPrestigeBaseThreshold() * Math.pow(balance.getPrestigeThresholdGrowth(), level);
     }
 
-    public static double calcMultiplier(int level) {
-        return 1.0 + 0.1 * level;
+    public double calcMultiplier(int level) {
+        return 1.0 + balance.getPrestigeMultiplierPerLevel() * level;
     }
 
     public PrestigeStatusDto getStatus(String userId) {

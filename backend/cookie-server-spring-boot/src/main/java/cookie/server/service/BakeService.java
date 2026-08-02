@@ -30,15 +30,17 @@ public class BakeService {
     private final UserRepository userRepository;
     private final PlayerUpgradeRepository playerUpgradeRepository;
     private final AppConfig appConfig;
+    private final PrestigeService prestigeService;
 
     public BakeService(RecipeRepository recipeRepository, BakeJobRepository bakeJobRepository,
                        UserRepository userRepository, PlayerUpgradeRepository playerUpgradeRepository,
-                       AppConfig appConfig) {
+                       AppConfig appConfig, PrestigeService prestigeService) {
         this.recipeRepository = recipeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.userRepository = userRepository;
         this.playerUpgradeRepository = playerUpgradeRepository;
         this.appConfig = appConfig;
+        this.prestigeService = prestigeService;
     }
 
     @PostConstruct
@@ -151,7 +153,7 @@ public class BakeService {
                 .map(pu -> pu.getLevel())
                 .orElse(0);
         double outputMultiplier = 1.0 + bakeBoost * 0.10;
-        double prestigeMultiplier = cookie.server.service.PrestigeService.calcMultiplier(user.getPrestigeLevel());
+        double prestigeMultiplier = prestigeService.calcMultiplier(user.getPrestigeLevel());
         double cookiesEarned = recipe.getOutput() * job.getBatches() * outputMultiplier * prestigeMultiplier;
         user.setCookies(user.getCookies() + cookiesEarned);
         user.setLifetimeCookiesBaked(user.getLifetimeCookiesBaked() + cookiesEarned);

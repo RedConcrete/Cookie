@@ -1,10 +1,12 @@
 package cookie.server.dto;
 
 import cookie.server.enums.MarketAction;
+import jakarta.validation.Valid;
 
 public class MarketRequestDto {
     private String userId;
     private MarketAction action;
+    @Valid
     private ResourceDto resource;
 
     public String getUserId() {

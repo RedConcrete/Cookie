@@ -7,8 +7,6 @@ import cookie.server.entity.UserEntity;
 import cookie.server.enums.ResourceName;
 import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
-import cookie.server.service.PrestigeService;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +21,14 @@ public class UserService {
     private final UserRepository userRepository;
     private final PlayerConfig playerConfig;
     private final PlayerUpgradeRepository playerUpgradeRepository;
+    private final PrestigeService prestigeService;
 
     public UserService(UserRepository userRepository, PlayerConfig playerConfig,
-                       PlayerUpgradeRepository playerUpgradeRepository) {
+                       PlayerUpgradeRepository playerUpgradeRepository, PrestigeService prestigeService) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
         this.playerUpgradeRepository = playerUpgradeRepository;
+        this.prestigeService = prestigeService;
     }
 
     public UserInformationDto createUser(String userId, UserDto dto) {
@@ -110,7 +110,7 @@ public class UserService {
                 .findByUserIdAndUpgradeId(userId, "boost_harvest")
                 .map(pu -> pu.getLevel())
                 .orElse(0);
-        double prestigeMultiplier = PrestigeService.calcMultiplier(user.getPrestigeLevel());
+        double prestigeMultiplier = prestigeService.calcMultiplier(user.getPrestigeLevel());
         double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier;
 
         double totalRes = user.getSugar() + user.getFlour() + user.getEggs()

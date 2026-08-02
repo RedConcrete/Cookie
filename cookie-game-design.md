@@ -1,365 +1,380 @@
 # Cookie — Game Design Dokument
 
-Stand: Juni 2026 · Basis: Ist-Analyse des Repos `RedConcrete/Cookie`
+Stand: August 2026 · Basis: Ist-Analyse des Repos `RedConcrete/Cookie`
+
+Dieses Dokument beschreibt den **tatsächlich implementierten** Zustand des
+Spiels, nicht mehr einen Plan dafür — die vorige Fassung (Juni 2026) war ein
+Vorab-Design; seither ist praktisch der komplette Umfang gebaut, teils anders
+als ursprünglich gedacht (z. B. Bürger-System statt Auto-Pflücker-Upgrades,
+AMM-Markt statt linearem Preismodell). Wo Code und alter Plan auseinanderlaufen,
+gilt hier der Code. Offene Lücken/Bugs stehen explizit in Abschnitt 12.
 
 ---
 
 ## 1. Core Loop
 
 ```
-Hof-Übersicht (Hex-Grid mit Gebäuden)
-   → Ernten an Rohstoff-Feldern (Hover)
-      → Markt-Gebäude: fehlende Zutaten kaufen / Überschuss verkaufen (Gebühr)
-         → Backofen-Gebäude: Rezept wählen & Backen starten (Timer läuft)
-            → Zwischenzeit: weiter ernten/handeln
-               → Backen abschließen → Cookies
-                  → Cookies in Upgrades & neue Gebäude investieren
-                     → Net Worth steigt (Cookies + Rohstoffe + Upgrade-/Gebäude-Wert)
-                        → Prestige (freiwilliger Komplett-Reset: Multiplikator + Kosmetik)
-                           → Season-Ende: globaler Reset, Ergebnis wird archiviert
+Hof-Grid (Hauptansicht, alle Gebäude fest positioniert, Pixel-Art)
+   → Ernten an Rohstoff-Gebäuden (Hover startet automatische Ernte)
+      → Bürger anwerben & Gebäuden zuweisen → passive Produktion im Hintergrund
+         → Markt-Gebäude: fehlende Zutaten kaufen / Überschuss verkaufen (Gebühr)
+            → Backhaus: Rezept wählen & Backen starten (echter Timer)
+               → Zwischenzeit: weiter ernten/handeln, Löhne laufen weiter
+                  → Backen abschließen → Cookies
+                     → Cookies in Upgrades, Bürger & Gebäude-Ausbau investieren
+                        → Net Worth steigt (Cookies + Rohstoffwert + Upgrade-Ausgaben)
+                           → Prestige (freiwilliger Reset: Multiplikator + Fortschritt)
+                              → Season-Ende: globaler Reset, Ergebnis archiviert
 ```
 
-Der Kreislauf ist im Code teilweise vorhanden. Phase 1 (Grund-Backen) ist
-erledigt, der Rest wird über die folgenden Phasen aufgebaut — beginnend mit
-dem Hof-Grid als neue Hauptansicht (Abschnitt 4).
+Voll spielbar von vorne bis hinten. Season-Trigger ist manuell (Admin-Endpoint),
+alles andere läuft im laufenden Betrieb.
 
 ---
 
-## 2. Ist-Zustand (was schon funktioniert)
+## 2. Ist-Zustand
 
 | System | Backend | Frontend | Status |
 |---|---|---|---|
-| Ernten (Hover-Sammeln) | ✅ | ✅ | spielbar, wird ins Hof-Grid umgezogen |
-| Markt (Kauf/Verkauf, Angebot/Nachfrage) | ✅ | ✅ | spielbar, Gebühr fehlt noch |
+| Hof-Grid (Hauptansicht, Pixel-Art) | ✅ | ✅ | spielbar |
+| Ernten (Hover-Sammeln) | ✅ | ✅ | spielbar |
+| Bürger-System (anwerben, Gebäuden zuweisen) | ✅ | ✅ | spielbar |
+| Gebäude-Ausbau (mehr Bürger-Slots) | ✅ | ✅ | spielbar |
+| Lohn / Idle-Mechanik | ✅ | ✅ | spielbar |
+| Markt (AMM-Preismodell, Angebot/Nachfrage) | ✅ | ✅ | spielbar |
 | Live-Preise via WebSocket | ✅ | ✅ | spielbar |
-| Cookie backen (1 Rezept, instant) | ✅ | ✅ | spielbar, wird durch Varianten+Timer ersetzt |
-| Hof-Grid (Haupt-Ansicht) | ❌ | ❌ | neu |
-| Rezept-Varianten + Bake-Timer | ❌ | ❌ | neu |
-| Markt-Verkaufsgebühr (Sink) | ❌ | – | neu |
-| Upgrade-System | ❌ | ❌ | neu |
-| Net Worth / Highscore | ❌ | ❌ | neu |
-| Prestige | ❌ | ❌ | neu |
-| Season-Reset | ❌ | ❌ | neu |
-| Leaderboard / Profil | ❌ | ❌ | neu |
+| Rezept-Varianten + Bake-Timer | ✅ | ✅ | spielbar (3 Rezepte) |
+| Upgrade-System (Boosts + Kapazität) | ✅ | ✅ | spielbar |
+| Net Worth / History-Graph | ✅ | ✅ | spielbar |
+| Prestige | ✅ | ✅ | spielbar |
+| Season-Reset | ✅ | ✅ (Admin) | spielbar, siehe Lücke in Abschnitt 12 |
+| Leaderboard / Profil | ✅ | ✅ | spielbar |
+| Pixel-Art-Rework (Abschnitt 8) | – | ✅ | fertig, kein Plan mehr |
+| Sound (Musik + SFX) | – | ✅ | fertig |
+| Hotkeys (konfigurierbar) | – | ✅ | fertig |
 
-Relevante offene Issues aus dem Repo: #19 (Markt-Server-Logik unklar),
-#21 (Ressourcenauswahl kaputt), #22 (Upgrade-System geplant — wird mit
-diesem Dokument konkretisiert), #24 (Markt-Graph unübersichtlich),
-#14 (Linux-Build kaputt).
+**Legacy/tot im Frontend** (aus der Vor-Hof-Grid-Ära, nicht mehr geroutet):
+`IdleView.vue`, `BakeView.vue`, `MarketTable.vue`, `TradePanel.vue`,
+`ResourceBar.vue`, `BuildingTile.vue`. Einzige aktive Route ist `/` →
+`FarmGridView.vue`. Aufräumen ist offen (siehe auch CLAUDE.md "Nächste Schritte").
 
 ---
 
 ## 3. Wirtschaft: Cookie-Quellen & -Senken
 
-Wichtiger Fund bei der Code-Analyse: Der bestehende Markt hat kein eigenes
-Cookie-Konto — BUY vernichtet Cookies (`cookies -= totalCost`), SELL erzeugt
-sie aus dem Nichts (`cookies += totalCost`). Ressourcen werden gratis
-geerntet, d. h. SELL ist aktuell ein offener Cookie-Faucet ohne hartes Limit.
-Damit das Gesamtsystem nicht unkontrolliert inflationiert, hier die volle
-Übersicht aller Quellen und Senken:
-
 **Faucets (Cookies entstehen):**
-- Backen (Rezept: Ressourcen → Cookies)
-- Verkaufen auf dem Markt (SELL)
+- Backen im Backhaus (Rezept: Ressourcen → Cookies), skaliert mit
+  Backen-Boost-Upgrade und Prestige-Multiplikator
+- Verkaufen auf dem Markt (SELL), abzüglich Marktgebühr
+- Automatischer Verkauf von Lager-Überschuss (siehe Abschnitt 5)
 
 **Sinks (Cookies verschwinden):**
-- Kaufen auf dem Markt (BUY) — bereits vorhanden
-- **Markt-Verkaufsgebühr (NEU)** — ein Teil jedes SELL-Erlöses wird vernichtet
-  statt ausgezahlt, statt 1:1 Cookies zu erzeugen
-- Upgrades (permanenter Sink, Abschnitt 6)
-- **Neue Gebäude auf dem Hof** (permanenter Sink, Abschnitt 4 — technisch
-  ein eigener Upgrade-Typ, siehe Abschnitt 6 Typ D)
-- Prestige-Reset (harter Sink pro Spieler, Abschnitt 9)
-- Season-Reset (harter Sink für alle, Abschnitt 10)
+- Kaufen auf dem Markt (BUY)
+- Marktgebühr auf jeden Verkauf (`sellFeeRate`, Standard 5 %, senkbar über
+  Markt-Gebäude-Level, siehe Abschnitt 6)
+- Bürger anwerben (Kosten pro Bürger wachsen exponentiell)
+- Gebäude bauen/ausbauen (Kosten wachsen exponentiell pro Stufe)
+- Upgrades kaufen (Kosten wachsen exponentiell pro Stufe)
+- Löhne (laufender Sink, jede Minute abgebucht, siehe Abschnitt 5)
+- Prestige-Reset (harter Sink pro Spieler)
+- Season-Reset (harter Sink für alle)
 
-Die Gebühr wirkt laufend, Upgrades/Gebäude mittelfristig, die Resets
-periodisch hart — sich ergänzende Bremsen gegen Inflation.
-
-**Startzustand: 0 Cookies, 0 Ressourcen, 0 Upgrades, nur Markt + Backofen
-gebaut.** Damit ist der Zustand eines brandneuen Spielers identisch zum
-Zustand direkt nach einem Prestige-Reset oder Season-Reset — ein einziger,
-konsistenter Startpunkt für alle Fälle. Net Worth beginnt bei jedem bei
-exakt 0, Rang-Fortschritt spiegelt damit echten Fortschritt wider.
-Harvesting ist gratis, also kein Soft-Lock: erster Schritt ist immer
-einfach ernten.
-
-**Mechanik Markt-Verkaufsgebühr:**
-```
-payout = totalCost × (1 - sellFeeRate)
-```
-`sellFeeRate` wird ein konfigurierbarer Wert in `MarketConfig` (wie
-`tradeDivisor`, `minPrice` etc.). Genaue Höhe: Balancing später.
+**Startzustand:** 0 Cookies, 0 Ressourcen, nur Backhaus + Rathaus + Markt +
+Lager vorgebaut (alle Stufe 1, siehe Abschnitt 4). Identisch nach Prestige-
+und Season-Reset — ein konsistenter Startpunkt.
 
 ---
 
-## 4. Hof-Grid (Haupt-Ansicht)
+## 4. Hof-Grid & Gebäude
 
-**Ersetzt die bisherige Tab-Navigation (Markt/Produktion/Backen) komplett.**
-Beim Einloggen sieht der Spieler direkt seinen Hof als Hex-Grid — eine
-Übersicht aller Gebäude, fest positioniert. Technischer Zwischenschritt vor
-dem vollen Pixel-Art-Rework (Abschnitt 16): bleibt DOM-basiert (Vue + CSS),
-nutzt das bereits bestehende Hex-Positionierungssystem aus `IdleView.vue`,
-keine Render-Engine nötig.
+Feste Pixel-Art-Ansicht (Vue + CSS, kein Canvas/Render-Engine nötig —
+`BuildingFrame.vue` positioniert jedes Gebäude absolut über `x/y` aus
+`farmLayout.js`). Kamera: Pan (Ziehen) + Zoom, Gebäude lassen sich per
+Halten+Ziehen frei verschieben (Position wird pro Spieler in `localStorage`
+gespeichert).
 
-**Layout (v1):**
-- **Markt** — Zentrum, von Anfang an gebaut
-- **Backofen** — direkt darüber, von Anfang an gebaut. Läuft ein Bake-Job,
-  wird der Fortschritt/Restzeit direkt über dem Gebäude angezeigt
-- **6 Rohstoff-Felder** (Zucker, Mehl, Eier, Butter, Schokolade, Milch) —
-  an den Seiten verteilt, von Anfang an verfügbar (bestehende
-  Hover-Ernten-Mechanik, nur umgezogen vom separaten Grid hierher).
-  Optische Gebäude-Zuordnung (z. B. Kuhstall = Milch, Weizenfeld = Mehl)
-  ist späteres Polishing, nicht Teil von v1
-- **Weitere Gebäude** (Upgrade-Shop, Leaderboard-Turm, …) erscheinen
-  **erst, sobald das jeweilige System fertig gebaut ist** — keine
-  Platzhalter für unfertige Systeme. Sobald verfügbar, werden sie wie ein
-  Upgrade mit Cookies "gebaut" (Abschnitt 6, Typ D)
+**Vorgebaute Gebäude** (ab Level 1 für jeden Spieler):
+Backhaus (fix, nicht upgradebar), Rathaus, Markt, Lager (alle drei upgradebar).
 
-**Interaktion:**
-- Klick auf ein gebautes Gebäude öffnet einen Dialog mit der zugehörigen
-  Funktion (z. B. Markt-Klick → Handels-Dialog mit aktuellem `MarketView.vue`-Inhalt;
-  Backofen-Klick → Dialog mit allen Rezepten + aktuell laufendem Bake-Job)
-- Kamera: rudimentäres Pan (Ziehen/Pfeile), keine Zoom-Mechanik in v1
+**Kaufbare Produktionsgebäude** (Zucker/Mehl/Eier/Butter/Schokolade/Milch —
+Zuckerteich, Bauernhof, Hühnerhof, Butterei, Plantage, Kuhstall): einmalig
+gebaut, danach beliebig oft ausbaubar.
 
-**Reset-Verhalten:** Prestige- und Season-Reset entfernen alle zusätzlich
-gebauten Gebäude wieder — übrig bleiben nur Markt + Backofen (siehe
-Abschnitt 9/10).
+**Kostenformel für Bau/Ausbau aller upgradebaren Gebäude** (identisch,
+exponentiell):
+```
+cost(level) = baseCost × 2^level
+```
+
+**Was jede Gebäude-Stufe bringt:**
+- Produktionsgebäude: **+1 Bürger-Slot** pro Stufe (Basis-Slots
+  variieren pro Gebäude, 1–4)
+- Lager: **+1000 Kapazität** pro Stufe (Basis 100)
+- Markt: **−2 % Marktgebühr** pro Stufe über Stufe 1 (Minimum 1 %)
+- Rathaus: **+4 maximale Bürger** pro Stufe
+
+**Hover-Ernte:** Über einem Produktionsgebäude hovern startet automatisches
+Ernten (kein Auto-Pflücker-Upgrade mehr nötig, das gab es früher separat und
+ist entfernt). Wenn das Lager voll ist, wird der Überschuss automatisch zum
+aktuellen Marktpreis (abzüglich Gebühr) verkauft statt verloren zu gehen —
+gilt für Hover-Ernte wie für passive Produktion.
 
 ---
 
-## 5. Resource & Recipe System
+## 5. Bürger-System
 
-**Design-Ziel:** Mehrere Rezepte mit unterschiedlichen Ressourcen-Profilen,
-damit nicht alle Spieler denselben "optimalen" Mix einkaufen. Das hält den
-globalen Markt über alle 6 Rohstoffe hinweg lebendig statt auf 1–2
-Ressourcen konzentriert.
+Ersetzt das ursprünglich geplante "Auto-Pflücker"-Upgrade (Abschnitt 6, alte
+Fassung) vollständig.
 
-**Tradeoff-Achsen pro Rezept:**
-- Ressourcenmix (welche Zutat dominiert)
-- Gesamtkosten (günstig & wenig Output vs. teuer & viel Output)
-- Backzeit (echter Timer/Cooldown, kein Insta-Klick mehr)
+- **Anwerben:** über das Rathaus, gedeckelt durch `Rathaus-Level × 4`
+  maximale Bürger. Kosten pro Bürger wachsen exponentiell:
+  ```
+  cost(n-ter Bürger) = 50 × 1.15^n
+  ```
+- **Zuweisen:** Bürger werden Produktionsgebäuden zugewiesen (bis zum
+  Gebäude-Slot-Limit, Abschnitt 4). Nicht zugewiesene Bürger laufen als Idle-
+  Wanderer vor dem Rathaus umher.
+- **Produktion:** jeder zugewiesene Bürger erzeugt passiv Ressourcen
+  (`passiveRatePerSecPerWorker` je Gebäude), alle 5 Sekunden gutgeschrieben.
+- **Lohn:** jede Minute wird die Summe aller Gebäude-Löhne (`wagePerMin`)
+  vom Cookie-Konto abgebucht. Reicht das Guthaben nicht, werden **alle**
+  Bürger auf `idle` gesetzt — passive Produktion pausiert komplett, bis
+  wieder genug Cookies da sind (kein Teilausfall, alles oder nichts).
 
-**Beispielhafte Rezept-Typen** (Zahlen Platzhalter, Balancing später beim Testen):
+---
+
+## 6. Markt: AMM-Preismodell
+
+Kein einfacher "Preis ± Einfluss"-Mechanismus mehr, sondern ein
+**Constant-Product-AMM** wie bei Uniswap — jede Ressource ist ein Pool aus
+Lagerbestand gegen eine virtuelle Cookie-Reserve.
+
+```
+K (pro Ressource, fix)  = initialStock² × initialPrice
+Preis(stock)             = K / stock²
+Kauf-Kosten(amount)      = K/(stock−amount) − K/stock
+Verkaufs-Erlös(amount)   = K/stock − K/(stock+amount)
+```
+
+**Warum so:** kein künstlicher Preisdeckel nötig — ein Kauf kann den Pool nie
+vollständig leerkaufen, die Kosten gehen asymptotisch gegen unendlich, je
+näher man dem verbleibenden Bestand kommt. Genau wie in einem echten
+liquiden Markt gibt es kein hartes "ausverkauft", nur "zunehmend teurer".
+Die Kurve ist konvex: ein einzelner Großtrade bewegt den Preis
+überproportional stärker als viele kleine Trades mit derselben
+Gesamtmenge — "nur die Masse bewegt den Markt spürbar" ergibt sich also
+automatisch aus der Formel, ohne separaten Spieleranzahl-Faktor.
+
+**Hintergrund-Volatilität:** alle 2 Sekunden wird der Stock jeder Ressource
+um einen kleinen zufälligen Betrag verschoben (Phantom-Kauf/-Verkauf ohne
+echten Spieler dahinter, `stockFluctuationRatio` = bis zu 2 % vom
+Ausgangsbestand), leicht Richtung Ausgangsbestand vorgespannt, damit der
+Markt langfristig nicht wegdriftet. Der Preis wird danach aus der Kurve neu
+abgeleitet — ein einziger Formel-Pfad für echte Trades wie Hintergrundrauschen.
+
+**Marktgebühr:** `sellFeeRate` (Standard 5 %, config `MarketConfig`),
+reduzierbar durch Markt-Gebäude-Level (Abschnitt 4). Nur beim SELL fällig,
+BUY ist gebührenfrei.
+
+**Admin:** `POST /api/v1/admin/market/reset` setzt Stock+Preise aller
+Ressourcen auf die Ausgangswerte zurück (dev-mode ohne Token nötig).
+
+---
+
+## 7. Resource & Recipe System
+
+Drei Rezepte, unterschiedliche Profile — hält den Markt über alle 6
+Rohstoffe hinweg relevant statt auf 1–2 Ressourcen konzentriert:
 
 | Rezept | Profil | Output | Backzeit |
 |---|---|---|---|
-| Standard | ausgewogen, je 10x | 100 Cookies | kurz |
-| Milchcookie | viel Milch, wenig Mehl/Zucker | mehr Cookies | länger |
-| Sparrezept | insgesamt wenig Ressourcen | weniger Cookies | kurz |
-
-Genaue Zutatenmengen, Output-Werte und Sekunden pro Rezept: Balancing-Phase,
-nicht jetzt im Design festlegen.
+| Standard | ausgewogen, je 10 | 100 Cookies | 30 s |
+| Milchcookie | viel Milch (25), wenig Rest | 130 Cookies | 60 s |
+| Sparrezept | insgesamt wenig (je 5) | 40 Cookies | 15 s |
 
 **Bake-Timer-Mechanik:**
-- Beim Start eines Backvorgangs werden Ressourcen sofort abgezogen (verhindert Exploits durch Abbrechen)
-- Ein Bake-Job läuft serverseitig mit `startedAt` / `completesAt`
-- Spieler kann während der Wartezeit normal weiter ernten/handeln
-- Nach Ablauf: Cookies werden per Claim gutgeschrieben (oder automatisch beim nächsten Laden)
-- Pro Spieler standardmäßig **1 aktiver Bake-Job gleichzeitig**. Mehr
-  parallele Slots sind ein kaufbares Upgrade (siehe Abschnitt 6, Typ C)
+- Ressourcen werden beim Start sofort abgezogen (kein Exploit durch Abbrechen)
+- Bake-Job läuft serverseitig mit `startedAt`/`completesAt` — Spieler kann
+  währenddessen normal weiterspielen
+- Output = `recipe.output × batches × (1 + bakeBoostLevel × 0.10) × prestigeMultiplier`
+- Claim schreibt Cookies gut, sobald der Timer abgelaufen ist
+- Slots: 1 gleichzeitiger Bake-Job standardmäßig, +1 pro Stufe des
+  "Zweiter Ofen"-Upgrades (Abschnitt 9)
+- **Dev-Mode:** Backzeit ist 0 (instant) für schnelles Testen
 
 ---
 
-## 6. Upgrade-System (Cookie-Sink)
+## 8. Pixel-Art-UI (fertig, kein Plan mehr)
 
-Vier Typen, alle mit Cookies gekauft, alle mit Levels (außer D, binär):
+Ehemals "Langzeit-Vision" (alte Abschnitt 16) — inzwischen komplett
+umgesetzt, DOM-basiert (Vue + CSS), keine Render-Engine (PixiJS/Phaser) nötig:
+
+- Design-System `pixel.css`: 4px dunkle Rahmen, 0px Radien, ausschließlich
+  Silkscreen-Font (monospace, pixelig) für die gesamte UI
+- Pixel-Icons: eigenes 8×8-Sprite-System (`PixelIcon.vue`), keine Emoji
+- Gebäude als individuelle Sprites (Kuhstall, Zuckerteich, Backhaus, …),
+  frei auf dem Hof verschiebbar
+- Bürger als animierte Pixel-Worker (`PixelWorker.vue`), laufen idle vor
+  dem Rathaus umher, wenn nicht zugewiesen
+- Custom Pixel-Scrollbar, Custom-Tooltips (`PixelInfoPopover.vue`)
+- Sound: Musik-Playlist + SFX (Hover, Klick, Buch auf/zu, Münzen, Ernte),
+  Lautstärke getrennt regelbar, Mute-Toggle je Kanal
+- Hotkeys: konfigurierbar in den Einstellungen (Zentrieren, Ernten-Halten,
+  Backhaus/Markt/Upgrades/Rangliste öffnen, etc.)
+
+---
+
+## 9. Upgrade-System (Cookie-Sink)
+
+Zwei verbliebene Typen (Automatisierung/Typ-B ist mit dem Bürger-System
+entfallen, Gebäude/Typ-D läuft jetzt über Abschnitt 4, nicht mehr hier):
 
 **A) Boosts** — permanente Stat-Multiplikatoren
-- *Schärferes Werkzeug*: Ernte-Rate pro Hover (+X% pro Level)
-- *Große Schüssel*: Cookie-Ausbeute pro Backen-Batch (+X% pro Level)
+- *Schärferes Werkzeug*: +0.5 Ressourcen pro Ernte-Tick
+- *Turbopflücker*: −100 ms Ernte-Intervall pro Stufe (Basis 1000 ms, Min 200 ms, max Stufe 8)
+- *Große Schüssel*: +10 % Cookie-Ausbeute pro Backen-Batch
 
-**B) Automatisierung** — passive Produktion ohne Hover
-- *Auto-Pflücker* (pro Rohstoff): generiert automatisch Ressourcen im
-  Hintergrund, auch ohne dass der Spieler aktiv hovert
+**C) Kapazität**
+- *Zweiter Ofen*: +1 paralleler Bake-Job-Slot (max Stufe 3)
 
-**C) Kapazität** — Backofen-Slots
-- *Zweiter Ofen*: +1 paralleler Bake-Job-Slot (Basis: 1 Slot ohne Upgrade)
-
-**D) Gebäude** — neue Hof-Gebäude freischalten
-- Einmaliger Cookie-Kauf, schaltet ein neues Gebäude auf dem Hof-Grid frei
-  (z. B. Upgrade-Shop-Gebäude, Leaderboard-Turm), sobald das zugehörige
-  System fertig implementiert ist
-
-**Kostenkurve** (Vorschlag, klassisches Idle-Game-Pattern, gilt für A–C):
+**Kostenkurve** (alle Upgrades hier):
 ```
 cost(level) = baseCost × 1.15^level
 ```
 
-**Wert für Net Worth:** voller kumulierter Kaufpreis aller bisher
-gekauften Upgrade-Stufen und Gebäude (kein Wiederverkaufsabschlag).
-
-Konkrete Upgrade-/Gebäude-Liste, baseCost-Werte und Boost-Prozentsätze: Balancing-Phase.
+**Wert für Net Worth:** kumulierter Kaufpreis aller Upgrade-Stufen (siehe
+Lücke zu Gebäuden in Abschnitt 12).
 
 ---
 
-## 7. Net Worth (Highscore-Basis)
+## 10. Net Worth, Leaderboard & Profil
 
 ```
-NetWorth = cookies
+netWorth = cookies
          + Σ (resourceAmount_i × currentMarketPrice_i)
-         + Σ (purchasePrice_j)   // über alle gekauften Upgrades + Gebäude
+         + Σ (totalSpent_j)   // über alle gekauften Upgrade-Stufen
 ```
 
-Wird **on-demand** berechnet (bei Leaderboard-Abfrage oder Profilaufruf) —
-kein zusätzlicher Live-Tracking-Aufwand nötig, da Marktpreise eh schon
-zentral vorliegen.
+On-demand berechnet (Leaderboard-/Profilabfrage). Snapshot-History wird
+zusätzlich alle 30 s pro Spieler gespeichert und gestuft komprimiert
+(< 1 h: roh, 1–24 h: minütlich, > 24 h: stündlich) — Grundlage für den
+History-Graph im Net-Worth-Dialog.
+
+**Leaderboard:** sortiert nach aktueller Net Worth, mit Rang.
+**Profil:** Steam-ID, Rang, Net Worth (+ Aufschlüsselung), Prestige-Level,
+Lifetime gebackene Cookies, Upgrade-Liste, Season-Historie.
 
 ---
 
-## 8. Leaderboard & Profil
+## 11. Prestige & Season
 
-- Rangliste sortiert nach Net Worth (aktuelle Season)
-- Klick auf Eintrag → Spieler-Profil mit:
-  - Steam-Name/Avatar
-  - Aktuelle Net Worth, Prestige-Level
-  - Lifetime gebackene Cookies
-  - Season-Historie (vergangene Platzierungen/Ergebnisse)
-  - Freigeschaltete Kosmetik (Titel, Badges)
-
----
-
-## 9. Prestige-System
-
-**Prestige ist vom Rang/Highscore komplett entkoppelt.** Der Rang basiert
-ausschließlich auf der aktuellen Net Worth — ein hohes Prestige-Level gibt
-keinen Rang-Bonus, sondern hilft nur, Net Worth nach einem Reset schneller
-wieder aufzubauen.
-
-- Freiwilliger Reset, sobald eine Mindest-Net-Worth erreicht ist
-- **Reset:** Cookies, alle Rohstoffe, alle Upgrades UND alle zusätzlich
-  gebauten Hof-Gebäude — kompletter Wipe auf den Startzustand (nur
-  Markt + Backofen übrig)
-- **Bleibt erhalten (permanent, übersteht auch Season-Resets):**
-  Prestige-Level (+1), permanenter Multiplikator, freigeschaltete Kosmetik
-
-**Strukturformeln (Platzhalter, Balancing in der Testphase):**
+**Prestige** — freiwillig pro Spieler, vom Rang komplett entkoppelt:
 ```
 threshold(level)  = 100.000 × 1.5^level
-multiplier        = 1 + (0.1 × prestigeLevel)
+multiplier        = 1 + 0.1 × prestigeLevel
+```
+Ab `netWorth ≥ threshold(level)` auslösbar. Reset: Cookies, alle Rohstoffe,
+alle Upgrades, alle Bake-Jobs, **alle Gebäude** (fallen auf "nicht gebaut"
+zurück, Backhaus/Rathaus/Markt/Lager werden beim nächsten Laden automatisch
+wieder auf Stufe 1 angelegt). Bleibt erhalten: Prestige-Level (+1),
+`totalPrestiges`, der permanente Multiplikator (wirkt auf Backen-Output und
+Ernte-Menge).
+
+**Season** — globaler Reset aller Spieler, manuell ausgelöst
+(`POST /api/v1/admin/season/start`):
+- Aktuelles Leaderboard wird pro Spieler als `SeasonResult` archiviert
+  (Rang, Net Worth, Prestige-Level) — erscheint später in der Profil-Historie
+- Reset: Cookies, Rohstoffe, Upgrades, Bake-Jobs, Prestige-Level **aller**
+  Spieler
+
+---
+
+## 12. Bekannte Lücken / Diskrepanzen zum ursprünglichen Plan
+
+- **Gebäude fließen nicht in Net Worth ein** — nur `PlayerUpgradeEntity.totalSpent`
+  wird summiert, Gebäude-Kaufpreise (`PlayerBuildingEntity`) nicht. Ursprünglicher
+  Plan sah beides vor.
+- **Season-Reset löscht keine Gebäude** (`player_buildings`) — nur Cookies,
+  Ressourcen, Upgrades, Bake-Jobs, Prestige-Level. Prestige-Reset macht es
+  korrekt (siehe Abschnitt 11). Vermutlich ein Bug, nicht bewusst so designt.
+- **Legacy-Frontend-Dateien** aus der Vor-Hof-Grid-Ära sind noch im Repo,
+  aber nicht mehr geroutet (siehe Abschnitt 2) — Aufräumen offen.
+- **Kosmetik/Titel/Badges** aus dem ursprünglichen Plan (Abschnitt 8 alt)
+  sind nicht umgesetzt; es gibt ein `OrdenDialog.vue`/Badge-System
+  (`useBadges.js`), das lose in diese Richtung geht, aber nicht als
+  "Kosmetik-Reset-Ausnahme" wie ursprünglich geplant behandelt wird.
+
+---
+
+## 13. Datenmodell (Backend, Ist-Stand)
+
+```
+UserEntity            steamId, token, cookies, sugar, flour, eggs, butter,
+                       chocolate, milk, lifetimeCookiesBaked, prestigeLevel,
+                       totalPrestiges, workersIdle, ownedCitizens
+PlayerBuildingEntity   userId, buildingId, level, workers
+PlayerUpgradeEntity    userId, upgradeId, level, totalSpent
+UpgradeEntity          id, name, description, type, targetResource,
+                       baseCost, effectPerLevel, maxLevel
+RecipeEntity           id, name, sugar, flour, eggs, butter, chocolate, milk,
+                       output, bakeDurationSeconds
+BakeJobEntity          id, userId, recipeId, batches, startedAt,
+                       completesAt, claimed
+MarketEntity           id, date, sugarPrice…milkPrice (Zeitreihen-Eintrag)
+MarketSnapshotEntity   komprimierte Langzeit-Preishistorie
+MarketStockEntity      Singleton-Zeile, Lagerbestand pro Ressource (AMM-Pool)
+NetWorthHistoryEntity  userId, timestamp, netWorth, cookies, resourceValue,
+                       upgradeValue
+SeasonEntity           id, name, startDate, endDate, active
+SeasonResultEntity     seasonId, userId, finalNetWorth, finalRank,
+                       prestigeLevelAtEnd
 ```
 
 ---
 
-## 10. Season-System
-
-- Globaler Reset **aller** Spieler (Cookies, Ressourcen, Upgrades, Gebäude, Prestige)
-- **Trigger: manuell**, vom Dev bei größeren Updates ausgelöst (entschieden)
-- Vor dem Reset: aktuelle Rangliste wird als Season-Ergebnis pro Spieler archiviert
-  (taucht später in der Profil-Historie auf)
-- Kosmetik/Account-Achievements bleiben über Seasons hinweg erhalten
-
----
-
-## 11. Offene Designfragen
-
-- [ ] Kosmetik konkret: Titel-Text? Profil-Rahmen? Icons? — später, wenn Design klarer
-- [ ] Welches Gebäude steht optisch für welchen Rohstoff (Kuhstall=Milch,
-      Weizenfeld=Mehl, …) — Polishing-Frage, nicht blockierend für v1
-- [ ] Alle Balancing-Zahlen (sellFeeRate, Prestige-Schwelle/Multiplikator,
-      Upgrade-/Gebäude-Kosten, Boost-Werte, Rezept-Mengen/Output/Backzeit) —
-      bewusst erst in der Testphase, nicht im Design
-
----
-
-## 12. Datenmodell-Erweiterungen (Backend)
-
-**`UserEntity` erweitern:**
-```
-prestigeLevel         int
-totalPrestiges        int
-lifetimeCookiesBaked  double
-currentSeasonId       String
-```
-
-**`MarketConfig` erweitern:**
-```
-sellFeeRate    double   // Anteil des Verkaufserlöses, der vernichtet wird
-```
-
-**Neue Entities:**
-```
-RecipeEntity          (id, name, sugar, flour, eggs, butter, chocolate, milk, output, bakeDurationSeconds)
-BakeJobEntity         (id, userId, recipeId, batches, startedAt, completesAt, claimed)
-UpgradeEntity         (id, type [BOOST|AUTOMATION|CAPACITY|BUILDING], targetResource, gridPosition, baseCost, effectPerLevel)
-PlayerUpgradeEntity   (userId, upgradeId, level, totalSpent)
-SeasonEntity          (id, startDate, endDate, active)
-SeasonResultEntity    (seasonId, userId, finalNetWorth, finalRank, prestigeLevelAtEnd)
-PlayerCosmeticEntity  (userId, cosmeticId, unlockedAt)
-```
-`gridPosition` nur relevant für Typ `BUILDING` — feste Hex-Koordinate auf
-dem Hof-Grid, wo das Gebäude erscheint, sobald gebaut.
-
----
-
-## 13. Neue / geänderte API-Endpunkte
+## 14. API-Endpunkte (Ist-Stand)
 
 | Method | Endpoint | Zweck |
 |---|---|---|
-| GET | `/api/v1/farm/layout` | Hof-Grid-Layout: Positionen + Baustatus aller Gebäude |
-| GET | `/api/v1/recipes` | Liste verfügbarer Rezepte |
-| POST | `/api/v1/game/bake/start/{userId}` | Bake-Job starten (recipeId, batches), Ressourcen abziehen |
-| GET | `/api/v1/game/bake/status/{userId}` | Aktueller Bake-Job + Restzeit |
-| POST | `/api/v1/game/bake/claim/{userId}` | Fertigen Bake-Job einlösen → Cookies |
-| GET | `/api/v1/upgrades` | Liste verfügbarer Upgrades/Gebäude + Preise |
-| POST | `/api/v1/game/upgrade/{userId}` | Upgrade/Gebäude kaufen/leveln |
-| GET | `/api/v1/leaderboard?seasonId=current` | Rangliste nach Net Worth |
-| GET | `/api/v1/players/{steamId}/profile` | Vollständiges Profil + Historie |
-| POST | `/api/v1/game/prestige/{userId}` | Prestige-Reset ausführen |
-| POST | `/api/v1/admin/season/start` | Neue Season auslösen (geschützt) |
-
-Alter `POST /api/v1/game/produce/{userId}` wird durch das Bake-Job-Trio ersetzt.
-`MarketService.performAction()` (SELL-Zweig) wird um die Gebühr ergänzt.
-
----
-
-## 14. Frontend-Erweiterungen
-
-- `FarmGridView.vue` (NEU) — Haupt-Ansicht, ersetzt `App.vue`-Tab-Navigation;
-  rendert Hex-Grid mit `BuildingTile.vue` pro Gebäude/Feld, einfaches
-  Pan (Drag/Pfeile)
-- `BuildingTile.vue` (NEU) — einzelnes Gebäude/Feld: gebaut, Hover-Erntefeld,
-  oder unsichtbar (nicht freigeschaltet); öffnet bei Klick den passenden Dialog
-- `MarketDialog.vue` — wrappt bestehenden `MarketView.vue`-Inhalt als Modal
-- `BakeDialog.vue` (vormals `RecipeCard.vue`/`BakeView.vue`) — Rezeptauswahl
-  (Tabs/Dropdown), Zutatenanzeige je Rezept, Fortschrittsbalken/Countdown,
-  Claim-Button
-- `UpgradeShopView.vue` — eigenes Gebäude, Liste der Upgrades, Kaufen-Buttons
-- `LeaderboardView.vue` — eigenes Gebäude, Rangliste, Klick → Profil
-- `PlayerProfileView.vue` — Profilansicht/Modal
-- `PrestigePanel.vue` — zeigt Net Worth, Schwelle, Multiplikator, Reset-Bestätigung
+| GET | `/api/v1/config` | devMode, sellFeeRate |
+| POST | `/api/v1/users/{userId}` | Spieler anlegen/Login |
+| GET | `/api/v1/users/{userId}` | Spielerdaten |
+| GET | `/api/v1/game/init/{userId}` | Kompletter Init-Payload (User, Markt, Rezepte, Gebäude) |
+| POST | `/api/v1/game/harvest/{userId}` | Hover-Ernte |
+| POST | `/api/v1/game/bake/start/{userId}` | Bake-Job starten |
+| GET | `/api/v1/game/bake/status/{userId}` | Aktueller Bake-Job |
+| POST | `/api/v1/game/bake/claim/{userId}` | Bake-Job einlösen |
+| GET | `/api/v1/game/prestige/status/{userId}` | Prestige-Status/Schwelle |
+| POST | `/api/v1/game/prestige/{userId}` | Prestige-Reset |
+| GET | `/api/v1/recipes` | Rezeptliste |
+| GET | `/api/v1/farm/buildings/{userId}` | Gebäudeliste + Status |
+| POST | `/api/v1/farm/buildings/buy/{userId}` | Gebäude bauen/ausbauen |
+| POST | `/api/v1/farm/buildings/workers/{userId}` | Bürger zuweisen/entfernen |
+| POST | `/api/v1/farm/citizens/buy/{userId}` | Bürger anwerben |
+| GET | `/api/v1/upgrades?userId=` | Upgrade-Liste + Preise |
+| POST | `/api/v1/upgrades/buy/{userId}` | Upgrade kaufen |
+| GET | `/api/v1/market/get/{amount}` | Letzte N Marktpreise |
+| GET | `/api/v1/market/all` | Marktpreise (bis 500) |
+| GET | `/api/v1/market/history` | Aggregierte Preishistorie (Chart) |
+| POST | `/api/v1/market` | Kaufen/Verkaufen |
+| GET | `/api/v1/leaderboard` | Rangliste |
+| GET | `/api/v1/players/{steamId}/networth` | Net Worth + Rang |
+| GET | `/api/v1/players/{steamId}/networth/history` | Net-Worth-Verlauf |
+| GET | `/api/v1/players/{steamId}/profile` | Vollständiges Profil |
+| GET | `/api/v1/seasons/current` | Aktuelle Season |
+| WS | `/ws/market` | Live-Preis-Broadcast |
+| POST | `/api/v1/admin/reset/{userId}` | Spieler zurücksetzen (dev/Token) |
+| POST | `/api/v1/admin/market/reset` | Markt zurücksetzen (dev/Token) |
+| POST | `/api/v1/admin/season/start` | Neue Season starten (Token) |
 
 ---
 
-## 15. Implementierungs-Reihenfolge
+## 15. Offene Designfragen
 
-| Phase | Inhalt | Aufwand |
-|---|---|---|
-| 1 | ✅ RecipeCard einbinden → Grund-Loop spielbar (1 instant Rezept) | klein |
-| 1b | Markt-Verkaufsgebühr (Sink) | klein |
-| 1c | Rezept-Varianten + Bake-Timer (ersetzt Phase-1-Mechanik) | mittel-groß |
-| 1d | Hof-Grid als Hauptansicht (Markt + Backofen + Rohstoff-Felder, ersetzt Tabs) | mittel-groß |
-| 2 | Upgrade-System inkl. Gebäude-Typ D (Backend + Frontend) | mittel |
-| 3 | Net-Worth-Berechnung + einfaches Leaderboard (eigenes Hof-Gebäude) | mittel |
-| 4 | Spieler-Profil-Ansicht | mittel |
-| 5 | Prestige-System (Backend + Frontend) | mittel-groß |
-| 6 | Season-System (Reset + Archivierung) | groß, kann zeitlich entkoppelt werden |
-
-Bestehende Bugs (#19, #21, #24, #14) je nach Dringlichkeit parallel einstreuen.
-
----
-
-## 16. Langfristige Vision: Visueller Pixel-Art-Rework (nach v1)
-
-Referenz: "Forage Wizard" — Vogelperspektive, Pixel-Art, freie Kamera,
-individuelle Gebäude-Sprites pro Ressource (z. B. Kuhstall für Milch,
-Weizenfeld für Mehl).
-
-- **Baut direkt auf dem Hof-Grid aus Abschnitt 4 auf** — gleiche Struktur
-  (feste Gebäude-Positionen, Klick öffnet Dialog), nur die Render-Schicht
-  wird ausgetauscht
-- Technisch ein eigener Schnitt: das Hof-Grid (v1) ist DOM-basiert
-  (Vue + CSS). Für echte Pixel-Art-Gebäude mit freier Kamera braucht es
-  eine echte Render-Schicht (z. B. PixiJS oder Phaser) im
-  Electron-Frontend — Sprites, Kamera, Gebäude-Platzierung statt
-  Vue-Templates
-- Wird als eigene Design-Iteration angegangen, sobald v1 (Phase 1–6) steht
+- [ ] Kosmetik/Titel/Badges konkret ausbauen oder Plan streichen
+      (aktueller `OrdenDialog`/Badge-Ansatz vs. ursprüngliche Season-übergreifende
+      Kosmetik-Idee)
+- [ ] Gebäude-Wert in Net Worth aufnehmen? (Abschnitt 12)
+- [ ] Season-Reset soll wahrscheinlich auch Gebäude zurücksetzen (Abschnitt 12)
+- [ ] Balancing aller Zahlen (Preise, Löhne, Backzeiten, Boost-Stärken,
+      Prestige-Schwelle) weiterhin offen, bewusst nicht hier festgeschrieben

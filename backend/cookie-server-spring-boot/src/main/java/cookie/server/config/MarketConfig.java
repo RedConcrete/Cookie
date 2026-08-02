@@ -1,7 +1,7 @@
 package cookie.server.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * Konfiguration für die Marktpreisberechnung.
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  * Handel bewegt den Stock direkt; der Zufalls-Tick bewegt den Stock um kleine Phantom-Betraege
  * (siehe stockFluctuationRatio), nicht den Preis selbst.
  */
-@Configuration
+@Component
 @ConfigurationProperties(prefix = "market")
 public class MarketConfig {
 
