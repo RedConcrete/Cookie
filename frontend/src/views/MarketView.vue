@@ -87,9 +87,11 @@ const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const chartRef     = ref(null)
 
+// Muss mit RESOURCE_COLORS in PriceChart.vue uebereinstimmen -- Legend-Chip-Farbe
+// soll der jeweiligen Chart-Linie entsprechen.
 const COLORS = {
-  SUGAR: '#e05a4a', FLOUR: '#5aa0e0', EGGS: '#8fae5c',
-  BUTTER: '#e8b93c', CHOCOLATE: '#6b3b1c', MILK: '#9fb3c2',
+  SUGAR: '#ef4444', FLOUR: '#3b82f6', EGGS: '#22c55e',
+  BUTTER: '#eab308', CHOCOLATE: '#a855f7', MILK: '#06b6d4',
 }
 
 const { playCoins } = useAudio()

@@ -8,9 +8,9 @@
           <div class="us-group-label">{{ group.label.toUpperCase() }}</div>
           <div v-for="u in group.items" :key="u.id" class="us-row">
             <div class="us-info">
-              <NestedTooltip :content="tooltipContent(u)">
+              <PixelInfoPopover :rows="tooltipRows(u)" :title="u.name" :note="tooltipNote(u)" :width="260">
                 <div class="us-name">{{ u.name }}</div>
-              </NestedTooltip>
+              </PixelInfoPopover>
               <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
@@ -26,9 +26,9 @@
         <div class="us-auto-grid">
           <div v-for="u in group.items" :key="u.id" class="us-row">
             <div class="us-info">
-              <NestedTooltip :content="tooltipContent(u)">
+              <PixelInfoPopover :rows="tooltipRows(u)" :title="u.name" :note="tooltipNote(u)" :width="260">
                 <div class="us-name">{{ u.name }}</div>
-              </NestedTooltip>
+              </PixelInfoPopover>
               <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
@@ -46,7 +46,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { getUpgrades, buyUpgrade, initGame } from '../services/api.js'
-import NestedTooltip from './NestedTooltip.vue'
+import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const playerStore = usePlayerStore()
@@ -74,14 +74,16 @@ function canAfford(u) { return playerStore.cookies >= u.nextLevelCost }
 function atMax(u)     { return u.maxLevel > 0 && u.currentLevel >= u.maxLevel }
 function fmt(v)       { return Number(v).toFixed(2) }
 
-function tooltipContent(u) {
+function tooltipRows(u) {
   const nextLvl = u.currentLevel + 1
   return [
-    { text: u.description },
-    { text: ` | Stufe ${nextLvl}: +${u.effectPerLevel * nextLvl} Effekt` },
-    { text: ' | Kosten: ', tooltip: `Formel: ${u.nextLevelCost.toFixed(0)} × 1.15^Stufe` },
-    { text: `${fmt(u.nextLevelCost)} C` },
+    { k: `Stufe ${nextLvl}`, v: `+${u.effectPerLevel * nextLvl} Effekt`, color: 'g' },
+    { k: 'Kosten', v: `${fmt(u.nextLevelCost)} C`, color: 'y' },
   ]
+}
+
+function tooltipNote(u) {
+  return `${u.description} — Kostenformel: ${u.nextLevelCost.toFixed(0)} × 1.15^Stufe`
 }
 
 async function load() {

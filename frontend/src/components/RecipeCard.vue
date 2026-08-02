@@ -46,11 +46,11 @@
           <div class="rc-label">LOHNT ES SICH?</div>
           <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
             <span>Backen</span>
-            <span>{{ fmt2(bakeOutput) }} C <template v-if="bakeBetter">&check; besser</template></span>
+            <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>
           </div>
           <div class="rc-profit-row" :class="!bakeBetter ? 'winner' : ''">
             <span>Ressourcen verkaufen</span>
-            <span>{{ fmt2(ingredientSellValue) }} C <template v-if="!bakeBetter">&check; besser</template></span>
+            <span>{{ fmt2(ingredientSellValue) }} <PixelIcon name="cookie" :size="12" /> </span>
           </div>
           <div class="rc-profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
             {{ bakeBetter ? '+' : '' }}{{ fmt2(bakeOutput - ingredientSellValue) }} C durch Backen

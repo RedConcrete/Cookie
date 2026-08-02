@@ -60,18 +60,16 @@ public class BuildingService {
     /** Creates level-1 entries for pre-built buildings if they don't exist yet. */
     @Transactional
     public void ensurePreBuiltBuildings(String userId) {
+        Map<String, PlayerBuildingEntity> owned = ownedMap(userId);
         for (BuildingDef def : BUILDINGS) {
-            if (!def.preBuilt()) continue;
-            boolean exists = buildingRepo.findByUserIdAndBuildingId(userId, def.id()).isPresent();
-            if (!exists) {
-                PlayerBuildingEntity ent = new PlayerBuildingEntity();
-                ent.setId(UUID.randomUUID().toString());
-                ent.setUserId(userId);
-                ent.setBuildingId(def.id());
-                ent.setLevel(1);
-                ent.setWorkers(0);
-                buildingRepo.save(ent);
-            }
+            if (!def.preBuilt() || owned.containsKey(def.id())) continue;
+            PlayerBuildingEntity ent = new PlayerBuildingEntity();
+            ent.setId(UUID.randomUUID().toString());
+            ent.setUserId(userId);
+            ent.setBuildingId(def.id());
+            ent.setLevel(1);
+            ent.setWorkers(0);
+            buildingRepo.save(ent);
         }
     }
 
@@ -153,7 +151,7 @@ public class BuildingService {
         return userRepo.save(user);
     }
 
-    /** Kosten für den (ownedCount+1)-ten Bürger -- exponentiell wie die Upgrade-Kostenkurve. */
+    /** Kosten für den (ownedCount+1)-ten Bürger -- exponentiell, Wachstumsrate wie bei den Upgrades (1.15^n), nicht wie Gebäude-Ausbau (2^level). */
     private double citizenCost(int ownedCount) {
         return balance.getCitizenBaseCost() * Math.pow(balance.getCitizenCostGrowth(), ownedCount);
     }
@@ -167,8 +165,13 @@ public class BuildingService {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     public double getTotalCap(String userId) {
-        int lagerLevel = getBuildingLevel(userId, "lager");
-        return balance.getBaseStorageCap() + (long) lagerLevel * balance.getStoragePerLevel();
+        return getTotalCap(ownedMap(userId));
+    }
+
+    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben (z.B. pro Tick im Scheduler). */
+    public double getTotalCap(Map<String, PlayerBuildingEntity> owned) {
+        int lagerLevel = owned.containsKey("lager") ? owned.get("lager").getLevel() : 0;
+        return balance.getBaseStorageCap() + lagerLevel * balance.getStoragePerLevel();
     }
 
     public double getTotalWage(String userId) {
@@ -197,13 +200,22 @@ public class BuildingService {
 
     /** Per-player sell fee rate accounting for Markt upgrade level. */
     public double getEffectiveSellFeeRate(String userId, double baseRate) {
-        int marktLevel = getBuildingLevel(userId, "markt");
+        return getEffectiveSellFeeRate(ownedMap(userId), baseRate);
+    }
+
+    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
+    public double getEffectiveSellFeeRate(Map<String, PlayerBuildingEntity> owned, double baseRate) {
+        int marktLevel = owned.containsKey("markt") ? owned.get("markt").getLevel() : 0;
         double discount = Math.max(0, marktLevel - 1) * 0.02;
         return Math.max(0.01, baseRate - discount);
     }
 
     public List<PassiveTick> computePassiveTicks(String userId, double tickSeconds) {
-        Map<String, PlayerBuildingEntity> owned = ownedMap(userId);
+        return computePassiveTicks(ownedMap(userId), tickSeconds);
+    }
+
+    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
+    public List<PassiveTick> computePassiveTicks(Map<String, PlayerBuildingEntity> owned, double tickSeconds) {
         List<PassiveTick> result = new ArrayList<>();
         for (BuildingDef def : BUILDINGS) {
             if (def.passiveResource() == null || def.passiveRatePerSecPerWorker() <= 0) continue;
@@ -242,7 +254,8 @@ public class BuildingService {
         return dto;
     }
 
-    private Map<String, PlayerBuildingEntity> ownedMap(String userId) {
+    /** Alle Gebaeude eines Spielers als Map (buildingId -> Entity), einmal laden statt pro Helper neu zu queryen. */
+    public Map<String, PlayerBuildingEntity> ownedMap(String userId) {
         Map<String, PlayerBuildingEntity> m = new HashMap<>();
         buildingRepo.findByUserId(userId).forEach(b -> m.put(b.getBuildingId(), b));
         return m;

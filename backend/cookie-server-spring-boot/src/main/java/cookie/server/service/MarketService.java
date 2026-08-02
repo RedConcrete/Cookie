@@ -240,7 +240,8 @@ public class MarketService {
                 throw new IllegalArgumentException("Not enough " + resource + ". Need: " + amount + ", Have: " + userAmount);
             }
             addResourceToUser(user, resource, -amount);
-            double payout = sellPayout(marketStock, resource, amount) * (1.0 - marketConfig.getSellFeeRate());
+            double feeRate = buildingService.getEffectiveSellFeeRate(request.getUserId(), marketConfig.getSellFeeRate());
+            double payout = sellPayout(marketStock, resource, amount) * (1.0 - feeRate);
             user.setCookies(user.getCookies() + payout);
         }
 

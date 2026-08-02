@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "users")
@@ -11,6 +12,15 @@ public class UserEntity {
 
     @Id
     private String steamId;
+
+    // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
+    // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
+    // und einer der beiden Writes (Lohn-Abzug oder Produktions-Gutschrift) geht stillschweigend
+    // verloren. Mit @Version wirft JPA eine OptimisticLockException, wenn zwischen Lesen und
+    // Schreiben ein anderer Prozess die Zeile geaendert hat -- Aufrufer muss dann neu laden
+    // und erneut versuchen (siehe Retry-Schleifen in den Schedulern).
+    @Version
+    private Long version;
 
     private String token;
 
@@ -36,6 +46,10 @@ public class UserEntity {
 
     public void setSteamId(String steamId) {
         this.steamId = steamId;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public String getToken() {

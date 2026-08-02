@@ -2,6 +2,7 @@ package cookie.server.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -35,6 +36,15 @@ public class GlobalExceptionHandler {
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .orElse("Invalid request");
         return ResponseEntity.badRequest().body(Map.of("error", message));
+    }
+
+    // Optimistic-Lock-Konflikt (@Version auf UserEntity): ein anderer Request/Scheduler-Tick
+    // hat den Datensatz zwischen Lesen und Schreiben geaendert. Transient -- Client/Aufrufer
+    // soll es einfach nochmal versuchen, kein Serverfehler.
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLock(OptimisticLockingFailureException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Konflikt beim Speichern, bitte erneut versuchen."));
     }
 
     // Nicht gefundene Ressourcen (User, Upgrade, ...)

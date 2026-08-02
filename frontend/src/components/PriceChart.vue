@@ -116,8 +116,11 @@ function computeYRange() {
   if (pctMode.value) {
     for (const r of visibleResources) {
       const key = PRICE_KEY[r]
+      // Basis muss dieselbe sein wie in buildDatasets() (erster Wert der GESAMTEN
+      // Historie, nicht des gezoomten Fensters) -- sonst weicht die Achse von den
+      // tatsaechlich geplotteten Punkten ab.
+      const base = fullHistory.map(m => m[key] ?? 0).find(v => v > 0) ?? 1
       const raw = source.map(m => m[key] ?? 0)
-      const base = raw.find(v => v > 0) ?? 1
       for (const v of raw) {
         const pct = ((v - base) / base) * 100
         if (pct < min) min = pct

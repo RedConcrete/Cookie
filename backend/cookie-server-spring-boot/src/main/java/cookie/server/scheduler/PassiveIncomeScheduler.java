@@ -1,73 +1,62 @@
 package cookie.server.scheduler;
 
+import cookie.server.config.GameBalanceConfig;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.UserRepository;
-import cookie.server.service.BuildingService;
-import cookie.server.service.MarketService;
+import cookie.server.service.PassiveIncomeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Component
 public class PassiveIncomeScheduler {
     private static final Logger log = LoggerFactory.getLogger(PassiveIncomeScheduler.class);
-    private static final double TICK_SECONDS = 5.0;
+    private static final int MAX_RETRIES = 3;
 
     private final UserRepository userRepository;
-    private final BuildingService buildingService;
-    private final MarketService marketService;
+    private final PassiveIncomeService passiveIncomeService;
+    private final GameBalanceConfig balance;
 
     public PassiveIncomeScheduler(UserRepository userRepository,
-                                  BuildingService buildingService,
-                                  MarketService marketService) {
+                                  PassiveIncomeService passiveIncomeService,
+                                  GameBalanceConfig balance) {
         this.userRepository = userRepository;
-        this.buildingService = buildingService;
-        this.marketService = marketService;
+        this.passiveIncomeService = passiveIncomeService;
+        this.balance = balance;
     }
 
+    // Feste 5s-Kadenz -- @Scheduled braucht einen zur Startzeit bekannten Wert, kann also nicht
+    // aus der live editierbaren GameBalanceConfig gelesen werden (die Admin-Panel-Aenderung
+    // wirkt sich aber sofort auf die PRODUZIERTE MENGE pro Tick aus, siehe balance.getPassiveTickSeconds()
+    // unten -- nur das Intervall selbst braucht einen Neustart, wenn es je konfigurierbar werden soll).
     @Scheduled(fixedRate = 5_000)
-    @Transactional
     public void tick() {
         if (userRepository.count() == 0) return;
         List<UserEntity> users = userRepository.findAll();
+        double tickSeconds = balance.getPassiveTickSeconds();
         for (UserEntity user : users) {
-            if (user.isWorkersIdle()) continue;
+            creditWithRetry(user.getSteamId(), tickSeconds);
+        }
+    }
+
+    // Eigene Transaktion pro Spieler (siehe PassiveIncomeService) + Retry bei Optimistic-Lock-
+    // Konflikt mit dem WageScheduler, der parallel auf denselben User schreiben kann.
+    private void creditWithRetry(String userId, double tickSeconds) {
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                List<BuildingService.PassiveTick> ticks =
-                        buildingService.computePassiveTicks(user.getSteamId(), TICK_SECONDS);
-                if (ticks.isEmpty()) continue;
-
-                double cap = buildingService.getTotalCap(user.getSteamId());
-                double total = user.getSugar() + user.getFlour() + user.getEggs()
-                             + user.getButter() + user.getChocolate() + user.getMilk();
-
-                for (BuildingService.PassiveTick t : ticks) {
-                    double available = Math.max(0, cap - total);
-                    double toAdd     = Math.min(t.amount(), available);
-                    double overflow  = t.amount() - toAdd;
-
-                    if (overflow > 0) {
-                        double price  = marketService.getCurrentPrice(t.resource());
-                        double payout = overflow * price * (1.0 - marketService.getSellFeeRate());
-                        user.setCookies(user.getCookies() + payout);
-                    }
-
-                    switch (t.resource()) {
-                        case SUGAR     -> { user.setSugar(user.getSugar() + toAdd);         total += toAdd; }
-                        case FLOUR     -> { user.setFlour(user.getFlour() + toAdd);         total += toAdd; }
-                        case EGGS      -> { user.setEggs(user.getEggs() + toAdd);           total += toAdd; }
-                        case BUTTER    -> { user.setButter(user.getButter() + toAdd);       total += toAdd; }
-                        case CHOCOLATE -> { user.setChocolate(user.getChocolate() + toAdd); total += toAdd; }
-                        case MILK      -> { user.setMilk(user.getMilk() + toAdd);           total += toAdd; }
-                    }
+                passiveIncomeService.creditUser(userId, tickSeconds);
+                return;
+            } catch (OptimisticLockingFailureException e) {
+                if (attempt == MAX_RETRIES) {
+                    log.warn("Passive tick: giving up on {} after {} attempts (lock conflict)", userId, MAX_RETRIES);
                 }
-                userRepository.save(user);
             } catch (Exception e) {
-                log.error("Passive tick failed for {}: {}", user.getSteamId(), e.getMessage());
+                log.error("Passive tick failed for {}", userId, e);
+                return;
             }
         }
     }
