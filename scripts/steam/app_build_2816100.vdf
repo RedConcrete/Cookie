@@ -1,0 +1,24 @@
+"AppBuild"
+{
+	"AppID" "2816100"
+	"Desc" "Cookie -- Windows-Client Beta-Upload"
+
+	// Preview-Lauf 2026-08-03 erfolgreich (321.7MB gescannt) -- jetzt echter Upload.
+	"Preview" "0"
+
+	// Absolute Pfade, damit es egal ist von wo steamcmd aufgerufen wird.
+	"ContentRoot" "/var/home/fklose/Dokumente/Cookie/frontend/release/win-unpacked/"
+	"BuildOutput" "/home/fklose/steamworks_sdk/sdk/tools/ContentBuilder/output/"
+
+	// SetLive schlaegt bei diesem Account/dieser App IMMER fehl ("Failed to
+	// commit build"), egal welcher Branch-Name -- Upload selbst klappt aber
+	// jedes Mal. Deshalb hier weggelassen: Build hochladen, danach manuell im
+	// Steamworks-Portal (Tab "Ihre Builds") auf den Branch liveschalten.
+
+	"Depots"
+	{
+		// 2816102 = Windows-Depot ("Cookie"-Depot). 2816101 waere Linux
+		// (nicht relevant hier, wir bauen nur den Windows-Client).
+		"2816102" "depot_build_2816102.vdf"
+	}
+}

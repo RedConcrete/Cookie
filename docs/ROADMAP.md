@@ -27,6 +27,19 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
   vertraute Testgruppe, kein Fremd-Traffic) vorerst zurückgestellt —
   zwingend vor jedem Early-Access-/Public-Release nachholen.
 
+- [ ] **Browser-Zugang (ohne Electron) — Steam OpenID-Login.**
+  Aktuell nur über Electron+`steamworks.js` spielbar; der Web-Fallback in
+  `App.vue` (kein `window.electronAPI`) nutzt nur `DEV_PLAYER_001` bei
+  `dev-mode=true` — kein echter Login im Browser. Separater Mechanismus
+  von obigem Ticket-Auth-Punkt: Steam OpenID (`login.steampowered.com/openid`,
+  klassisches "Sign in through Steam"-Redirect), läuft komplett im Browser,
+  kein natives SDK nötig. Server verifiziert die OpenID-Antwort → echte
+  SteamID. Achtung: OpenID bestätigt nur die Identität, nicht den
+  Spielbesitz — für Kaufpflicht zusätzlich Ownership-Check über die Steam
+  Web API (`CheckAppOwnership` o.ä.) mit der verifizierten SteamID. Eigener
+  Implementierungsaufwand, kommt on top zum Ticket-Auth-Punkt oben, nicht
+  parallel nebenbei einflicken.
+
 - [x] **Negative-Amount-Exploit im Markt (kritisch).** — behoben 2026-08-02.
   `MarketService.performAction()` prüfte `amount` nie auf `> 0`. Ein `BUY`
   mit negativem `amount` machte die Kosten negativ → Cookie-Duplizierung;

@@ -1,7 +1,8 @@
 <template>
   <div class="app" @mousedown="onMouseDown" @mouseover="onMouseOver">
     <div v-if="blocked" class="status-overlay error">
-      Bitte das Spiel über Steam starten.
+      <div>Bitte das Spiel über Steam starten.</div>
+      <button class="px-btn" @click="exitGame">BEENDEN</button>
     </div>
 
     <template v-else>
@@ -26,6 +27,10 @@ const playerStore = usePlayerStore()
 const audio       = useAudio()
 
 const blocked = ref(false)
+
+function exitGame() {
+  window.close()
+}
 
 // ── Audio-Events ─────────────────────────────────────────
 const INTERACTIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'LABEL'])
@@ -56,7 +61,7 @@ onMounted(async () => {
     return
   }
   try {
-    const res = await fetch('http://localhost:9876/api/v1/config')
+    const res = await fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876') + '/api/v1/config')
     const cfg = await res.json()
     if (cfg.devMode) {
       await playerStore.init('DEV_PLAYER_001')
