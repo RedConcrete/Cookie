@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:9876'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876'
 
 async function request(method, path, body) {
   const options = {

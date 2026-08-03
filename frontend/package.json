@@ -38,16 +38,6 @@
       "dist/**/*",
       "electron/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "../backend/cookie-server-spring-boot/target/",
-        "to": "backend/",
-        "filter": [
-          "*.jar",
-          "!*sources*"
-        ]
-      }
-    ],
     "directories": {
       "output": "release"
     },

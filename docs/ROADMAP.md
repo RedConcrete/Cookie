@@ -11,6 +11,22 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
 
 ## 0. Sofort (Sicherheit / Datenintegrität)
 
+- [ ] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
+  `app.dev-mode=false` schaltet aktuell NUR die Admin-Token-Pflicht scharf
+  (`AdminConfigController`, `AdminController`) sowie Bake-Dauer/Dev-Reset —
+  alle normalen Gameplay-Endpunkte (`game/init`, `farm/*`, `market/*`) nehmen
+  die `steamId` ungeprüft als Parameter entgegen. Jeder Client (curl, o.ä.)
+  kann sich als beliebige `steamId` ausgeben, fremde Ressourcen/Cookies
+  ändern oder im geteilten Markt handeln. `electron/main.js` holt zwar über
+  `steamworks.js` eine echte SteamID vom Client, reicht sie aber nur
+  ungeprüft weiter — keine serverseitige Verifizierung.
+  **Fix (noch offen):** `GetAuthSessionTicket` client-seitig (via
+  `steamworks.js`) + serverseitige Validierung über Steamworks Web API
+  (`ISteamUserAuth/AuthenticateUserTicket`) vor jedem Request, der eine
+  `steamId` entgegennimmt. Für eine geschlossene Freundes-Beta (kleine,
+  vertraute Testgruppe, kein Fremd-Traffic) vorerst zurückgestellt —
+  zwingend vor jedem Early-Access-/Public-Release nachholen.
+
 - [x] **Negative-Amount-Exploit im Markt (kritisch).** — behoben 2026-08-02.
   `MarketService.performAction()` prüfte `amount` nie auf `> 0`. Ein `BUY`
   mit negativem `amount` machte die Kosten negativ → Cookie-Duplizierung;
