@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d %~dp0
+cd /d %~dp0..
 
 :menu
 cls
@@ -31,9 +31,9 @@ goto menu
 cls
 echo  [Dev] Starte Backend und Frontend...
 echo.
-start "Cookie Backend" cmd /k "cd /d %~dp0backend\cookie-server-spring-boot && mvnw.cmd spring-boot:run"
+start "Cookie Backend" cmd /k "cd /d %~dp0..\backend\cookie-server-spring-boot && mvnw.cmd spring-boot:run"
 timeout /t 5 /nobreak >nul
-start "Cookie Frontend" cmd /k "cd /d %~dp0frontend && npm run dev"
+start "Cookie Frontend" cmd /k "cd /d %~dp0..\frontend && npm run dev"
 echo.
 echo  Backend:  http://localhost:9876
 echo  Frontend: http://localhost:5173
@@ -49,7 +49,7 @@ call :build_backend
 if errorlevel 1 goto build_error
 echo.
 echo  [Build] Baue Windows Installer...
-cd /d %~dp0frontend
+cd /d %~dp0..\frontend
 call npm run build:win
 if errorlevel 1 goto build_error
 echo.
@@ -66,7 +66,7 @@ call :build_backend
 if errorlevel 1 goto build_error
 echo.
 echo  [Build] Baue Linux AppImage...
-cd /d %~dp0frontend
+cd /d %~dp0..\frontend
 call npm run build:linux
 if errorlevel 1 goto build_error
 echo.
@@ -83,7 +83,7 @@ call :build_backend
 if errorlevel 1 goto build_error
 echo.
 echo  [Build] Baue Windows + Linux...
-cd /d %~dp0frontend
+cd /d %~dp0..\frontend
 call npm run build:all
 if errorlevel 1 goto build_error
 echo.
@@ -97,14 +97,14 @@ goto menu
 cls
 echo  [Docker] Starte alle Services...
 echo.
-cd /d %~dp0
+cd /d %~dp0..
 docker compose up --build
 pause
 goto menu
 
 :: ------------------------------------------
 :build_backend
-cd /d %~dp0backend\cookie-server-spring-boot
+cd /d %~dp0..\backend\cookie-server-spring-boot
 echo  Maven baut JAR (dauert beim ersten Mal 1-2 Minuten)...
 call mvnw.cmd package -DskipTests
 exit /b %errorlevel%

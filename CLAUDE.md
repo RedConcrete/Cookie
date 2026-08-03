@@ -25,6 +25,11 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 - Kommentare/Code-Erklärungen knapp halten (keine Füllwörter)
 - Backend-Validierung ist Pflicht bei allem, was Ressourcen/Cookies bewegt
   (Client-Werte nie vertrauen)
+- Neue Pixel-Art nur mit der Fruitpunch24-Palette
+  (`frontend/src/assets/colorpalate/fruitpunch24.hex`), siehe
+  `docs/cookie-game-design.md` Abschnitt 8.1 — keine anderen Farben.
+  Bestehende Gebäude-SVGs sind Platzhalter und davon ausgenommen (siehe
+  `docs/ROADMAP.md`).
 
 ## Aktueller Stand (2026-07-31)
 
@@ -33,7 +38,7 @@ Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s)
 Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint).
 
 **Vollständige Fix-/Roadmap-Liste (Bugs, Aufräumarbeiten, Build/Deployment,
-Design-Doc-Pflege): `ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob der
+Design-Doc-Pflege): `docs/ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob der
 Punkt schon abgehakt ist — Duplizierung vermeiden, Datei ist die einzige
 Quelle für offene Baustellen.
 
@@ -68,4 +73,11 @@ Quelle für offene Baustellen.
 6. app.dev-mode=false setzen (nur Steam-Auth erlaubt)
 ```
 
-Offene Issues im Repo (#19, #21, #24, #14) bei Gelegenheit mit einplanen.
+Offene GitHub-Issues: Status-Check in `docs/ROADMAP.md` Abschnitt 1, nicht
+hier duplizieren.
+
+## Skripte
+
+Alle Build-/Start-Skripte liegen in `scripts/` (nicht im Repo-Root):
+`scripts/start.sh`, `scripts/build.sh`, `scripts/docker-start.sh` (+ `.bat`-
+Pendants für Windows ohne WSL).

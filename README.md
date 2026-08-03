@@ -13,8 +13,13 @@ Cookie/
 ├── frontend/                         ← Vue 3 + Electron Frontend (Port 5173)
 ├── database/
 │   └── setup.sql                     ← Datenbank-Schema (einmalig ausführen)
-├── start.sh                          ← Schnellstart Backend + Frontend (WSL/Linux)
-├── build.sh                          ← Interaktives Build-Menü (WSL/Linux)
+├── docs/
+│   ├── cookie-game-design.md         ← Vollständiges Game Design
+│   └── ROADMAP.md                    ← Bugs, Aufräumarbeiten, offene Punkte
+├── scripts/
+│   ├── start.sh / start.bat          ← Schnellstart Backend + Frontend
+│   ├── build.sh / build.bat          ← Interaktives Build-Menü
+│   └── docker-start.sh / .bat        ← Docker-Compose-Start
 └── README.md
 ```
 
@@ -75,10 +80,10 @@ market.update-interval-ms=2000
 
 ## Build & Start
 
-### start.sh — Schnellstart
+### scripts/start.sh — Schnellstart
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 ```
@@ -96,10 +101,10 @@ Logs: `.logs/backend.log` und `.logs/frontend.log`
 
 ---
 
-### build.sh — Interaktives Menü
+### scripts/build.sh — Interaktives Menü
 
 ```bash
-./build.sh
+./scripts/build.sh
 ```
 
 ```

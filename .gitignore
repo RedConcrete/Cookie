@@ -38,6 +38,13 @@ replay_pid*
 Thumbs.db
 desktop.ini
 
+# Windows NTFS alternate-data-streams (Antivirus scan markers, download
+# zone info) -- show up as pseudo-files via the WSL <-> Windows bridge,
+# never real content.
+*:Zone.Identifier
+*:Avecto.Zone.Identifier
+*:PG$Secure
+
 # ============================================================
 # Steam
 # ============================================================

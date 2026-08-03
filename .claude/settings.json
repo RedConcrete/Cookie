@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "if": "Bash(git commit:*)",
+            "prompt": "Ein Commit steht bevor. Lauf `git diff --cached` (und bei Bedarf `git status`), um die gestagten Aenderungen zu sehen. Pruef kurz auf echte Probleme: Bugs, Sicherheitsluecken (Secrets im Diff, fehlende Backend-Validierung bei Ressourcen/Cookies, SQL-Injection, XSS), kaputte Syntax, offensichtlich falsches Verhalten. Kein Nitpicking zu Stil/Naming/Formatierung. Wenn nichts Ernstes gefunden wird: kurz bestaetigen, dass der Commit unauffaellig aussieht. Wenn was gefunden wird: knapp auflisten (Datei, Zeile, Problem, ein Satz Impact). Das ist eine reine Warnung -- der Commit laeuft so oder so durch, nichts blockieren.",
+            "model": "claude-sonnet-5",
+            "timeout": 180,
+            "statusMessage": "Review vor Commit laeuft..."
+          }
+        ]
+      }
+    ]
+  }
+}

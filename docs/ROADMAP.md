@@ -72,6 +72,14 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
 - [ ] Große Audio-Assets im Build prüfen (`ElevatorMusic-*.wav` ~16.9 MB,
   mehrere `.mp3` >3–5 MB) — für Steam-Distribution ok, aber ggf. auf OGG/
   niedrigere Bitrate umstellen, wenn Downloadgröße relevant wird
+- [ ] **Gebäude-Szenen auf Fruitpunch24-Palette migrieren** (siehe
+  `cookie-game-design.md` Abschnitt 8). Alle aktuellen Gebäude-SVGs
+  (`frontend/src/assets/buildings/*.svg`) sind Platzhalter und nutzen
+  keine der 24 Palette-Farben — bewusst so, werden im Rahmen des
+  UI-Rebuilds nach und nach durch palette-konforme Pixel-Art ersetzt.
+  Neue Referenz-Assets liegen bereits unter
+  `frontend/src/assets/buildings/StorageBuildng/` (Lager-Gebäude,
+  Testbilder, noch nicht verdrahtet).
 
 ---
 

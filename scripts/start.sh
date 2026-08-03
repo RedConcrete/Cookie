@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-REPO="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
 # nvm (falls vorhanden)
 export NVM_DIR="$HOME/.nvm"
@@ -31,7 +31,8 @@ echo "OK"
 # Backend starten
 printf "  [2/3] Backend starten      ... "
 cd "$REPO/backend/cookie-server-spring-boot"
-./mvnw spring-boot:run > "$LOG_DIR/backend.log" 2>&1 &
+chmod +x ./mvnw 2>/dev/null
+bash ./mvnw spring-boot:run > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 
 # Warte bis Backend antwortet (max 30s)

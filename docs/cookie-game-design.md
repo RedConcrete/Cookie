@@ -222,6 +222,33 @@ umgesetzt, DOM-basiert (Vue + CSS), keine Render-Engine (PixiJS/Phaser) nötig:
 - Hotkeys: konfigurierbar in den Einstellungen (Zentrieren, Ernten-Halten,
   Backhaus/Markt/Upgrades/Rangliste öffnen, etc.)
 
+### 8.1 Farbpalette (Pflicht für neue Pixel-Art)
+
+Verbindliche Palette: **Fruitpunch24** (24 Farben), Referenzdatei
+`frontend/src/assets/colorpalate/fruitpunch24.hex`. Jede neue
+Pixel-Art-Datei (SVG, PNG-Sprite) darf **ausschließlich** diese Farben
+verwenden — keine Zwischentöne, kein Anti-Aliasing, keine Verläufe.
+
+| | | | |
+|---|---|---|
+| `#aea47e` | `#6f6e72` | `#534664` | `#349c58` |
+| `#6dba79` | `#2a7d75` | `#24505f` | `#2a2942` |
+| `#120e23` | `#3a1b40` | `#7a2849` | `#b74132` |
+| `#e67146` | `#ebb85b` | `#c78539` | `#a15c34` |
+| `#764032` | `#402e2b` | `#56642e` | `#7e9432` |
+| `#c9c03d` | `#fff1a9` | `#e67a84` | `#c23753` |
+
+**Ist-Stand:** Die bestehenden Gebäude-SVGs
+(`frontend/src/assets/buildings/*.svg`, z. B. `kuh.svg`, `huhn.svg`,
+`lager.svg`) sind Platzhalter aus der Frühphase und halten sich **nicht**
+an diese Palette — bewusst unangetastet, werden erst beim UI-Rebuild
+nacheinander ersetzt (Tracking: `ROADMAP.md` Abschnitt 2). Neue
+Referenzbilder für das Lager-Gebäude liegen bereits unter
+`frontend/src/assets/buildings/StorageBuildng/`, sind aber noch nicht
+palette-konform und noch nicht in eine Szene verdrahtet (Testlauf mit
+`house3.png`/`StorageBuilding.png` wurde verworfen, `WarehouseScene.vue`
+zeigt weiterhin `lager.svg`).
+
 ---
 
 ## 9. Upgrade-System (Cookie-Sink)
