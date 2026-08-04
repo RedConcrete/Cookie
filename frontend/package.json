@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:palette": "node scripts/check-palette.mjs",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build:win": "vite build && electron-builder --win",
     "build:linux": "vite build && electron-builder --linux",

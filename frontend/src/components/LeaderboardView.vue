@@ -60,8 +60,8 @@ onMounted(load)
 
 .lv-head-row, .lv-row { display: grid; grid-template-columns: 52px 1fr 100px 90px 100px; gap: 8px; align-items: center; }
 .lv-head-row { padding: 9px 10px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); }
-.lv-row { padding: 11px 10px; border-bottom: 2px solid #e8dcbc; cursor: pointer; }
-.lv-row:hover { background: #fff3c4; }
+.lv-row { padding: 11px 10px; border-bottom: 2px solid #fff1a9; cursor: pointer; }
+.lv-row:hover { background: #fff1a9; }
 .lv-row.self { background: rgba(74,124,47,.1); font-weight: 700; }
 
 .lv-rank { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }

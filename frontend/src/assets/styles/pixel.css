@@ -4,43 +4,46 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
 
+/* All values below are colors from the Fruitpunch24 palette
+   (frontend/src/assets/colorpalate/fruitpunch24.hex) — no other colors allowed,
+   see CLAUDE.md. */
 :root {
-  --px-ink:      #100b07;
-  --px-bg:       #20170f;
-  --px-wood:     #33261a;
-  --px-wood2:    #3f2f1f;
-  --px-wood3:    #4b3623;
-  --px-wood-lt:  #5a4023;
-  --px-cream:    #fffaf0;
-  --px-cream2:   #f7edd4;
-  --px-cream3:   #ecdcb4;
-  --px-tan:      #d9c39a;
-  --px-tan-ink:  #8a6e4e;
-  --px-tan-hd:   #8a5a1e;
-  --px-brown:    #6b4f2a;
-  --px-brown2:   #8d6a3d;
-  --px-ink-txt:  #2a1d12;
-  --px-paper-txt:#f3e6cc;
-  --px-gold:     #e8b93c;
-  --px-gold-lt:  #ffd76b;
-  --px-gold-txt: #ffe680;
-  --px-orange:   #c9702a;
-  --px-orange-lt:#e8a05c;
-  --px-orange-dk:#8d4a17;
-  --px-red:      #b83232;
-  --px-red-dk:   #821f1f;
-  --px-red-lt:   #d45a5a;
-  --px-green:    #4a7c2f;
-  --px-green-dk: #2f5a1c;
-  --px-green-lt: #6da046;
-  --px-green-txt:#a9ff88;
-  --px-green-panel: #26401f;
-  --px-green-panel2: #3c5c2c;
-  --px-blue:     #5aa0e0;
-  --px-muted:    #a8977a;
-  --px-muted2:   #c8b795;
-  --px-fill:     #e8b93c;
-  --px-drain:    #e0873a;
+  --px-ink:      #120e23;
+  --px-bg:       #2a2942;
+  --px-wood:     #402e2b;
+  --px-wood2:    #764032;
+  --px-wood3:    #a15c34;
+  --px-wood-lt:  #c78539;
+  --px-cream:    #fff1a9;
+  --px-cream2:   #aea47e;
+  --px-cream3:   #aea47e;
+  --px-tan:      #aea47e;
+  --px-tan-ink:  #a15c34;
+  --px-tan-hd:   #c78539;
+  --px-brown:    #764032;
+  --px-brown2:   #a15c34;
+  --px-ink-txt:  #120e23;
+  --px-paper-txt:#fff1a9;
+  --px-gold:     #ebb85b;
+  --px-gold-lt:  #fff1a9;
+  --px-gold-txt: #fff1a9;
+  --px-orange:   #e67146;
+  --px-orange-lt:#ebb85b;
+  --px-orange-dk:#a15c34;
+  --px-red:      #b74132;
+  --px-red-dk:   #7a2849;
+  --px-red-lt:   #c23753;
+  --px-green:    #349c58;
+  --px-green-dk: #2a7d75;
+  --px-green-lt: #6dba79;
+  --px-green-txt:#c9c03d;
+  --px-green-panel: #56642e;
+  --px-green-panel2: #7e9432;
+  --px-blue:     #24505f;
+  --px-muted:    #aea47e;
+  --px-muted2:   #6f6e72;
+  --px-fill:     #ebb85b;
+  --px-drain:    #e67146;
 }
 
 .px-font-title { font-family: 'Silkscreen', monospace; }
@@ -105,7 +108,7 @@
   cursor: pointer;
   color: var(--px-cream);
   background: var(--px-wood3);
-  box-shadow: inset -2px -2px 0 #4a3419, inset 2px 2px 0 #8e6c3c;
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
 }
 .px-btn:hover { filter: brightness(1.08); }
 .px-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
@@ -127,7 +130,7 @@
   border: 3px solid var(--px-brown2);
   box-shadow: none;
 }
-.px-btn-flat:hover { background: #fff3c4; }
+.px-btn-flat:hover { background: #fff1a9; }
 
 .px-badge {
   font-family: 'Silkscreen', monospace;

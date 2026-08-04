@@ -18,7 +18,7 @@
               <PixelIcon name="cookie" :size="16" class="bk-icon" />
               <span class="bk-label">Cookies</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#ef9f27' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#c78539' }"></div>
               </div>
               <span class="bk-val">{{ fmtBig(nw.cookies) }}</span>
             </div>
@@ -27,7 +27,7 @@
               <PixelIcon name="mehl" :size="16" class="bk-icon" />
               <span class="bk-label">Ressourcen</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#4a9c40' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#349c58' }"></div>
               </div>
               <span class="bk-val">{{ fmtBig(nw.resourceValue) }}</span>
             </div>
@@ -36,7 +36,7 @@
               <PixelIcon name="upgrade" :size="16" class="bk-icon" />
               <span class="bk-label">Upgrades</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#7F77DD' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#6f6e72' }"></div>
               </div>
               <span class="bk-val">{{ fmtBig(nw.upgradeValue) }}</span>
             </div>
@@ -110,10 +110,10 @@ const audio = useAudio()
 const playerStore = usePlayerStore()
 
 const DATASETS = [
-  { key: 'netWorth',     label: 'Net Worth',  color: '#aaff88' },
-  { key: 'cookies',      label: 'Cookies',    color: '#ef9f27' },
-  { key: 'resourceValue',label: 'Ressourcen', color: '#4a9c40' },
-  { key: 'upgradeValue', label: 'Upgrades',   color: '#7F77DD' },
+  { key: 'netWorth',     label: 'Net Worth',  color: '#aea47e' },
+  { key: 'cookies',      label: 'Cookies',    color: '#c78539' },
+  { key: 'resourceValue',label: 'Ressourcen', color: '#349c58' },
+  { key: 'upgradeValue', label: 'Upgrades',   color: '#6f6e72' },
 ]
 
 const nw        = ref(null)
@@ -279,11 +279,11 @@ function initChart() {
               hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.', month: 'MM.yy',
             },
           },
-          ticks: { color: '#999', maxTicksLimit: 6, maxRotation: 0 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
-          ticks: { color: '#999', maxTicksLimit: 6 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
       },
@@ -375,11 +375,11 @@ onUnmounted(() => {
 .bk-bar { height: 100%; transition: width 0.4s; }
 .bk-val { width: 52px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.nw-divider { border-top: 2px solid #e8dcbc; margin: 4px 0; }
+.nw-divider { border-top: 2px solid #fff1a9; margin: 4px 0; }
 .stat-row { display: flex; justify-content: space-between; font-size: 13px; }
 .stat-label { color: var(--px-tan-ink); }
 .stat-val   { font-family: 'Silkscreen', monospace; color: var(--px-ink-txt); }
-.stat-val.accent { color: #3d6b25; }
+.stat-val.accent { color: #56642e; }
 
 .nw-loading { color: var(--px-tan-ink); font-size: 13px; }
 
@@ -409,7 +409,7 @@ onUnmounted(() => {
 
 .dot {
   width: 8px; height: 8px;
-  background: var(--dot); flex-shrink: 0; box-shadow: 0 0 0 1px #3a2a1c;
+  background: var(--dot); flex-shrink: 0; box-shadow: 0 0 0 1px #402e2b;
 }
 
 .pct-btn {
@@ -418,7 +418,7 @@ onUnmounted(() => {
   color: var(--px-tan-ink); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
-.pct-btn:hover { color: var(--px-ink-txt); background: #fff3c4; }
+.pct-btn:hover { color: var(--px-ink-txt); background: #fff1a9; }
 
 .chart-wrap { flex: 1; min-height: 0; position: relative; }
 </style>

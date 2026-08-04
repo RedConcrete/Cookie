@@ -1,5 +1,5 @@
-<template>
-  <div >
+﻿<template>
+  <div class="oven-scene">
     <img class="scene-bg" :src="bgSrc" alt="" />
 
     <!-- Chimney with animated smoke -->
@@ -11,23 +11,26 @@
 
     <!-- Baker -->
     <div class="bh-baker">
-      <PixelWorker anim="knead" :dur="0.6" hat="#fffaf0" torso="#c8a86a"
-        :tool="{ anim: 'churn', dur: 0.6, color: '#8d6a3d' }" />
+      <PixelWorker anim="knead" :dur="0.6" hat="#fff1a9" torso="#aea47e"
+        :tool="{ anim: 'churn', dur: 0.6, color: '#a15c34' }" />
     </div>
   </div>
 </template>
 
 <script setup>
 import PixelWorker from '../pixel/PixelWorker.vue'
-import bgSrc from '../../assets/buildings/ofen.svg'
+import bgSrc from '../../assets/buildings/placeholder/ofen.png'
 </script>
 
 <style scoped>
-.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.oven-scene {
+  position: absolute; inset: 0;
+}
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 
 /* Chimney */
 .bh-chimney {
-  position: absolute; right: 32px; top: 0; width: 14px; height: 26px;
+  position: absolute; left: 95px; top: 0; width: 14px; height: 26px;
   overflow: visible;
 }
 .bh-smoke {
@@ -44,5 +47,5 @@ import bgSrc from '../../assets/buildings/ofen.svg'
 }
 
 /* Baker worker */
-.bh-baker { position: absolute; right: 8px; bottom: 4px; z-index: 3; }
+.bh-baker { position: absolute; left: 78px; bottom: 4px; z-index: 3; }
 </style>

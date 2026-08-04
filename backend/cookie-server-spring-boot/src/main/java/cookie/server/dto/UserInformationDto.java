@@ -2,6 +2,7 @@ package cookie.server.dto;
 
 public class UserInformationDto {
     private String steamId;
+    private String displayName;
     private double cookies;
     private double sugar;
     private double flour;
@@ -18,6 +19,14 @@ public class UserInformationDto {
 
     public void setSteamId(String steamId) {
         this.steamId = steamId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public double getCookies() {

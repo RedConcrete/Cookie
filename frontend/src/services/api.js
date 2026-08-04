@@ -63,9 +63,12 @@ export function doPrestige(steamId) {
 }
 
 // Load player + last N market snapshots in one call.
+// displayName (optional): Steam display name from steamworks.js, resynced on every login.
 // Returns: { user: UserInformationDto, markets: MarketDto[] }
-export function initGame(steamId, marketHistoryAmount = 20) {
-  return request('GET', `/api/v1/game/init/${steamId}?marketHistoryAmount=${marketHistoryAmount}`)
+export function initGame(steamId, marketHistoryAmount = 20, displayName = null) {
+  const q = new URLSearchParams({ marketHistoryAmount })
+  if (displayName) q.set('displayName', displayName)
+  return request('GET', `/api/v1/game/init/${steamId}?${q}`)
 }
 
 // Create player account (called on first login if needed).

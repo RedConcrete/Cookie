@@ -32,9 +32,10 @@ public class GameController {
     @GetMapping("/init/{userId}")
     public ResponseEntity<UserMarketDataDto> initializeGame(
             @PathVariable String userId,
-            @RequestParam(defaultValue = "20") int marketHistoryAmount) {
+            @RequestParam(defaultValue = "20") int marketHistoryAmount,
+            @RequestParam(required = false) String displayName) {
         buildingService.ensurePreBuiltBuildings(userId);
-        UserInformationDto user = userService.getUser(userId);
+        UserInformationDto user = userService.getUser(userId, displayName);
         double cap = buildingService.getTotalCap(userId);
         user.setTotalResourceCap(cap);
         return ResponseEntity.ok(new UserMarketDataDto(

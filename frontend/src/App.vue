@@ -55,8 +55,8 @@ function onMouseOver(e) {
 
 onMounted(async () => {
   if (window.electronAPI) {
-    window.electronAPI.onSteamAuth(async ({ steamId }) => {
-      await playerStore.init(steamId)
+    window.electronAPI.onSteamAuth(async ({ steamId, name }) => {
+      await playerStore.init(steamId, name)
     })
     return
   }

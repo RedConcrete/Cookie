@@ -51,18 +51,20 @@ function createWindow() {
 
 function initSteam() {
   let steamId = 'DEV_PLAYER_001'
+  let name = null
 
   try {
     const steamworks = require('steamworks.js')
     const client = steamworks.init(2816100)
     steamId = client.localplayer.getSteamId().steamId64.toString()
-    console.log('[Steam] Authenticated as', steamId)
+    name = client.localplayer.getName()
+    console.log('[Steam] Authenticated as', steamId, `(${name})`)
   } catch (err) {
     console.warn('[Steam] Not available, using stub ID:', err.message)
   }
 
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('steam-auth', { steamId })
+    mainWindow.webContents.send('steam-auth', { steamId, name })
   })
 }
 

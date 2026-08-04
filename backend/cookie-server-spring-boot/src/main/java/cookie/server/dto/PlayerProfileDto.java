@@ -4,6 +4,7 @@ import java.util.List;
 
 public class PlayerProfileDto {
     private String steamId;
+    private String displayName;
     private int rank;
     private double netWorth;
     private double cookies;
@@ -16,6 +17,9 @@ public class PlayerProfileDto {
 
     public String getSteamId() { return steamId; }
     public void setSteamId(String steamId) { this.steamId = steamId; }
+
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
 
     public int getRank() { return rank; }
     public void setRank(int rank) { this.rank = rank; }

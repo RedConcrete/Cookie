@@ -6,6 +6,7 @@ import { useMarketStore } from './market.js'
 
 export const usePlayerStore = defineStore('player', () => {
   const steamId    = ref(null)
+  const displayName = ref(null)
   const cookies    = ref(0)
   const sugar      = ref(0)
   const flour      = ref(0)
@@ -36,12 +37,12 @@ export const usePlayerStore = defineStore('player', () => {
 
   let netWorthTimer = null
 
-  async function init(id) {
+  async function init(id, name = null) {
     steamId.value = id
     loading.value = true
     error.value = null
     try {
-      const data = await initGame(id)
+      const data = await initGame(id, 20, name)
       updateFromDto(data.user)
       if (data.buildings) ownedBuildings.value = data.buildings
 
@@ -90,6 +91,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function updateFromDto(dto) {
+    if (dto.displayName !== undefined) displayName.value = dto.displayName
     cookies.value   = dto.cookies
     sugar.value     = dto.sugar
     flour.value     = dto.flour
@@ -103,7 +105,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   return {
-    steamId, cookies, sugar, flour, eggs, butter, chocolate, milk,
+    steamId, displayName, cookies, sugar, flour, eggs, butter, chocolate, milk,
     workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     netWorth, nwCookies, nwResources, nwUpgrades, loading, error, recipes,

@@ -89,11 +89,11 @@ onMounted(() => audio.playBookOpen())
 .sd-hotkeys-hint { font-size: 13px; color: var(--px-tan-ink); }
 
 .sd-hotkey-list { max-height: 206px; overflow-y: auto; border: 3px solid var(--px-brown2); background: var(--px-cream2); }
-.sd-hotkey-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 2px solid #e8dcbc; font-size: 15px; color: var(--px-ink-txt); cursor: pointer; }
-.sd-hotkey-row:hover { background: #fff3c4; }
+.sd-hotkey-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 2px solid #fff1a9; font-size: 15px; color: var(--px-ink-txt); cursor: pointer; }
+.sd-hotkey-row:hover { background: #fff1a9; }
 .sd-hotkey-key {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 6px 9px; min-width: 64px; text-align: center;
-  background: var(--px-cream3); border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 #b9a276, inset 2px 2px 0 var(--px-cream);
+  background: var(--px-cream3); border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 #aea47e, inset 2px 2px 0 var(--px-cream);
   color: var(--px-ink-txt);
 }
 .sd-hotkey-key.editing { background: var(--px-gold); }

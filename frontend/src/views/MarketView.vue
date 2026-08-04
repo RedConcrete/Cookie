@@ -32,7 +32,7 @@
         <div class="mv-icon"><PixelIcon :name="res.icon" :size="20" /></div>
         <div class="mv-name">{{ res.label }}</div>
         <div class="mv-price">{{ fmt(marketStore.priceOf(res.name)) }}</div>
-        <div class="mv-trend" :style="{ color: trendOf(res.name) >= 0 ? '#3d6b25' : '#b83232' }">
+        <div class="mv-trend" :style="{ color: trendOf(res.name) >= 0 ? '#56642e' : '#b74132' }">
           {{ trendOf(res.name) >= 0 ? '+' : '' }}{{ trendOf(res.name).toFixed(1) }} %
         </div>
         <div class="mv-stock">{{ fmt2(playerStore[res.key]) }}</div>
@@ -90,8 +90,8 @@ const chartRef     = ref(null)
 // Muss mit RESOURCE_COLORS in PriceChart.vue uebereinstimmen -- Legend-Chip-Farbe
 // soll der jeweiligen Chart-Linie entsprechen.
 const COLORS = {
-  SUGAR: '#ef4444', FLOUR: '#3b82f6', EGGS: '#22c55e',
-  BUTTER: '#eab308', CHOCOLATE: '#a855f7', MILK: '#06b6d4',
+  SUGAR: '#e67146', FLOUR: '#2a7d75', EGGS: '#349c58',
+  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#fff1a9',
 }
 
 const { playCoins } = useAudio()
@@ -206,7 +206,7 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 .mv-legend-chip { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--px-cream2); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); cursor: pointer; transition: opacity 0.15s; }
 .mv-legend-chip.inactive { opacity: 0.4; }
 .mv-legend-chip:hover { opacity: 1; }
-.mv-legend-dot { display: inline-block; width: 10px; height: 10px; box-shadow: 0 0 0 2px #3a2a1c; }
+.mv-legend-dot { display: inline-block; width: 10px; height: 10px; box-shadow: 0 0 0 2px #402e2b; }
 .mv-legend-val { font-size: 12px; letter-spacing: 0.5px; color: var(--px-orange); margin-left: 2px; }
 .mv-chart-box { height: 196px; flex: 0 0 auto; position: relative; background: var(--px-ink); border: 4px solid var(--px-ink); padding: 14px; }
 
@@ -219,9 +219,9 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 }
 .mv-head { background: var(--px-wood); border: 3px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
 .mv-col-cost { text-align: right; }
-.mv-row:not(.mv-head) { background: var(--px-cream); border: 2px solid #e0cda2; position: relative; }
+.mv-row:not(.mv-head) { background: var(--px-cream); border: 2px solid #fff1a9; position: relative; }
 .mv-row.highlight { border-color: var(--px-orange); }
-.mv-row.success { background: #dff0d0; }
+.mv-row.success { background: #fff1a9; }
 
 .mv-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
 .mv-price { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-orange); }
@@ -230,7 +230,7 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 
 .mv-qty { display: flex; align-items: center; border: 3px solid var(--px-ink); background: var(--px-cream2); width: max-content; }
 .mv-qty-btn { font-family: 'Silkscreen', monospace; font-size: 11px; padding: 5px 9px; background: none; border: none; cursor: pointer; color: var(--px-ink-txt); }
-.mv-qty-btn:hover { background: #fff3c4; }
+.mv-qty-btn:hover { background: #fff1a9; }
 .mv-qty-val { padding: 5px 10px; font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; border-left: 3px solid var(--px-ink); border-right: 3px solid var(--px-ink); color: var(--px-ink-txt); }
 .mv-qty-input { width: 38px; text-align: center; background: none; outline: none; box-sizing: content-box; }
 
@@ -239,7 +239,7 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 
 .mv-cost { text-align: right; }
 .mv-cost-buy  { font-family: 'Silkscreen', monospace; font-size: 15px; letter-spacing: 0.5px; color: var(--px-ink-txt); border-bottom: 2px dashed var(--px-orange); display: inline-block; padding-bottom: 2px; cursor: help; }
-.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: #3d6b25; margin-top: 4px; }
+.mv-cost-sell { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: #56642e; margin-top: 4px; }
 
 .err-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .err-dialog { background: var(--px-cream); border: 4px solid var(--px-red); padding: 20px 24px; max-width: 320px; text-align: center; }

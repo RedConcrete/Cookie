@@ -25,11 +25,14 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 - Kommentare/Code-Erklärungen knapp halten (keine Füllwörter)
 - Backend-Validierung ist Pflicht bei allem, was Ressourcen/Cookies bewegt
   (Client-Werte nie vertrauen)
-- Neue Pixel-Art nur mit der Fruitpunch24-Palette
+- Das gesamte Frontend-Aussehen (CSS, Vue-Komponenten, neue Pixel-Art) nutzt
+  ausschließlich Farben aus der Fruitpunch24-Palette
   (`frontend/src/assets/colorpalate/fruitpunch24.hex`), siehe
-  `docs/cookie-game-design.md` Abschnitt 8.1 — keine anderen Farben.
-  Bestehende Gebäude-SVGs sind Platzhalter und davon ausgenommen (siehe
-  `docs/ROADMAP.md`).
+  `docs/cookie-game-design.md` Abschnitt 8.1 — keine anderen Farben, auch
+  keine rgba()/hsl()-Fremdfarben. Check: `cd frontend && npm run
+  check:palette` (scannt `.vue`/`.css`/`.js` unter `src/` auf Hex-Werte
+  außerhalb der Palette, exit 1 bei Verstoß). Bestehende Gebäude-SVGs sind
+  Platzhalter und davon ausgenommen (siehe `docs/ROADMAP.md`).
 
 ## Aktueller Stand (2026-07-31)
 

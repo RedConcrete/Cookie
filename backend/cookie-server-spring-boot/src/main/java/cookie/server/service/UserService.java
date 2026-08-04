@@ -52,11 +52,25 @@ public class UserService {
     }
 
     public UserInformationDto getUser(String userId) {
+        return getUser(userId, null);
+    }
+
+    // displayName: Steam display name resynced on every login (see GameController#initializeGame).
+    // Not trusted for anything beyond cosmetic display -- capped and stored as-is.
+    public UserInformationDto getUser(String userId, String displayName) {
+        String cleanName = normalizeDisplayName(displayName);
         return userRepository.findById(userId)
-                .map(this::toDto)
+                .map(existing -> {
+                    if (cleanName != null && !cleanName.equals(existing.getDisplayName())) {
+                        existing.setDisplayName(cleanName);
+                        userRepository.save(existing);
+                    }
+                    return toDto(existing);
+                })
                 .orElseGet(() -> {
                     UserEntity newUser = new UserEntity();
                     newUser.setSteamId(userId);
+                    newUser.setDisplayName(cleanName);
                     newUser.setCookies(playerConfig.getInitialCookies());
                     newUser.setSugar(playerConfig.getInitialSugar());
                     newUser.setFlour(playerConfig.getInitialFlour());
@@ -67,6 +81,13 @@ public class UserService {
                     userRepository.save(newUser);
                     return toDto(newUser);
                 });
+    }
+
+    private String normalizeDisplayName(String displayName) {
+        if (displayName == null) return null;
+        String trimmed = displayName.trim();
+        if (trimmed.isEmpty()) return null;
+        return trimmed.length() > 64 ? trimmed.substring(0, 64) : trimmed;
     }
 
 
@@ -146,6 +167,7 @@ public class UserService {
     private UserInformationDto toDto(UserEntity entity) {
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(entity.getSteamId());
+        dto.setDisplayName(entity.getDisplayName());
         dto.setCookies(entity.getCookies());
         dto.setSugar(entity.getSugar());
         dto.setFlour(entity.getFlour());

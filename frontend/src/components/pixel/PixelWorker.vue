@@ -17,9 +17,9 @@ const props = defineProps({
   anim:    { type: String, default: 'bob' },   // bend | bob | reach | milk | knead | walk
   dur:     { type: Number, default: 1 },
   delay:   { type: Number, default: 0 },
-  hat:     { type: String, default: '#c9702a' },
-  skin:    { type: String, default: '#f0c9a0' },
-  torso:   { type: String, default: '#8a5a34' },
+  hat:     { type: String, default: '#c78539' },
+  skin:    { type: String, default: '#fff1a9' },
+  torso:   { type: String, default: '#a15c34' },
   tool:    { type: Object, default: null },    // { anim, dur, delay, color, top, left, width, height }
 })
 
@@ -44,7 +44,7 @@ const GRID = [
 ]
 
 const cells = computed(() => buildSpriteCells(GRID, {
-  h: props.hat, s: props.skin, t: props.torso, e: '#1a120b', d: '#1a120b',
+  h: props.hat, s: props.skin, t: props.torso, e: '#120e23', d: '#120e23',
 }))
 
 const rootStyle = computed(() => ({
@@ -63,8 +63,8 @@ const toolStyle = computed(() => {
     top:    t.top    ?? '6px',
     width:  t.width  ?? '4px',
     height: t.height ?? '15px',
-    background: t.color ?? '#8d6a3d',
-    boxShadow: '0 0 0 2px #1a120b',
+    background: t.color ?? '#a15c34',
+    boxShadow: '0 0 0 2px #120e23',
     transformOrigin: '50% 90%',
     animation: `px-${t.anim} ${t.dur}s ease-in-out ${t.delay ?? 0}s infinite`,
   }

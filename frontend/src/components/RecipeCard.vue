@@ -191,7 +191,7 @@ async function claim() {
   try {
     const updated = await bakeClaim(playerStore.steamId)
     playerStore.updateFromDto(updated)
-    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#ef9f27', icon: 'cookie' })
+    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#c78539', icon: 'cookie' })
     await bakeStore.poll()
     showFeedback(`+${earned} Cookies!`, 'ok')
   } catch (e) { showFeedback(e.message, 'err') }
@@ -231,7 +231,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
   padding: 11px 12px; background: var(--px-cream); border: 3px solid var(--px-brown2);
   font-size: 16px; color: var(--px-ink-txt); cursor: pointer; text-align: left;
 }
-.rc-entry:hover { background: #fff3c4; }
+.rc-entry:hover { background: #fff1a9; }
 .rc-entry.active { background: var(--px-gold); border-color: var(--px-ink); }
 .rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
 .rc-page-num { margin-top: auto; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); text-align: center; }
@@ -245,7 +245,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 8px; }
 
 .rc-ingredients { display: flex; flex-direction: column; gap: 2px; }
-.rc-ing-row { display: grid; grid-template-columns: 24px 1fr 46px 70px 70px; align-items: center; gap: 8px; padding: 7px 8px; background: var(--px-cream2); border: 2px solid #e0cda2; }
+.rc-ing-row { display: grid; grid-template-columns: 24px 1fr 46px 70px 70px; align-items: center; gap: 8px; padding: 7px 8px; background: var(--px-cream2); border: 2px solid #fff1a9; }
 .rc-ing-name  { font-size: 15px; color: var(--px-ink-txt); }
 .rc-ing-qty   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
 .rc-ing-qty.insufficient { color: var(--px-red); }
@@ -254,9 +254,9 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-cost-row  { display: flex; justify-content: space-between; padding: 9px 8px; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); border-top: 3px solid var(--px-brown2); margin-top: 4px; }
 
 .rc-profit-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--px-cream2); border: 3px solid var(--px-tan); margin-bottom: 6px; font-size: 16px; color: var(--px-tan-ink); }
-.rc-profit-row.winner { background: #dff0d0; border-color: var(--px-green); color: var(--px-ink-txt); font-weight: 600; }
+.rc-profit-row.winner { background: #fff1a9; border-color: var(--px-green); color: var(--px-ink-txt); font-weight: 600; }
 .rc-profit-diff { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; margin-top: 4px; }
-.rc-profit-diff.pos { color: #3d6b25; }
+.rc-profit-diff.pos { color: #56642e; }
 .rc-profit-diff.neg { color: var(--px-red); }
 
 .rc-batches { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--px-tan-ink); }
@@ -272,10 +272,10 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-bake-btn { width: 100%; text-align: center; }
 .rc-progress { display: flex; flex-direction: column; gap: 6px; }
 .rc-progress-meta { display: flex; justify-content: space-between; font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
-.rc-done { color: #3d6b25; }
+.rc-done { color: #56642e; }
 .rc-progress-bar { height: 14px; background: var(--px-ink); border: 3px solid var(--px-ink); }
 .rc-progress-fill { height: 100%; background: var(--px-gold); }
 .rc-feedback { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; }
-.rc-feedback.ok  { color: #3d6b25; }
+.rc-feedback.ok  { color: #56642e; }
 .rc-feedback.err { color: var(--px-red); }
 </style>

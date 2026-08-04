@@ -7,19 +7,19 @@ import { reactive } from 'vue'
 // a PlayerCosmeticEntity + endpoints on the Spring Boot side.
 
 const TEMPLATES = [
-  { id: 'event_winner', name: 'Event-Sieger', icon: 'krone', color: '#e05a4a', category: 'EVENT' },
-  { id: 'top3',         name: 'Top 3',        icon: 'medal', color: '#8fae5c', category: 'EVENT' },
-  { id: 'community',    name: 'Community',    icon: 'stern', color: '#5aa0e0', category: 'COMMUNITY' },
+  { id: 'event_winner', name: 'Event-Sieger', icon: 'krone', color: '#e67146', category: 'EVENT' },
+  { id: 'top3',         name: 'Top 3',        icon: 'medal', color: '#6dba79', category: 'EVENT' },
+  { id: 'community',    name: 'Community',    icon: 'stern', color: '#6dba79', category: 'COMMUNITY' },
 ]
 
 const state = reactive({
   badges: [
-    { id: 1, name: 'Beta-Bäcker',   desc: 'Community · Dank für Bug-Reports',        awardedOn: '2026-07-26', icon: 'stern', color: '#7a6bc4', category: 'COMMUNITY' },
-    { id: 2, name: 'Marktmacher',   desc: 'Event · 2. Platz Handelsvolumen',          awardedOn: '2026-07-19', icon: 'krone', color: '#b48b1e', category: 'EVENT' },
-    { id: 3, name: 'Nachtbäcker',   desc: 'Event · 24h-Backmarathon',                 awardedOn: '2026-07-05', icon: 'medal', color: '#8fae5c', category: 'EVENT' },
-    { id: 4, name: 'Zuckerbaron',   desc: 'Event · 100K Zucker verkauft',             awardedOn: '2026-06-28', icon: 'stern', color: '#5aa0e0', category: 'EVENT' },
-    { id: 5, name: 'Sommer-Sprint', desc: 'Event · 1. Platz Net-Worth-Rennen',        awardedOn: '2026-06-14', icon: 'krone', color: '#e05a4a', category: 'EVENT' },
-    { id: 6, name: 'Erster Ofen',   desc: 'Community · Launch-Woche',                 awardedOn: '2026-03-02', icon: 'medal', color: '#e8b93c', category: 'COMMUNITY' },
+    { id: 1, name: 'Beta-Bäcker',   desc: 'Community · Dank für Bug-Reports',        awardedOn: '2026-07-26', icon: 'stern', color: '#6f6e72', category: 'COMMUNITY' },
+    { id: 2, name: 'Marktmacher',   desc: 'Event · 2. Platz Handelsvolumen',          awardedOn: '2026-07-19', icon: 'krone', color: '#c78539', category: 'EVENT' },
+    { id: 3, name: 'Nachtbäcker',   desc: 'Event · 24h-Backmarathon',                 awardedOn: '2026-07-05', icon: 'medal', color: '#6dba79', category: 'EVENT' },
+    { id: 4, name: 'Zuckerbaron',   desc: 'Event · 100K Zucker verkauft',             awardedOn: '2026-06-28', icon: 'stern', color: '#6dba79', category: 'EVENT' },
+    { id: 5, name: 'Sommer-Sprint', desc: 'Event · 1. Platz Net-Worth-Rennen',        awardedOn: '2026-06-14', icon: 'krone', color: '#e67146', category: 'EVENT' },
+    { id: 6, name: 'Erster Ofen',   desc: 'Community · Launch-Woche',                 awardedOn: '2026-03-02', icon: 'medal', color: '#ebb85b', category: 'COMMUNITY' },
   ],
   nextId: 7,
 })

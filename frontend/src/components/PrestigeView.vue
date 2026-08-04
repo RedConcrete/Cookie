@@ -117,10 +117,10 @@ onMounted(load)
 .pv-progress-hint { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); text-align: right; margin-top: 5px; }
 
 .pv-next { padding: 12px 14px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-size: 15px; color: var(--px-ink-txt); }
-.pv-warning { padding: 12px 14px; background: #f7dede; border: 3px solid var(--px-red); font-size: 14px; line-height: 1.55; color: #7a2020; }
+.pv-warning { padding: 12px 14px; background: #fff1a9; border: 3px solid var(--px-red); font-size: 14px; line-height: 1.55; color: #764032; }
 
 .pv-actions, .pv-confirm { text-align: center; }
 .pv-confirm p { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--px-ink-txt); }
 .pv-confirm-btns { display: flex; gap: 10px; justify-content: center; }
-.pv-locked { padding: 14px; text-align: center; background: var(--px-tan); border: 4px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 13px; color: #6b5533; }
+.pv-locked { padding: 14px; text-align: center; background: var(--px-tan); border: 4px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 13px; color: #764032; }
 </style>

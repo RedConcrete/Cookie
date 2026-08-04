@@ -10,7 +10,7 @@
     <!-- Armed / blocked outline -->
     <div 
     class="bf-outline" 
-    :style="{ opacity: state.armed || state.pressing ? 1 : 0, borderColor: blocked ? '#e05a4a' : (state.armed ? '#a9ff88' : '#e8b93c'), background: blocked ? 'rgba(224,90,74,.22)' : 'transparent' }">
+    :style="{ opacity: state.armed || state.pressing ? 1 : 0, borderColor: blocked ? '#e67146' : (state.armed ? '#aea47e' : '#ebb85b'), background: blocked ? 'rgba(224,90,74,.22)' : 'transparent' }">
   </div>
 
     <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
@@ -99,9 +99,9 @@ const rootStyle = computed(() => ({
 }
 .bf-overlay-left  { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .bf-overlay-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
-.bf-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff6e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bf-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff1a9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bf-rate { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-green-txt); white-space: nowrap; }
-.bf-workers { display: flex; align-items: center; gap: 3px; font-family: 'Silkscreen', monospace; font-size: 9px; color: #f3e6cc; white-space: nowrap; }
+.bf-workers { display: flex; align-items: center; gap: 3px; font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff1a9; white-space: nowrap; }
 
 .bf-hold-bar {
   position: absolute; left: -8px; top: -24px; height: 10px;

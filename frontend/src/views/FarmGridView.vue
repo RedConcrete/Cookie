@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     ref="viewEl"
     class="hof-root"
@@ -147,6 +147,8 @@ import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
 import { BASE, SCENE_H, dropOk as dropOkLayout } from '../components/buildings/farmLayout.js'
 import { BUILDING_INFO, RESOURCE_LABEL, RESOURCE_ICON } from '../components/buildings/buildingInfo.js'
+import grassTile from '../assets/tiles/grass.png'
+const grassBg = `url(${grassTile})`
 
 import SugarPondScene from '../components/buildings/SugarPondScene.vue'
 import OvenScene      from '../components/buildings/OvenScene.vue'
@@ -248,11 +250,11 @@ const totalWorkers = computed(() => playerStore.assignedCitizens)
 // Idle citizens gather in front of (below) the Rathaus, wherever it currently is —
 // positions are offsets relative to BASE.rathaus so they follow the building when it's moved.
 const WANDERER_CONFIGS = [
-  { anim:'wander',  dur:9,  delay:0,   legDur:0.45, hat:'#5aa0e0', skin:'#f0c9a0', torso:'#4a3f7a', dx:40,  dy:150 },
-  { anim:'wander2', dur:11, delay:1.5, legDur:0.55, hat:'#b83232', skin:'#e8b489', torso:'#6b4f2a', dx:100, dy:168 },
-  { anim:'wander',  dur:13, delay:3,   legDur:0.6,  hat:'#3d6b25', skin:'#f0c9a0', torso:'#8a5a34', dx:160, dy:156 },
-  { anim:'wander2', dur:10, delay:2,   legDur:0.5,  hat:'#8b5a2b', skin:'#e8b489', torso:'#5a3a22', dx:90,  dy:180 },
-  { anim:'wander',  dur:8,  delay:4,   legDur:0.4,  hat:'#7a50b0', skin:'#f0c9a0', torso:'#42311f', dx:150, dy:176 },
+  { anim:'wander',  dur:9,  delay:0,   legDur:0.45, hat:'#6dba79', skin:'#fff1a9', torso:'#534664', dx:40,  dy:150 },
+  { anim:'wander2', dur:11, delay:1.5, legDur:0.55, hat:'#b74132', skin:'#ebb85b', torso:'#764032', dx:100, dy:168 },
+  { anim:'wander',  dur:13, delay:3,   legDur:0.6,  hat:'#56642e', skin:'#fff1a9', torso:'#a15c34', dx:160, dy:156 },
+  { anim:'wander2', dur:10, delay:2,   legDur:0.5,  hat:'#a15c34', skin:'#ebb85b', torso:'#402e2b', dx:90,  dy:180 },
+  { anim:'wander',  dur:8,  delay:4,   legDur:0.4,  hat:'#6f6e72', skin:'#fff1a9', torso:'#402e2b', dx:150, dy:176 },
 ]
 const idleWanderers = computed(() => {
   const rOff  = buildingOffsets.rathaus || { x: 0, y: 0 }
@@ -493,7 +495,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: #6a8535;
+  background: #7e9432;
   cursor: grab;
 }
 
@@ -501,10 +503,13 @@ onUnmounted(() => {
   position: absolute;
   left: -5000px; top: -5000px;
   width: 11280px; height: 10800px;
-  background: #7d9a41;
+  background-color: #7e9432;
   background-image:
     repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px);
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px),
+    v-bind(grassBg);
+  background-size: auto, auto, 100px 100px;
+  image-rendering: pixelated;
 }
 .hof-root:active { cursor: grabbing; }
 
@@ -530,13 +535,13 @@ onUnmounted(() => {
 .hud-chip {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 5px 10px; background: var(--px-wood2); border: 3px solid var(--px-ink);
-  box-shadow: inset 2px 2px 0 #57402a;
+  box-shadow: inset 2px 2px 0 #402e2b;
 }
 .hud-chip-clickable { cursor: pointer; }
-.hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset 2px 2px 0 #7d5a30; }
+.hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset 2px 2px 0 #764032; }
 .hud-chip-val   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 .hud-chip-cookie .hud-chip-val { font-size: 13px; color: var(--px-gold-txt); }
-.hud-chip-label { font-size: 11px; color: #b49b76; line-height: 1; }
+.hud-chip-label { font-size: 11px; color: #aea47e; line-height: 1; }
 
 .hud-networth-wrap { flex: 0 0 auto; margin-left: 16px; max-width: 160px; }
 .hud-networth {
@@ -544,15 +549,15 @@ onUnmounted(() => {
   background: var(--px-green-panel); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 var(--px-green-panel2);
 }
-.hud-networth-label { font-size: 11px; color: #a9c48f; line-height: 1; }
+.hud-networth-label { font-size: 11px; color: #aea47e; line-height: 1; }
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
 .hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.hud-dev-btn { background: #3a1a5a !important; color: #c8a8ff !important; border-color: #7a50b0 !important; font-size: 9px !important; }
+.hud-dev-btn { background: #3a1b40 !important; color: #fff1a9 !important; border-color: #6f6e72 !important; font-size: 9px !important; }
 .hud-avatar {
   flex-shrink: 0;
   width: 52px; height: 52px; background: var(--px-wood3); border: 3px solid var(--px-ink);
-  box-shadow: inset 2px 2px 0 #6d5133; display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 2px 2px 0 #764032; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
 
@@ -578,11 +583,11 @@ onUnmounted(() => {
 .cam-controls { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
 .cam-center {
   width: 48px; height: 48px; background: var(--px-cream2); border: 4px solid var(--px-ink);
-  box-shadow: inset -2px -2px 0 #d3bb8f; display: flex; align-items: center; justify-content: center;
+  box-shadow: inset -2px -2px 0 #aea47e; display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); cursor: pointer;
 }
 .cam-hint { font-family: 'Silkscreen', monospace; font-size: 8px; padding: 3px 5px; background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink); }
-.zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff6e0; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
+.zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff1a9; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
 
 .build-fab {
   position: absolute; right: 16px; bottom: 56px; z-index: 55;
@@ -597,10 +602,10 @@ onUnmounted(() => {
 .ticker { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 8px; z-index: 50; }
 .ticker-pop {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 9px 12px; background: var(--px-wood);
-  border: 3px solid var(--px-ink); color: var(--px-paper-txt); box-shadow: inset 2px 2px 0 #55402a;
+  border: 3px solid var(--px-ink); color: var(--px-paper-txt); box-shadow: inset 2px 2px 0 #402e2b;
   display: flex; align-items: center; white-space: nowrap;
 }
-.ticker-pop.ticker-idle { background: #5a1a1a; border-color: #8b3333; color: #ff8888; }
+.ticker-pop.ticker-idle { background: #402e2b; border-color: #764032; color: #e67a84; }
 .ticker-cap {
   font-family: 'Silkscreen', monospace; font-size: 10px; padding: 9px 12px; background: var(--px-green-panel);
   border: 3px solid var(--px-ink); color: var(--px-green-txt); box-shadow: inset 2px 2px 0 var(--px-green-panel2);

@@ -217,8 +217,8 @@ async function resetPlayer() {
 .ad-loading { padding: 24px; text-align: center; color: var(--px-tan-ink); }
 .ad-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
 
-.ad-notice { padding: 8px 12px; background: #dff0d0; border: 3px solid var(--px-green); color: #2f5a1c; font-size: 13px; }
-.ad-notice.error { background: #f5d5d5; border-color: var(--px-red); color: var(--px-red-dk); }
+.ad-notice { padding: 8px 12px; background: #fff1a9; border: 3px solid var(--px-green); color: #56642e; font-size: 13px; }
+.ad-notice.error { background: #fff1a9; border-color: var(--px-red); color: var(--px-red-dk); }
 
 .ad-section { display: flex; flex-direction: column; gap: 10px; }
 .ad-section-head {

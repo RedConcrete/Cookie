@@ -190,6 +190,7 @@ public class NetWorthService {
         List<SeasonResultDto> seasonHistory = seasonService.getSeasonHistoryForUser(userId);
         PlayerProfileDto dto = new PlayerProfileDto();
         dto.setSteamId(user.getSteamId());
+        dto.setDisplayName(user.getDisplayName());
         dto.setRank((int) rank);
         dto.setNetWorth(nw.getNetWorth());
         dto.setCookies(nw.getCookies());

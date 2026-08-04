@@ -142,7 +142,7 @@ async function upgradeRathaus() {
 .rh-assign-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); flex: 1; }
 .rh-assign-workers { display: flex; gap: 4px; }
 .rh-dot { width: 10px; height: 10px; background: var(--px-brown2); border: 2px solid var(--px-ink); }
-.rh-dot-active { background: var(--px-green-txt); border-color: #2a5a1a; }
+.rh-dot-active { background: var(--px-green-txt); border-color: #56642e; }
 .rh-assign-count { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-muted); min-width: 28px; text-align: right; }
 .rh-empty { font-size: 13px; color: var(--px-muted); padding: 12px; text-align: center; }
 

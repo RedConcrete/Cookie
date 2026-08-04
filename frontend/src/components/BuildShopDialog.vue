@@ -118,10 +118,10 @@ onMounted(async () => {
 .bs-head-title { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); flex: 1; }
 
 .bs-notice {
-  padding: 8px 18px; font-size: 13px; color: #3d6b25; background: #dff0d0;
+  padding: 8px 18px; font-size: 13px; color: #56642e; background: #fff1a9;
   border-bottom: 3px solid var(--px-green); font-family: 'Silkscreen', monospace; font-size: 10px;
 }
-.bs-notice.error { color: #8b1a1a; background: #f0d0d0; border-color: var(--px-red); }
+.bs-notice.error { color: #764032; background: #fff1a9; border-color: var(--px-red); }
 
 .bs-list { overflow-y: auto; flex: 1; }
 
@@ -144,7 +144,7 @@ onMounted(async () => {
 .bs-cost { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-gold); display: flex; align-items: center; }
 .bs-buy-btn { font-size: 10px; padding: 4px 10px; }
 .bs-buy-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.bs-owned-badge { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-txt); padding: 4px 8px; background: #dff0d0; border: 2px solid var(--px-green); }
+.bs-owned-badge { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-txt); padding: 4px 8px; background: #fff1a9; border: 2px solid var(--px-green); }
 
 .bs-footer {
   padding: 10px 18px; display: flex; justify-content: space-between;

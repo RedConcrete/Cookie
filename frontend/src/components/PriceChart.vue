@@ -43,8 +43,8 @@ const PRICE_KEY = {
   BUTTER: 'butterPrice', CHOCOLATE: 'chocolatePrice', MILK: 'milkPrice',
 }
 const COLORS = {
-  SUGAR: '#ef4444', FLOUR: '#3b82f6', EGGS: '#22c55e',
-  BUTTER: '#eab308', CHOCOLATE: '#a855f7', MILK: '#06b6d4',
+  SUGAR: '#e67146', FLOUR: '#2a7d75', EGGS: '#349c58',
+  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#fff1a9',
 }
 const LABELS = {
   SUGAR: 'Zucker', FLOUR: 'Mehl', EGGS: 'Eier',
@@ -259,12 +259,12 @@ function initChart() {
               hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.', month: 'MM.yy',
             },
           },
-          ticks: { color: '#999', maxTicksLimit: 6, maxRotation: 0 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
           position: 'right',
-          ticks: { color: '#999', maxTicksLimit: 6 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
       },
@@ -344,7 +344,7 @@ defineExpose({ toggle, visible })
   border: 3px solid var(--px-ink);
   color: var(--px-cream);
   background: var(--px-wood3);
-  box-shadow: inset -2px -2px 0 #4a3419, inset 2px 2px 0 #8e6c3c;
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;

@@ -50,7 +50,7 @@ const { state, onEnter, onLeave, pinned } = useHoverReveal()
 function handleEnter() { onEnter(); emit('enter') }
 function handleLeave() { onLeave(); emit('leave') }
 
-const COLORS = { g: '#a9ff88', y: '#ffd76b', w: '#fff6e0', o: '#e0873a', m: '#8a7a5c', b: '#8fd3ff' }
+const COLORS = { g: '#aea47e', y: '#ebb85b', w: '#fff1a9', o: '#c78539', m: '#6f6e72', b: '#6dba79' }
 function colorFor(c) { return COLORS[c] || COLORS.w }
 
 const panelRef = ref(null)
@@ -95,7 +95,7 @@ watch(() => state.visible, async (vis) => {
 .pip-panel {
   background: var(--px-wood);
   border: 4px solid var(--px-ink);
-  box-shadow: inset 2px 2px 0 #55402a, 0 6px 0 rgba(0,0,0,.45);
+  box-shadow: inset 2px 2px 0 #402e2b, 0 6px 0 rgba(0,0,0,.45);
   padding: 12px 14px;
   font-family: 'Silkscreen', monospace;
 }
@@ -108,9 +108,9 @@ watch(() => state.visible, async (vis) => {
 .pip-title  { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); }
 
 .pip-rows { display: flex; flex-direction: column; gap: 5px; }
-.pip-row  { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #d6c6a6; white-space: nowrap; }
+.pip-row  { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #fff1a9; white-space: nowrap; }
 .pip-row span:last-child { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
 
-.pip-note { margin-top: 9px; padding-top: 8px; border-top: 3px solid #4d3a26; font-size: 13px; line-height: 1.5; color: #c8b795; }
+.pip-note { margin-top: 9px; padding-top: 8px; border-top: 3px solid #402e2b; font-size: 13px; line-height: 1.5; color: #aea47e; }
 .pip-pin  { margin-top: 8px; font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-green-txt); }
 </style>

@@ -89,7 +89,7 @@ const notice     = ref('')
 const noticeError = ref(false)
 const buyCount   = ref(1)
 
-const HATS = ['#5aa0e0', '#b83232', '#3d6b25', '#8b5a2b', '#7a50b0']
+const HATS = ['#6dba79', '#b74132', '#56642e', '#a15c34', '#6f6e72']
 const CITIZEN_COST = 50
 
 const canBuyMore = computed(() => Math.max(0, playerStore.maxCitizens - playerStore.ownedCitizens))
@@ -134,8 +134,8 @@ async function buy() {
 .cd-stat-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 .cd-idle { color: var(--px-red) !important; }
 
-.cd-hint { padding: 10px 12px; background: #fff3c4; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
-.cd-hint-warn { background: #ffe0e0; border-color: var(--px-red); }
+.cd-hint { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
+.cd-hint-warn { background: #fff1a9; border-color: var(--px-red); }
 
 .cd-buy { display: flex; flex-direction: column; gap: 10px; }
 .cd-buy-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
@@ -143,7 +143,7 @@ async function buy() {
 .cd-buy-count { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-paper-txt); min-width: 32px; text-align: center; }
 .cd-buy-btn { flex: 1; font-size: 10px; }
 .cd-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.cd-notice { font-size: 12px; color: #3d6b25; font-family: 'Silkscreen', monospace; }
+.cd-notice { font-size: 12px; color: #56642e; font-family: 'Silkscreen', monospace; }
 .cd-notice.error { color: var(--px-red); }
 
 .cd-wanderers { padding: 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }

@@ -129,7 +129,7 @@ function grantBadge() {
 
 .orden-list { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .orden-item { display: grid; grid-template-columns: 56px 1fr 116px; gap: 14px; align-items: center; padding: 12px; background: var(--px-cream2); border: 3px solid var(--px-brown2); }
-.orden-item:hover { background: #fff3c4; }
+.orden-item:hover { background: #fff1a9; }
 .orden-plate { width: 48px; height: 48px; border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 rgba(0,0,0,.25), inset 2px 2px 0 rgba(255,255,255,.35); display: flex; align-items: center; justify-content: center; }
 .orden-name { font-size: 17px; font-weight: 600; color: var(--px-ink-txt); }
 .orden-desc { font-size: 14px; color: var(--px-tan-ink); margin-top: 2px; }
@@ -138,8 +138,8 @@ function grantBadge() {
 .orden-date-val   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); margin-top: 4px; }
 .orden-empty { color: var(--px-tan-ink); text-align: center; padding: 20px; font-style: italic; }
 
-.admin-bar { background: #5a2a2a; }
-.orden-admin-badge { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 4px 7px; background: var(--px-red); color: #fff6e0; border: 3px solid var(--px-ink); }
+.admin-bar { background: #402e2b; }
+.orden-admin-badge { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 4px 7px; background: var(--px-red); color: #fff1a9; border: 3px solid var(--px-ink); }
 .orden-admin-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
 .orden-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 7px; }
 
@@ -149,7 +149,7 @@ function grantBadge() {
 
 .orden-templates { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .orden-template { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px; background: var(--px-cream2); border: 3px solid var(--px-brown2); cursor: pointer; }
-.orden-template:hover { background: #fff3c4; }
+.orden-template:hover { background: #fff1a9; }
 .orden-template.active { background: var(--px-gold); border-color: var(--px-ink); }
 .orden-template span { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); text-align: center; }
 
@@ -162,7 +162,7 @@ function grantBadge() {
 
 .orden-admin-actions { display: flex; gap: 10px; }
 .orden-admin-actions .px-btn { flex: 1; text-align: center; }
-.orden-hint { padding: 12px 14px; background: #fff3c4; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
+.orden-hint { padding: 12px 14px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
 
 @media (max-width: 1100px) {
   .orden-wrap { flex-direction: column; }

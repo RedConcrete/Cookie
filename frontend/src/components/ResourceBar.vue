@@ -96,7 +96,7 @@ function fmtBig(v) {
 .resource-icon        { width: 22px; height: 22px; object-fit: contain; }
 
 .resource-text { display: flex; flex-direction: column; }
-.resource-label { font-size: 9px; color: #F5EDD6; opacity: 0.75; line-height: 1; }
-.resource-value { font-size: 12px; font-weight: 700; color: #FFE680; line-height: 1.2; }
+.resource-label { font-size: 9px; color: #fff1a9; opacity: 0.75; line-height: 1; }
+.resource-value { font-size: 12px; font-weight: 700; color: #fff1a9; line-height: 1.2; }
 .cookies-value  { font-size: 15px; }
 </style>

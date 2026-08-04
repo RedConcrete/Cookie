@@ -2,7 +2,7 @@
 // 1x1 SVG cell rects: a dark outline ring around the silhouette (drawn first),
 // then the actual palette-colored fill cells on top. Mirrors the technique used
 // for the icon assets in iconData.js, scaled up for animated creature sprites.
-export const SPRITE_DARK = '#1a120b'
+export const SPRITE_DARK = '#120e23'
 
 // Repeats '.' n times — used to build grid rows without manually counting dots.
 export const dots = (n) => '.'.repeat(n)

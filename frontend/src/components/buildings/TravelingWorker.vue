@@ -13,9 +13,9 @@ const props = defineProps({
   travelDur:   { type: Number, default: 5 },
   travelDelay: { type: Number, default: 0 },
   legDur:      { type: Number, default: 0.5 },
-  hat:         { type: String, default: '#c9702a' },
-  skin:        { type: String, default: '#f0c9a0' },
-  torso:       { type: String, default: '#8a5a34' },
+  hat:         { type: String, default: '#c78539' },
+  skin:        { type: String, default: '#fff1a9' },
+  torso:       { type: String, default: '#a15c34' },
 })
 
 const outerStyle = computed(() => ({

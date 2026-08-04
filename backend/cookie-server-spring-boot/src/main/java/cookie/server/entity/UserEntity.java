@@ -13,6 +13,10 @@ public class UserEntity {
     @Id
     private String steamId;
 
+    // Steam display name, resynced from steamworks.js on every login. Null for
+    // accounts created before this field existed or players who never launched via Steam.
+    private String displayName;
+
     // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
     // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
     // und einer der beiden Writes (Lohn-Abzug oder Produktions-Gutschrift) geht stillschweigend
@@ -46,6 +50,14 @@ public class UserEntity {
 
     public void setSteamId(String steamId) {
         this.steamId = steamId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public Long getVersion() {

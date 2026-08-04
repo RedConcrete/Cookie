@@ -160,6 +160,15 @@ spezifiziert ist:
   (`AdminController`). Falls das Spiel produktiv läuft, überlegen ob ein
   Scheduler (`SeasonScheduler`, analog `MarketScheduler`) mit konfigu-
   rierbarem Intervall sinnvoller ist als "Dev drückt manuell einen Knopf"
+- [ ] **Echtes Steam-Avatar im Profil.** Seit 2026-08-04 zeigt `PlayerProfileView.vue`
+  den echten Steam-Anzeigenamen (`steamworks.js` `localplayer.getName()`, wird bei
+  jedem Login serverseitig auf `UserEntity.displayName` resynct). Das Profilbild
+  ist aber weiterhin ein Pixel-Icon-Platzhalter — `steamworks.js@0.4.0` hat keine
+  Avatar-API (auch nicht auf `main` im Repo geprüft, Stand 2026-08-04). Für ein
+  echtes Bild: Steam Web API (`ISteamUser/GetPlayerSummaries/v2`) serverseitig
+  mit einem Web-API-Key (https://steamcommunity.com/dev/apikey) aufrufen,
+  `avatarfull`-URL am `UserEntity` cachen. Key als Server-Secret, nie committen.
+  Zurückgestellt, User will das später angehen.
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
   "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert

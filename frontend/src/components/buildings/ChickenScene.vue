@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="chicken-scene">
     <img class="scene-bg" :src="bgSrc" alt="" />
 
@@ -8,22 +8,22 @@
     </svg>
 
     <div v-if="workers > 0" class="patroller">
-      <TravelingWorker travel-anim="patrol" :travel-dur="5.5" :leg-dur="0.55" hat="#4a3f7a" torso="#8a5a34" />
+      <TravelingWorker travel-anim="patrol" :travel-dur="5.5" :leg-dur="0.55" hat="#534664" torso="#a15c34" />
     </div>
   </div>
 </template>
 
 <script setup>
 import TravelingWorker from './TravelingWorker.vue'
-import bgSrc from '../../assets/buildings/huhn.svg'
+import bgSrc from '../../assets/buildings/placeholder/huhn.png'
 import { buildSpriteCells, dots } from '../pixel/spriteGrid.js'
 
 defineProps({ workers: { type: Number, default: 0 } })
 
 const hens = [
-  { left: 82,  bottom: 40, color: '#fffaf0', delay: 0 },
-  { left: 116, bottom: 56, color: '#f3e6cc', delay: 0.5 },
-  { left: 146, bottom: 38, color: '#d9c39a', delay: 1 },
+  { left: 82,  bottom: 40, color: '#fff1a9', delay: 0 },
+  { left: 116, bottom: 56, color: '#fff1a9', delay: 0.5 },
+  { left: 146, bottom: 38, color: '#aea47e', delay: 1 },
 ]
 
 // 11x11 pixel grid, side view: comb, head w/ eye + beak, body, two legs.
@@ -42,13 +42,15 @@ const HEN_GRID = [
 ]
 
 function henCells(color) {
-  return buildSpriteCells(HEN_GRID, { c: color, r: '#b83232', e: '#1a120b', y: '#e8b93c' })
+  return buildSpriteCells(HEN_GRID, { c: color, r: '#b74132', e: '#120e23', y: '#ebb85b' })
 }
 </script>
 
 <style scoped>
-.chicken-scene { position: absolute; inset: 0; }
-.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.chicken-scene {
+  position: absolute; inset: 0;
+}
+.scene-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 
 .hen { position: absolute; animation: px-peck 1.6s ease-in-out infinite; }
 

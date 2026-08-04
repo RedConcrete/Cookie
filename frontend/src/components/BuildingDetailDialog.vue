@@ -22,7 +22,7 @@
               <PixelWorker variant="work"
                 :anim="playerStore.workersIdle ? 'bob' : bodyAnim"
                 :dur="1.1"
-                :tool="!playerStore.workersIdle ? { anim: 'tap', dur: 1.1, color: '#9fb3c2' } : null" />
+                :tool="!playerStore.workersIdle ? { anim: 'tap', dur: 1.1, color: '#aea47e' } : null" />
               <div class="bd-crew-name">{{ crewNames[(i - 1) % crewNames.length] }}</div>
               <div class="bd-crew-tag" :class="{ idle: playerStore.workersIdle }">
                 {{ playerStore.workersIdle ? 'IDLE' : (building.act || 'AKTIV') }}
@@ -176,7 +176,7 @@ async function upgradeBuilding() {
   display: flex; align-items: center; gap: 14px; padding: 16px 20px;
   border-bottom: 4px solid var(--px-ink); background: var(--px-cream3);
 }
-.bd-head-icon { width: 52px; height: 52px; background: #eef6fb; border: 3px solid var(--px-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bd-head-icon { width: 52px; height: 52px; background: #fff1a9; border: 3px solid var(--px-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .bd-head-text { flex: 1; }
 .bd-head-name { font-family: 'Silkscreen', monospace; font-size: 16px; color: var(--px-ink-txt); }
 .bd-head-sub  { font-size: 14px; color: var(--px-tan-ink); margin-top: 2px; }
@@ -192,21 +192,21 @@ async function upgradeBuilding() {
   display: flex; flex-direction: column; align-items: center; gap: 7px;
 }
 .bd-crew-cell-active { position: relative; background: var(--px-cream3); border-color: var(--px-brown2); }
-.bd-crew-cell-active .bd-crew-tag.idle { background: #e8dcbc; border-color: #b9a888; color: #7a6a4e; }
+.bd-crew-cell-active .bd-crew-tag.idle { background: #fff1a9; border-color: #aea47e; color: #6f6e72; }
 .bd-crew-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood-lt); }
 .bd-crew-tag {
   font-family: 'Silkscreen', monospace; font-size: 8px; padding: 2px 4px;
-  background: #dff0d0; border: 2px solid var(--px-green); color: #3d6b25;
+  background: #fff1a9; border: 2px solid var(--px-green); color: #56642e;
 }
-.bd-crew-tag.idle     { background: #e8dcbc; border-color: #b9a888; color: #7a6a4e; }
-.bd-crew-tag.inactive { background: #ddd8cc; border-color: #b0a898; color: #8a7a6a; }
+.bd-crew-tag.idle     { background: #fff1a9; border-color: #aea47e; color: #6f6e72; }
+.bd-crew-tag.inactive { background: #fff1a9; border-color: #aea47e; color: #6f6e72; }
 .bd-crew-x {
   position: absolute; top: 2px; right: 2px; width: 16px; height: 16px;
-  background: var(--px-red); border: 2px solid #8b1a1a; color: #fff;
+  background: var(--px-red); border: 2px solid #764032; color: #fff1a9;
   font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-weight: bold; padding: 0; z-index: 5;
 }
-.bd-crew-x:hover { background: #c01010; }
+.bd-crew-x:hover { background: #b74132; }
 .bd-crew-add {
   width: 64px; height: 74px; border: 3px dashed var(--px-green); background: rgba(60,100,40,.12);
   display: flex; align-items: center; justify-content: center;
@@ -214,9 +214,9 @@ async function upgradeBuilding() {
 }
 .bd-crew-add:hover { background: var(--px-green-panel); }
 .bd-crew-locked {
-  width: 64px; height: 74px; border: 3px dashed #c8b18a;
+  width: 64px; height: 74px; border: 3px dashed #aea47e;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Silkscreen', monospace; font-size: 8px; color: #c8b18a; text-align: center; padding: 4px;
+  font-family: 'Silkscreen', monospace; font-size: 8px; color: #aea47e; text-align: center; padding: 4px;
 }
 .bd-level-badge { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-green-txt); }
 
@@ -225,8 +225,8 @@ async function upgradeBuilding() {
 .bd-stat-label { font-size: 12px; color: var(--px-tan-ink); }
 .bd-stat-val   { font-family: 'Silkscreen', monospace; font-size: 15px; }
 .bd-stat-red   { color: var(--px-red); }
-.bd-stat-green { color: #3d6b25; }
-.bd-hint { padding: 12px; background: #fff3c4; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
+.bd-stat-green { color: #56642e; }
+.bd-hint { padding: 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
 
 .bd-buildup { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
 .bd-buildup-name { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }

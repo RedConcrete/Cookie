@@ -19,28 +19,28 @@
   font-family: 'Silkscreen', monospace;
 
   /* Depth 0: dunkel */
-  background: #33261a;
-  color: #f3e6cc;
-  border: 4px solid #100b07;
-  box-shadow: inset 2px 2px 0 #55402a, 0 6px 0 rgba(0,0,0,.4);
+  background: #402e2b;
+  color: #fff1a9;
+  border: 4px solid #120e23;
+  box-shadow: inset 2px 2px 0 #402e2b, 0 6px 0 rgba(0,0,0,.4);
 }
 
 /* Depth 1+: etwas heller, leicht versetzt im Farbton */
-.tt-depth-1 { background: #42311f; box-shadow: inset 2px 2px 0 #66492c, 0 6px 0 rgba(0,0,0,.4); }
-.tt-depth-2 { background: #523d27; box-shadow: inset 2px 2px 0 #7a5c38, 0 6px 0 rgba(0,0,0,.4); }
-.tt-depth-3 { background: #614a30; box-shadow: inset 2px 2px 0 #8a6a44, 0 6px 0 rgba(0,0,0,.4); }
+.tt-depth-1 { background: #402e2b; box-shadow: inset 2px 2px 0 #764032, 0 6px 0 rgba(0,0,0,.4); }
+.tt-depth-2 { background: #402e2b; box-shadow: inset 2px 2px 0 #764032, 0 6px 0 rgba(0,0,0,.4); }
+.tt-depth-3 { background: #764032; box-shadow: inset 2px 2px 0 #a15c34, 0 6px 0 rgba(0,0,0,.4); }
 
 /* ── Highlighted Text im Tooltip ───────────────────────── */
 .tt-highlight {
   display: inline;
   cursor: pointer;
-  color: #ffd76b;
-  border-bottom: 2px dashed #c9702a;
+  color: #ebb85b;
+  border-bottom: 2px dashed #c78539;
   transition: color 0.15s;
 }
 
 .tt-highlight:hover {
-  color: #fff0b0;
+  color: #fff1a9;
 }
 
 /* ── Phase 1: Füll-Balken am Trigger ───────────────────── */
@@ -48,7 +48,7 @@
   display: block;
   height: 3px;
   width: 100%;
-  background: #e8b93c;
+  background: #ebb85b;
   transform-origin: left;
   transform: scaleX(0);
   animation: tt-fill linear forwards;
@@ -63,14 +63,14 @@
 .tt-countdown {
   margin-top: 6px;
   height: 3px;
-  background: #100b07;
+  background: #120e23;
   border-radius: 0;
   overflow: hidden;
 }
 .tt-countdown-bar {
   height: 100%;
   width: 100%;
-  background: #e0873a;
+  background: #c78539;
   border-radius: 0;
   transform-origin: left;
   animation: tt-drain linear forwards;
