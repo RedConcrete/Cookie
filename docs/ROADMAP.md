@@ -56,6 +56,21 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
   anderen `IllegalArgumentException`/`IllegalStateException`-Validierungsfehler
   im ganzen Backend sauber als 400 statt als rohen 500 ab).
 
+- [x] **Swagger UI + dev API-Tester öffentlich erreichbar (kritisch).** —
+  behoben 2026-08-03, direkt beim ersten produktiven Rollout aufgefallen.
+  `/swagger-ui/index.html` und `/v3/api-docs` waren ungeschützt live und
+  erlaubten es jedem, die komplette API — inklusive `/api/v1/admin/market/reset`
+  — direkt im Browser zu erkunden und auszuführen. Zusätzlich lag unter
+  `static/index.html` ein alter manueller "API Tester" mit Buttons zum
+  Anlegen/Löschen beliebiger User und Markt-Buy/Sell für jede beliebige
+  `userId`, ganz ohne Auth auf der Seite selbst.
+  **Fix:** `springdoc.swagger-ui.enabled=false` + `springdoc.api-docs.enabled=false`
+  in `application.properties`; `static/index.html` entfernt und durch eine
+  harmlose Coming-Soon-Seite ersetzt (kein API-Zugriff von dort). Die
+  Admin-Endpunkte selbst verlangten schon vorher korrekt den Admin-Token —
+  das Problem war die Auffindbarkeit/Bedienbarkeit über Swagger, nicht
+  fehlende Prüfung im Endpunkt. Details: `docs/DEPLOYMENT.md`.
+
 ---
 
 ## 1. Offene GitHub Issues — Status-Check
@@ -161,14 +176,14 @@ spezifiziert ist:
   (`npm run build:win`), `app_build_2816100.vdf` mit AppID 2816100 und
   Depots für Windows-Client + Server-Binary anlegen, Upload zuerst auf
   Steam-Branch "beta"
-- [ ] **Server-Deployment** — Backend-JAR bauen (`./mvnw package
-  -DskipTests`), PostgreSQL auf Zielserver einrichten (Schema via
-  Hibernate `auto`), Systemd-Service oder Docker Compose aufsetzen,
-  Firewall Port 9876 öffnen (oder Reverse Proxy), `app.dev-mode=false`
-  setzen (nur Steam-Auth erlaubt)
-- [ ] **HTTPS zwischen Client und Server** (Issue #20) — betrifft direkt
-  den produktiven Server-Rollout oben, sollte vor "live" geklärt sein,
-  nicht danach nachgerüstet werden
+- [x] **Server-Deployment** — erledigt 2026-08-03. Backend + PostgreSQL
+  laufen produktiv via Docker Compose hinter einem TLS-terminierenden
+  Reverse Proxy, `app.dev-mode=false`, unter `https://cookie.r3dconcrete.de`.
+  Details, Env-Var-Referenz und Sicherheitshinweise: `docs/DEPLOYMENT.md`.
+- [x] **HTTPS zwischen Client und Server** (Issue #20) — erledigt 2026-08-03,
+  im Rahmen des Server-Deployments oben. Let's-Encrypt-Zertifikat über den
+  Reverse Proxy, `VITE_API_BASE_URL`/`VITE_WS_URL` in
+  `frontend/.env.production` auf `https://`/`wss://` umgestellt.
 
 ---
 
