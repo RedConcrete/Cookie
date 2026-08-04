@@ -1,6 +1,7 @@
 <template>
   <img
     class="pixel-icon"
+    :class="{ 'pixel-icon-smooth': SMOOTH.has(name) }"
     :src="ICONS[name]"
     :style="{ width: size + 'px', height: size + 'px' }"
     alt=""
@@ -31,12 +32,18 @@ import check   from '../../assets/icons/check.svg'
 import music   from '../../assets/icons/music.svg'
 import sound   from '../../assets/icons/sound.svg'
 import mute    from '../../assets/icons/mute.svg'
+import steam   from '../../assets/icons/steam.svg'
 
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
-  upgrade, check, music, sound, mute,
+  upgrade, check, music, sound, mute, steam,
 }
+
+// Echte Marken-Logos (unveraendertes Original-SVG, kein 8x8-Pixel-Raster) --
+// bei denen soll image-rendering:pixelated NICHT greifen, sonst wird die
+// Kurvenfuehrung beim Skalieren hart/klobig statt sauber.
+const SMOOTH = new Set(['steam'])
 
 defineProps({
   name: { type: String, required: true }, // key into ICONS, e.g. 'zucker', 'cookie', 'einw'
@@ -46,4 +53,5 @@ defineProps({
 
 <style scoped>
 .pixel-icon { flex-shrink: 0; image-rendering: pixelated; }
+.pixel-icon-smooth { image-rendering: auto; }
 </style>

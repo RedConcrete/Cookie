@@ -43,6 +43,8 @@
             <span class="sd-hotkey-key">LEER</span>
           </div>
         </div>
+
+        <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">SPIEL BEENDEN</button>
       </div>
     </div>
   </div>
@@ -59,6 +61,15 @@ const wageWarning = ref(true)
 const pixelSnap = ref(false)
 
 onMounted(() => audio.playBookOpen())
+
+// window.close() geht nur im gepackten Electron-Fenster -- im Browser (Dev-Modus,
+// spaeter Web-Build) blockt die Browser-Sicherheit das fuer nicht per Script
+// geoeffnete Tabs, deshalb Button dort gar nicht erst anzeigen.
+const isElectron = !!window.electronAPI
+
+function exitGame() {
+  window.close()
+}
 </script>
 
 <style scoped>
@@ -87,4 +98,6 @@ onMounted(() => audio.playBookOpen())
   background: var(--px-cream3); border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 #aea47e, inset 2px 2px 0 var(--px-cream);
   color: var(--px-ink-txt);
 }
+
+.sd-exit-btn { background: var(--px-red); }
 </style>

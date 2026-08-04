@@ -1,9 +1,6 @@
 <template>
   <div class="app" @mousedown="onMouseDown" @mouseover="onMouseOver">
-    <div v-if="blocked" class="status-overlay error">
-      <div>Bitte das Spiel über Steam starten.</div>
-      <button class="px-btn" @click="exitGame">BEENDEN</button>
-    </div>
+    <LandingView v-if="blocked" />
 
     <template v-else>
       <div v-if="playerStore.loading" class="status-overlay">
@@ -22,15 +19,12 @@ import { ref, onMounted } from 'vue'
 import { usePlayerStore } from './stores/player.js'
 import { useAudio } from './composables/useAudio.js'
 import CookieSpinner from './components/CookieSpinner.vue'
+import LandingView from './components/LandingView.vue'
 
 const playerStore = usePlayerStore()
 const audio       = useAudio()
 
 const blocked = ref(false)
-
-function exitGame() {
-  window.close()
-}
 
 // ── Audio-Events ─────────────────────────────────────────
 const INTERACTIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'LABEL'])
@@ -54,6 +48,12 @@ function onMouseOver(e) {
 }
 
 onMounted(async () => {
+  // Dev-Bypass zum Angucken der Landing-Page: http://localhost:5173/?landing
+  // (normal ueberspringt dev-mode=true auf dem Backend sie immer)
+  if (new URLSearchParams(location.search).has('landing')) {
+    blocked.value = true
+    return
+  }
   if (window.electronAPI) {
     window.electronAPI.onSteamAuth(async ({ steamId, name }) => {
       await playerStore.init(steamId, name)
