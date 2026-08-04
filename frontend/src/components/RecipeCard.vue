@@ -43,7 +43,6 @@
         </div>
 
         <div>
-          <div class="rc-label">LOHNT ES SICH?</div>
           <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
             <span>Backen</span>
             <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>

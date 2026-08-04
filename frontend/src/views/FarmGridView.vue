@@ -53,7 +53,8 @@
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
         <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
         <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
-          <PixelIcon name="einw" :size="20" />
+          <img v-if="playerStore.avatarUrl" :src="playerStore.avatarUrl" alt="" class="hud-avatar-img" />
+          <PixelIcon v-else name="einw" :size="20" />
         </button>
       </div>
     </div>
@@ -610,7 +611,9 @@ onUnmounted(() => {
   width: 52px; height: 52px; background: var(--px-wood3); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 #764032; display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  overflow: hidden;
 }
+.hud-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ── Idle wanderers ──────────────────────────────────── */
 .idle-wanderer { position: absolute; z-index: 12; }

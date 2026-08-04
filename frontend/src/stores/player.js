@@ -7,6 +7,7 @@ import { useMarketStore } from './market.js'
 export const usePlayerStore = defineStore('player', () => {
   const steamId    = ref(null)
   const displayName = ref(null)
+  const avatarUrl  = ref(null)
   const cookies    = ref(0)
   const sugar      = ref(0)
   const flour      = ref(0)
@@ -92,6 +93,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function updateFromDto(dto) {
     if (dto.displayName !== undefined) displayName.value = dto.displayName
+    if (dto.avatarUrl !== undefined) avatarUrl.value = dto.avatarUrl
     cookies.value   = dto.cookies
     sugar.value     = dto.sugar
     flour.value     = dto.flour
@@ -105,7 +107,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   return {
-    steamId, displayName, cookies, sugar, flour, eggs, butter, chocolate, milk,
+    steamId, displayName, avatarUrl, cookies, sugar, flour, eggs, butter, chocolate, milk,
     workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     netWorth, nwCookies, nwResources, nwUpgrades, loading, error, recipes,

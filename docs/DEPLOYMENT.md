@@ -10,50 +10,31 @@ oder Contributor relevant ist.
 
 ## 1. Produktions-Setup (Backend)
 
-Zwei-Container-Stack: PostgreSQL + Spring-Boot-Backend, per Docker Compose.
+Drei-Container-Stack: PostgreSQL + Spring-Boot-Backend + Frontend, per
+Docker Compose. Alles liegt in `deploy/`:
 
-```yaml
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: cookie
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASS}       # starkes Secret, nie committen
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/setup.sql:/docker-entrypoint-initdb.d/01_setup.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cookie"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    # kein Host-Port nötig -- nur intern im Compose-Netz erreichbar
+- `deploy/docker-compose.yml` — die eigentliche Stack-Definition
+- `deploy/.env.example` — Vorlage, eingecheckt, keine echten Werte
+- `deploy/.env` — echte Secrets, **nicht** eingecheckt (`.gitignore`),
+  existiert nur auf dem Server selbst
 
-  backend:
-    build:
-      context: ./backend/cookie-server-spring-boot
-    restart: unless-stopped
-    ports:
-      - "9876:9876"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cookie
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
-      APP_DEV_MODE: "false"
-      APP_ADMIN_TOKEN: ${ADMIN_TOKEN}      # starkes Secret, nie committen
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
+Setup auf einem neuen Server:
+```bash
+cd deploy
+cp .env.example .env
+# .env editieren: DB_PASS + ADMIN_TOKEN mit `openssl rand -hex 32` erzeugen,
+# STEAM_WEB_API_KEY optional (siehe Abschnitt 6)
+docker compose up -d --build
 ```
 
-`.env` mit `DB_PASS`/`ADMIN_TOKEN` bleibt außerhalb von Git (`.gitignore`).
-Beide Werte per `openssl rand -hex 32` o.ä. erzeugen, nicht die
-Default-Werte aus der lokalen `application.properties` (`postgres`/`1234`,
-`change-me-in-production`) übernehmen.
+Nicht die Default-Werte aus der lokalen `application.properties`
+(`postgres`/`1234`, `change-me-in-production`) übernehmen — die sind nur
+für lokale Entwicklung gedacht.
+
+Nach jedem Code-Update auf dem Server: `docker compose up -d --build`
+erneut laufen lassen (baut Backend/Frontend-Images neu, kein manuelles
+JAR-Kopieren nötig). Ein `git pull`, der den Server-Prozess NICHT neu
+baut, führt zum in Abschnitt 6 beschriebenen "alter Server-Prozess"-Bug.
 
 ### Reverse Proxy / TLS
 
@@ -216,3 +197,30 @@ vom `type`-Feld immer sicher unterstützt.
 - Nur ein Branch (`default`) existiert für diese App bisher — es gibt
   keinen separaten `beta`-Branch zum Vorab-Testen, müsste im Portal-Tab
   "Veröffentlichen" erst angelegt werden.
+
+---
+
+## 6. Steam-Anzeigename & Avatar
+
+`UserEntity.displayName`/`avatarUrl` werden bei jedem `game/init`-Aufruf
+resynct (`UserService.getUser`, siehe `GameController#initializeGame`,
+`?displayName=`-Query-Param aus `electron/main.js`'s `steamworks.js`-Call).
+
+- **Name:** kostenlos, kein Key nötig — kommt direkt von `steamworks.js`
+  im Client.
+- **Avatar:** braucht einen Steam Web API Key
+  (https://steamcommunity.com/dev/apikey), serverseitig als
+  `APP_STEAM_WEB_API_KEY` (bzw. `app.steam-web-api-key`) gesetzt —
+  `SteamAvatarService` ruft `ISteamUser/GetPlayerSummaries/v0002` auf.
+  Leer/nicht gesetzt = sauberer No-Op, Frontend zeigt dann den
+  Pixel-Icon-Platzhalter statt eines Bildes. Key ist ein Server-Secret,
+  nie committen, nie im Client-Build.
+
+**2026-08-04 beobachteter Bug:** `game/init?displayName=...` lief ohne
+Fehler durch, aber `/players/{id}/profile` zeigte danach trotzdem kein
+`displayName`. Ursache war vermutlich ein veralteter laufender Server-
+Prozess (Query-Param wird von altem Code einfach ignoriert, kein
+Fehler sichtbar) — kein Bug im aktuellen Code selbst. Nach jedem Backend-
+Feature-Update: Server-Prozess wirklich neu bauen + neu starten, nicht
+nur Dateien kopieren, sonst laufen alte und neue Endpunkt-Definitionen
+unbemerkt nebeneinander her.

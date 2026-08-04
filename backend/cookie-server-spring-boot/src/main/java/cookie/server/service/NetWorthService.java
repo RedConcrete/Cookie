@@ -191,6 +191,7 @@ public class NetWorthService {
         PlayerProfileDto dto = new PlayerProfileDto();
         dto.setSteamId(user.getSteamId());
         dto.setDisplayName(user.getDisplayName());
+        dto.setAvatarUrl(user.getAvatarUrl());
         dto.setRank((int) rank);
         dto.setNetWorth(nw.getNetWorth());
         dto.setCookies(nw.getCookies());

@@ -7,12 +7,12 @@ services:
     environment:
       POSTGRES_DB: cookie
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_PASSWORD: ${DB_PASS}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/setup.sql:/docker-entrypoint-initdb.d/01_setup.sql
+      - ../database/setup.sql:/docker-entrypoint-initdb.d/01_setup.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d cookie"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
 
   backend:
     build:
-      context: ./backend/cookie-server-spring-boot
+      context: ../backend/cookie-server-spring-boot
       dockerfile: Dockerfile
     container_name: cookie-backend
     restart: unless-stopped
@@ -30,14 +30,17 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cookie
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+      APP_DEV_MODE: "false"
+      APP_ADMIN_TOKEN: ${ADMIN_TOKEN}
+      APP_STEAM_WEB_API_KEY: ${STEAM_WEB_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
 
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     container_name: cookie-frontend
     restart: unless-stopped

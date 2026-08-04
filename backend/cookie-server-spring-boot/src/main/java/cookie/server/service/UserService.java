@@ -22,12 +22,15 @@ public class UserService {
     private final PlayerConfig playerConfig;
     private final PlayerUpgradeRepository playerUpgradeRepository;
     private final PrestigeService prestigeService;
+    private final SteamAvatarService steamAvatarService;
 
     public UserService(UserRepository userRepository, PlayerConfig playerConfig,
-                       PlayerUpgradeRepository playerUpgradeRepository, PrestigeService prestigeService) {
+                       PlayerUpgradeRepository playerUpgradeRepository, PrestigeService prestigeService,
+                       SteamAvatarService steamAvatarService) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
         this.playerUpgradeRepository = playerUpgradeRepository;
+        this.steamAvatarService = steamAvatarService;
         this.prestigeService = prestigeService;
     }
 
@@ -61,16 +64,28 @@ public class UserService {
         String cleanName = normalizeDisplayName(displayName);
         return userRepository.findById(userId)
                 .map(existing -> {
+                    boolean changed = false;
                     if (cleanName != null && !cleanName.equals(existing.getDisplayName())) {
                         existing.setDisplayName(cleanName);
-                        userRepository.save(existing);
+                        changed = true;
                     }
+                    // Avatar nur nachladen wenn noch keiner gecacht ist oder der Name sich
+                    // geaendert hat -- nicht bei jedem Login neu gegen die Steam Web API pruefen.
+                    if (existing.getAvatarUrl() == null || changed) {
+                        String avatarUrl = steamAvatarService.fetchAvatarUrl(userId);
+                        if (avatarUrl != null) {
+                            existing.setAvatarUrl(avatarUrl);
+                            changed = true;
+                        }
+                    }
+                    if (changed) userRepository.save(existing);
                     return toDto(existing);
                 })
                 .orElseGet(() -> {
                     UserEntity newUser = new UserEntity();
                     newUser.setSteamId(userId);
                     newUser.setDisplayName(cleanName);
+                    newUser.setAvatarUrl(steamAvatarService.fetchAvatarUrl(userId));
                     newUser.setCookies(playerConfig.getInitialCookies());
                     newUser.setSugar(playerConfig.getInitialSugar());
                     newUser.setFlour(playerConfig.getInitialFlour());
@@ -168,6 +183,7 @@ public class UserService {
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(entity.getSteamId());
         dto.setDisplayName(entity.getDisplayName());
+        dto.setAvatarUrl(entity.getAvatarUrl());
         dto.setCookies(entity.getCookies());
         dto.setSugar(entity.getSugar());
         dto.setFlour(entity.getFlour());
