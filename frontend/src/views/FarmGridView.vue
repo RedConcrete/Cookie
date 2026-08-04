@@ -61,8 +61,12 @@
     <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
     <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
-      <!-- Grass world — large enough to cover any pan distance -->
+      <!-- Grass world — base tile, bounded to WORLD -->
       <div class="grass-world"></div>
+
+      <!-- Scattered ground decoration: small tufts/stones -->
+      <img v-for="(d, i) in groundDecos" :key="'deco'+i" class="ground-decor" :src="d.src"
+           :style="{ left: d.x + 'px', top: d.y + 'px', width: d.size + 'px', height: d.size + 'px' }" alt="" />
 
       <!-- ══ Buildings ══ -->
       <BuildingFrame
@@ -145,10 +149,54 @@ import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
-import { BASE, SCENE_H, dropOk as dropOkLayout } from '../components/buildings/farmLayout.js'
+import { BASE, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
 import { BUILDING_INFO, RESOURCE_LABEL, RESOURCE_ICON } from '../components/buildings/buildingInfo.js'
 import grassTile from '../assets/tiles/grass.png'
 const grassBg = `url(${grassTile})`
+
+import decoTuftDark from '../assets/tiles/decor/deco_tuft_dark.png'
+import decoTuftLight from '../assets/tiles/decor/deco_tuft_light.png'
+
+// Camera can roam 2.5x the building-layout box; the grass itself is rendered
+// 3x as big (centered around the same point) so its edge is never reachable.
+const CAMERA_RANGE = { w: WORLD.w * 2.5, h: WORLD.h * 2.5 }
+const GRASS_SIZE    = { w: WORLD.w * 3, h: WORLD.h * 3 }
+
+// Deterministic PRNG (mulberry32) so the scattered ground decoration is
+// stable across reloads instead of jumping around every render.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const DECOS = [decoTuftDark, decoTuftLight]
+
+function rectsOverlapPad(a, b, pad) {
+  return a.x < b.x + b.w + pad && b.x - pad < a.x + a.w &&
+         a.y < b.y + b.h + pad && b.y - pad < a.y + a.h
+}
+const buildingRects = Object.entries(BASE).map(([id, b]) => ({ ...b, h: SCENE_H[id] || 120 }))
+function freeSpot(x, y, w, h) {
+  return !buildingRects.some(r => rectsOverlapPad({ x, y, w, h }, r, 12))
+}
+
+// Scatter tufts across the *entire* grass area (not just the building box)
+// so they cover the ground everywhere the camera can actually roam.
+const rand = mulberry32(20260804)
+const marginX = (GRASS_SIZE.w - WORLD.w) / 2
+const marginY = (GRASS_SIZE.h - WORLD.h) / 2
+const groundDecos = []
+for (let i = 0; i < 320; i++) {
+  const x = -marginX + rand() * GRASS_SIZE.w
+  const y = -marginY + rand() * GRASS_SIZE.h
+  const size = 24 + rand() * 16
+  if (!freeSpot(x, y, size, size)) continue
+  groundDecos.push({ x, y, size, src: DECOS[Math.floor(rand() * DECOS.length)] })
+}
 
 import SugarPondScene from '../components/buildings/SugarPondScene.vue'
 import OvenScene      from '../components/buildings/OvenScene.vue'
@@ -199,7 +247,10 @@ function loadOffsets() {
 }
 const savedOffsets = loadOffsets()
 const buildingOffsets = reactive(
-  Object.fromEntries(Object.keys(BASE).map(id => [id, savedOffsets[id] ?? { x: 0, y: 0 }]))
+  Object.fromEntries(Object.keys(BASE).map(id => {
+    const raw = savedOffsets[id] ?? { x: 0, y: 0 }
+    return [id, snapOffset(BASE[id], raw)]
+  }))
 )
 function onBuildingMoved(id, offset) {
   buildingOffsets[id] = offset
@@ -346,6 +397,17 @@ const canvasStyle = computed(() => ({
   transform: `translate(${panX.value}px, ${panY.value}px) scale(${zoom.value})`,
 }))
 
+// Camera can't pan past the edge of WORLD — once a world edge is flush with
+// the viewport edge, dragging further is clamped (no panning into the void).
+function clampPan() {
+  const vw = viewEl.value?.clientWidth  ?? CAMERA_RANGE.w
+  const vh = viewEl.value?.clientHeight ?? CAMERA_RANGE.h
+  const maxX = Math.max(0, (CAMERA_RANGE.w * zoom.value - vw) / 2)
+  const maxY = Math.max(0, (CAMERA_RANGE.h * zoom.value - vh) / 2)
+  panX.value = Math.min(maxX, Math.max(-maxX, panX.value))
+  panY.value = Math.min(maxY, Math.max(-maxY, panY.value))
+}
+
 let dragging = false
 let lastX = 0, lastY = 0
 function panStart(e) {
@@ -361,6 +423,7 @@ function panMove(e) {
   panY.value += e.clientY - lastY
   lastX = e.clientX
   lastY = e.clientY
+  clampPan()
 }
 function panEnd() { dragging = false }
 
@@ -370,6 +433,7 @@ function onWheel(e) {
   e.preventDefault()
   const factor = e.deltaY < 0 ? 1.1 : 0.9
   zoom.value = Math.min(MAX_ZOOM, Math.max(0.4, zoom.value * factor))
+  clampPan()
 }
 
 // ── Hotkeys ──────────────────────────────────────────────
@@ -501,23 +565,26 @@ onUnmounted(() => {
 
 .grass-world {
   position: absolute;
-  left: -5000px; top: -5000px;
-  width: 11280px; height: 10800px;
+  left: v-bind('(-(GRASS_SIZE.w - WORLD.w) / 2) + "px"');
+  top:  v-bind('(-(GRASS_SIZE.h - WORLD.h) / 2) + "px"');
+  width: v-bind('GRASS_SIZE.w + "px"'); height: v-bind('GRASS_SIZE.h + "px"');
   background-color: #7e9432;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 32px, rgba(255,255,255,.04) 32px 64px),
-    v-bind(grassBg);
-  background-size: auto, auto, 100px 100px;
+  background-image: v-bind(grassBg);
+  background-size: 100px 100px;
   image-rendering: pixelated;
+}
+.ground-decor {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 .hof-root:active { cursor: grabbing; }
 
 .hof-canvas {
   position: absolute;
   left: 50%; top: 50%;
-  width: 1280px; height: 800px;
-  margin-left: -640px; margin-top: -400px;
+  width: v-bind('WORLD.w + "px"'); height: v-bind('WORLD.h + "px"');
+  margin-left: v-bind('(-WORLD.w / 2) + "px"'); margin-top: v-bind('(-WORLD.h / 2) + "px"');
   transform-origin: center center;
   overflow: visible;
 }

@@ -41,6 +41,7 @@
 import { computed } from 'vue'
 import PixelIcon from '../pixel/PixelIcon.vue'
 import { useHoldDrag } from '../../composables/useHoldDrag.js'
+import { TILE_SIZE } from './farmLayout.js'
 
 const props = defineProps({
   buildingId: { type: String, default: '' },
@@ -65,6 +66,7 @@ const { state, onPointerDown } = useHoldDrag(
   (finalPos) => emit('moved', finalPos),
   () => props.zoom,
   props.offset,
+  { origin: props.base, size: TILE_SIZE },
 )
 
 const blocked = computed(() => state.armed && !props.dropOk(state.pos))

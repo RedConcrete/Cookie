@@ -1,5 +1,22 @@
 export const CANVAS = { w: 1280, h: 800 }
 
+// Full pannable world — comfortably fits all buildings (x:30-1260, y:120-642)
+// with room to grow. Camera panning is clamped to this rect.
+export const WORLD = { w: 2000, h: 1400 }
+
+// One ground tile as displayed (matches the 5x-scaled 20px native tile in
+// assets/tiles/grass.png) — building placement snaps to this grid.
+export const TILE_SIZE = 100
+
+// Snaps an offset so the building's *absolute* position (base + offset) lands
+// on a global tile boundary, regardless of where base.x/base.y themselves sit.
+export function snapOffset(base, offset, tileSize = TILE_SIZE) {
+  return {
+    x: Math.round((base.x + offset.x) / tileSize) * tileSize - base.x,
+    y: Math.round((base.y + offset.y) / tileSize) * tileSize - base.y,
+  }
+}
+
 export const BASE = {
   pond:    { x: 40,  y: 126, w: 230 },
   ofen:    { x: 300, y: 150, w: 170 },
