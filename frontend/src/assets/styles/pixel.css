@@ -144,7 +144,6 @@
 .px-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--px-brown2) var(--px-cream2);
-  scrollbar-gutter: stable;
 }
 .px-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
 .px-scroll::-webkit-scrollbar-track { background: var(--px-cream2); border-left: 2px solid var(--px-ink); }

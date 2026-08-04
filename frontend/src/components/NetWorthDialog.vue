@@ -367,7 +367,7 @@ onUnmounted(() => {
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .bk-row { display: flex; align-items: center; gap: 8px; }
 .bk-icon  { flex-shrink: 0; }
-.bk-label { width: 80px; flex-shrink: 0; font-size: 13px; color: var(--px-ink-txt); }
+.bk-label { width: 92px; flex-shrink: 0; font-size: 13px; color: var(--px-ink-txt); white-space: nowrap; }
 .bk-bar-wrap {
   flex: 1; height: 10px; background: var(--px-ink);
   border: 2px solid var(--px-ink); overflow: hidden;

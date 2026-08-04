@@ -168,6 +168,29 @@ spezifiziert ist:
   echtes Bild: Steam Web API (`ISteamUser/GetPlayerSummaries/v2`) serverseitig
   mit einem Web-API-Key (https://steamcommunity.com/dev/apikey) aufrufen,
   `avatarfull`-URL am `UserEntity` cachen. Key als Server-Secret, nie committen.
+- [ ] **Steam-Deck-Controller-Steuerung.** Angefragt 2026-08-04 nach erstem
+  Test auf echtem Steam Deck. Noch nicht implementiert, nur geplant:
+  - **Erkennung:** `steamworks.js` bringt `isSteamRunningOnSteamDeck()`
+    fertig mit (`client.d.ts`) — automatischer Check beim Start in
+    `electron/main.js`, Ergebnis per IPC (analog `steam-auth`) ans Frontend
+    durchreichen, z.B. `steam-deck-mode` Event oder Teil des bestehenden
+    `steam-auth`-Payloads.
+  - **Fadenkreuz-Modus (Standard auf Deck):** Crosshair fix in Bildschirm-
+    mitte. Linker Stick bewegt/pannt die Karte (`FarmGridView.vue`
+    Kamera-Pan-Logik existiert schon für Maus-Drag, müsste auf Gamepad-Input
+    umgelegt werden) — Crosshair-Position selbst bleibt zentriert, die Welt
+    bewegt sich darunter.
+  - **Interaktion:** Wenn Crosshair über einem Gebäude steht und Spieler
+    A drückt → selbes Verhalten wie Klick (`BuildingFrame.vue` `@open`).
+    Braucht Hit-Test von Bildschirmmitte gegen die aktuell sichtbaren
+    Gebäude-Bounding-Boxes.
+  - **Umschalten Fadenkreuz ↔ Maus:** Klick auf linken Stick (L3) togglet
+    Modus. Im Maus-Modus steuert der linke Stick einen echten Mauszeiger
+    (Standard-Gamepad-zu-Maus-Verhalten), damit UI-Buttons/Dialoge normal
+    bedienbar bleiben, die kein Gamepad-Konzept haben.
+  - Braucht generell: Gamepad-Input-Handling im Frontend (`Gamepad API` des
+    Browsers reicht i.d.R., kein natives SDK nötig), neuer Composable
+    (z.B. `useGamepadCursor.js`) analog zu `useHotkeys.js`.
   Zurückgestellt, User will das später angehen.
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als

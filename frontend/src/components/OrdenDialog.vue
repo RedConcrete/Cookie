@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div class="orden-box px-panel">
+      <div v-if="isAdmin" class="orden-box px-panel">
         <div class="px-titlebar admin-bar">
           <span>ADMIN &middot; ORDEN VERLEIHEN</span>
           <span class="orden-admin-badge">NUR ADMIN</span>
@@ -88,7 +88,10 @@ import PixelIcon from './pixel/PixelIcon.vue'
 import { useBadges } from '../composables/useBadges.js'
 import { useAudio } from '../composables/useAudio.js'
 
-const props = defineProps({ steamId: { type: String, default: 'DEV_PLAYER_001' } })
+const props = defineProps({
+  steamId: { type: String, default: 'DEV_PLAYER_001' },
+  isAdmin: { type: Boolean, default: false },
+})
 const emit = defineEmits(['close'])
 const audio = useAudio()
 

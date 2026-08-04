@@ -144,3 +144,75 @@ enthalten, was öffentlich sein soll.
 - Browser-Zugang ohne Electron (Steam-OpenID-Login) ist geplant, aber
   noch nicht implementiert — die aktuelle Coming-Soon-Seite unter `/`
   kündigt das an, führt aber noch keinen echten Login durch.
+
+---
+
+## 5. Windows-Client-Build & Steam-Upload
+
+### Client ist duenn, Backend laeuft zentral
+
+`electron/main.js` spawnt seit 2026-08-03 keinen lokalen Backend-Prozess
+mehr (kein `java -jar` im Client, kein gebuendeltes JAR, kein Java auf
+Spieler-Seite noetig). Server-Adresse kommt zur Build-Zeit aus
+`frontend/.env.production` (`VITE_API_BASE_URL`, `VITE_WS_URL`) — vor
+jedem Steam-Build pruefen/aktualisieren, wird fest in den Build gebacken.
+
+### `npm run build:win` unter Linux (kein natives Windows)
+
+`electron-builder --win` braucht Wine für den `rcedit`-Schritt (setzt
+Icon/Version-Strings im `.exe`) und für den NSIS-Installer selbst.
+
+- System-Wine bevorzugt (`sudo dnf install wine` o.ä.).
+- Ersatzweise geht ein **Lutris**-Wine-Runner
+  (`~/.local/share/lutris/runners/wine/<version>/bin/wine64`), falls kein
+  32-bit-Unterbau (`i386`-Libs) verfügbar ist: der mitgelieferte
+  32-bit-`wine`-Binary scheitert dann mit *"Datei oder Verzeichnis nicht
+  gefunden"* (fehlender `ld-linux.so.2`-Interpreter). Workaround: ein
+  `wine`-Wrapper-Skript auf PATH, das alles über `wine64` laufen lässt und
+  `*-ia32.exe`-Pfade automatisch auf die daneben liegende `*-x64.exe`
+  umbiegt (funktioniert für `rcedit-ia32.exe`/`rcedit-x64.exe`, beide
+  liegen im `electron-builder`-Cache unter `winCodeSign/`).
+- Der NSIS-Installer-Schritt selbst (`Cookie Setup x.x.x.exe`) scheitert
+  in einer Wine-Umgebung ohne echten X-Server/Display trotzdem
+  (`ShellExecuteEx fehlgeschlagen`) — **das ist für Steam irrelevant**:
+  `frontend/release/win-unpacked/` (der eigentliche App-Ordner) wird davor
+  bereits vollständig und korrekt gebaut. Steam braucht nur diesen
+  Ordner, keinen Installer.
+
+### Bug: `preload.js` mit ESM-Syntax + Sandbox = stiller Fail
+
+`package.json` hat `"type": "module"`. Ein `electron/preload.js` mit
+`import { contextBridge } from 'electron'` lädt in einer gepackten
+Electron-30-App mit `contextIsolation: true` (Sandbox per Default an)
+nicht zuverlässig — `window.electronAPI` bleibt `undefined`, ohne
+sichtbaren Fehler. Symptom im Spiel: die Steam-Version zeigt "Bitte das
+Spiel über Steam starten." obwohl sie über Steam gestartet wurde (App.vue
+faellt auf den Browser-Fallback-Pfad zurück, weil `window.electronAPI`
+fehlt).
+
+**Fix:** Preload als `.cjs` mit `require()`-Syntax (`electron/preload.cjs`,
+in `main.js` referenziert) — CommonJS ist für Preload-Skripte unabhängig
+vom `type`-Feld immer sicher unterstützt.
+
+### Steam-Upload (`scripts/steam/`)
+
+- `app_build_2816100.vdf` + `depot_build_2816102.vdf` (2816102 = Windows-
+  Depot, 2816101 wäre Linux — im Steamworks-Portal unter App → SteamPipe →
+  Installation nachsehen falls sich das mal ändert).
+- `ContentRoot`/`BuildOutput` als absolute Pfade, damit es egal ist von wo
+  `steamcmd` aufgerufen wird.
+- Steamworks-SDK lokal unter `~/steamworks_sdk/` entpacken (nicht ins
+  Repo — Lizenz). Linux-`steamcmd` liegt unter
+  `sdk/tools/ContentBuilder/builder_linux/steamcmd.sh`, ruft intern ein
+  32-bit-Binary auf — gleiches i386-Lib-Problem wie oben möglich, dann
+  bleibt nur ein echtes Terminal mit vollem System-Zugriff (kein
+  Sandbox-Container).
+- **`"SetLive"` in der vdf schlägt bei diesem Account/dieser App immer
+  fehl** (`ERROR! Failed to commit build ... : Failure`), unabhängig vom
+  Branch-Namen — Upload selbst funktioniert trotzdem jedes Mal einwandfrei.
+  `SetLive` deshalb aus der vdf entfernt: Build hochladen, danach manuell
+  im Steamworks-Portal unter App → SteamPipe → "Ihre Builds" die neue
+  BuildID per Dropdown auf den Branch (`default`) liveschalten.
+- Nur ein Branch (`default`) existiert für diese App bisher — es gibt
+  keinen separaten `beta`-Branch zum Vorab-Testen, müsste im Portal-Tab
+  "Veröffentlichen" erst angelegt werden.

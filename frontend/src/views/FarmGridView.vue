@@ -127,7 +127,7 @@
     <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
     <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
     <NetWorthDialog     v-if="dialog === 'networth'"    :steamId="playerStore.steamId" @close="dialog = null" />
-    <OrdenDialog        v-if="dialog === 'badges'"      :steamId="playerStore.steamId" @close="dialog = null" />
+    <OrdenDialog        v-if="dialog === 'badges'"      :steamId="playerStore.steamId" :isAdmin="isDev" @close="dialog = null" />
     <BuildShopDialog    v-if="dialog === 'buildshop'"   @close="dialog = null" />
     <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
@@ -143,7 +143,6 @@ import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
 import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
-import { useHotkeys, keyLabelFromEvent } from '../composables/useHotkeys.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
@@ -228,8 +227,6 @@ import AdminDialog from '../components/AdminDialog.vue'
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
-const { state: hotkeyState } = useHotkeys()
-
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
 const sellFeeRate = ref(0.08)
 
@@ -456,23 +453,10 @@ function onKeydown(e) {
     detailBuilding.value = null
     return
   }
-  const label = keyLabelFromEvent(e)
-  const binding = hotkeyState.bindings.find(b => b.key === label)
-  if (!binding) return
-  e.preventDefault()
-  const actions = {
-    center:      () => resetView(),
-    zoomreset:   () => resetView(),
-    bake:        () => { dialog.value = 'bake' },
-    market:      () => { dialog.value = 'market' },
-    upgrades:    () => { dialog.value = 'upgrades' },
-    leaderboard: () => { dialog.value = 'leaderboard' },
-    settings:    () => { dialog.value = 'settings' },
-    recipes:     () => { dialog.value = 'bake' },
-    badges:      () => { dialog.value = 'badges' },
-    sellall:     () => sellAll(),
+  if (e.key === ' ') {
+    e.preventDefault()
+    resetView()
   }
-  actions[binding.id]?.()
 }
 
 // ── Harvest ──────────────────────────────────────────────
