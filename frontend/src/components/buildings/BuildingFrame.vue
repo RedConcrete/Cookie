@@ -30,15 +30,16 @@
     <!-- Hover over the scene = harvest (no tooltip; @open still handles click) -->
     <div
       class="bf-scene bf-scene-custom" :style="{ height: sceneHeight + 'px' }"
-      @mouseenter="emit('harvest-start')" @mouseleave="emit('harvest-stop')"
+      @mouseenter="onSceneEnter" @mouseleave="onSceneLeave"
     >
+      <div class="bf-hover-ring" :class="{ visible: hovering && !state.armed && !state.pressing }"></div>
       <slot />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import PixelIcon from '../pixel/PixelIcon.vue'
 import { useHoldDrag } from '../../composables/useHoldDrag.js'
 import { TILE_SIZE } from './farmLayout.js'
@@ -70,6 +71,12 @@ const { state, onPointerDown } = useHoldDrag(
 )
 
 const blocked = computed(() => state.armed && !props.dropOk(state.pos))
+
+// Light outline while hovering the scene, so it's clear the harvest-on-hover
+// is active (suppressed while the drag outline is showing instead).
+const hovering = ref(false)
+function onSceneEnter() { hovering.value = true; emit('harvest-start') }
+function onSceneLeave() { hovering.value = false; emit('harvest-stop') }
 
 const rootStyle = computed(() => ({
   position: 'absolute',
@@ -115,4 +122,14 @@ const rootStyle = computed(() => ({
   border: 4px solid; box-shadow: 0 0 0 3px var(--px-ink);
   pointer-events: none; transition: opacity .1s;
 }
+.bf-hover-ring {
+  position: absolute; inset: -8px;
+  border: 4px solid var(--px-green-lt);
+  box-shadow: 0 0 0 3px var(--px-ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+  z-index: 4;
+}
+.bf-hover-ring.visible { opacity: 1; }
 </style>

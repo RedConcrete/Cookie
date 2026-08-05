@@ -44,6 +44,28 @@
           </div>
         </div>
 
+        <div class="sd-hotkeys">
+          <div class="sd-hotkeys-head">
+            <span class="sd-label">KAMERA BEWEGUNG</span>
+          </div>
+
+          <div class="sd-slider-row sd-cam-speed-row">
+            <div class="sd-slider-label">Geschwindigkeit</div>
+            <input type="range" min="120" max="1200" step="20" :value="camera.cameraSpeed.value"
+              @input="camera.cameraSpeed.value = +$event.target.value" class="sd-slider" />
+            <span class="sd-slider-val">{{ camera.cameraSpeed.value }}</span>
+          </div>
+
+          <div class="sd-hotkey-row" v-for="d in camDirections" :key="d.dir">
+            <span>{{ d.label }}</span>
+            <button
+              class="sd-hotkey-key sd-hotkey-btn"
+              :class="{ listening: listeningFor === d.dir }"
+              @click="startListen(d.dir)"
+            >{{ listeningFor === d.dir ? 'TASTE…' : camera.keyLabel(camera.cameraKeys[d.dir]) }}</button>
+          </div>
+        </div>
+
         <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">SPIEL BEENDEN</button>
       </div>
     </div>
@@ -51,16 +73,44 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAudio } from '../composables/useAudio.js'
+import { useCameraControls } from '../composables/useCameraControls.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
+const camera = useCameraControls()
 const wageWarning = ref(true)
 const pixelSnap = ref(false)
 
-onMounted(() => audio.playBookOpen())
+const camDirections = [
+  { dir: 'up',    label: 'Nach oben' },
+  { dir: 'down',  label: 'Nach unten' },
+  { dir: 'left',  label: 'Nach links' },
+  { dir: 'right', label: 'Nach rechts' },
+]
+const listeningFor = ref(null)
+
+function startListen(dir) {
+  listeningFor.value = dir
+}
+// Captured in the capture phase so it wins over FarmGridView's window keydown
+// listener, and stopped from bubbling so that listener never sees the key.
+function captureKey(e) {
+  if (!listeningFor.value) return
+  e.preventDefault()
+  e.stopPropagation()
+  if (e.key === 'Escape') { listeningFor.value = null; return }
+  camera.rebind(listeningFor.value, e.key)
+  listeningFor.value = null
+}
+
+onMounted(() => {
+  audio.playBookOpen()
+  window.addEventListener('keydown', captureKey, true)
+})
+onUnmounted(() => window.removeEventListener('keydown', captureKey, true))
 
 // window.close() geht nur im gepackten Electron-Fenster -- im Browser (Dev-Modus,
 // spaeter Web-Build) blockt die Browser-Sicherheit das fuer nicht per Script
@@ -98,6 +148,12 @@ function exitGame() {
   background: var(--px-cream3); border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 #aea47e, inset 2px 2px 0 var(--px-cream);
   color: var(--px-ink-txt);
 }
+.sd-hotkey-btn { cursor: pointer; }
+.sd-hotkey-btn:hover { filter: brightness(1.06); }
+.sd-hotkey-btn.listening { background: var(--px-orange); color: var(--px-cream); box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt); }
+
+.sd-cam-speed-row { padding: 8px 10px 12px; }
+.sd-cam-speed-row .sd-slider-label { width: 120px; }
 
 .sd-exit-btn { background: var(--px-red); }
 </style>

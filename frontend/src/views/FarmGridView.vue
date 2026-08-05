@@ -138,12 +138,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
 import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
+import { useCameraControls } from '../composables/useCameraControls.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
@@ -434,6 +435,44 @@ function onWheel(e) {
   clampPan()
 }
 
+// ── Camera movement (continuous while held, same feel as mouse-drag) ──
+// Keybinds + speed are user-configurable in SettingsDialog, shared via useCameraControls.
+const { cameraKeys, cameraSpeed } = useCameraControls()
+const camPressed = { up: false, down: false, left: false, right: false }
+let camFrame = null
+let lastFrameTime = 0
+
+function camActive() { return camPressed.up || camPressed.down || camPressed.left || camPressed.right }
+
+function camTick(now) {
+  const dt = Math.min(0.05, (now - lastFrameTime) / 1000)
+  lastFrameTime = now
+  let dx = 0, dy = 0
+  if (camPressed.left)  dx += 1
+  if (camPressed.right) dx -= 1
+  if (camPressed.up)    dy += 1
+  if (camPressed.down)  dy -= 1
+  if (dx !== 0 && dy !== 0) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2 }
+  if (dx !== 0 || dy !== 0) {
+    panX.value += dx * cameraSpeed.value * dt
+    panY.value += dy * cameraSpeed.value * dt
+    clampPan()
+  }
+  if (camActive()) camFrame = requestAnimationFrame(camTick)
+  else camFrame = null
+}
+function startCamLoop() {
+  if (camFrame != null) return
+  lastFrameTime = performance.now()
+  camFrame = requestAnimationFrame(camTick)
+}
+function stopCamKeys() {
+  camPressed.up = camPressed.down = camPressed.left = camPressed.right = false
+}
+// Release held keys if a dialog opens or the window loses focus, so keys
+// stuck "down" (e.g. Alt-Tab while holding a movement key) don't pan forever.
+watch([dialog, detailBuilding], () => stopCamKeys())
+
 // ── Hotkeys ──────────────────────────────────────────────
 async function sellAll() {
   for (const r of RESOURCES) {
@@ -457,7 +496,20 @@ function onKeydown(e) {
   if (e.key === ' ') {
     e.preventDefault()
     resetView()
+    return
   }
+  if (dialog.value || detailBuilding.value) return
+  const k = e.key.toLowerCase()
+  const dir = Object.keys(cameraKeys).find(d => cameraKeys[d] === k)
+  if (dir) {
+    camPressed[dir] = true
+    startCamLoop()
+  }
+}
+function onKeyup(e) {
+  const k = e.key.toLowerCase()
+  const dir = Object.keys(cameraKeys).find(d => cameraKeys[d] === k)
+  if (dir) camPressed[dir] = false
 }
 
 // ── Harvest ──────────────────────────────────────────────
@@ -527,6 +579,8 @@ onMounted(() => {
   passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('keyup', onKeyup)
+  window.addEventListener('blur', stopCamKeys)
 })
 onUnmounted(() => {
   clearInterval(upgradeTimer)
@@ -535,6 +589,9 @@ onUnmounted(() => {
   Object.values(harvestIntervals).forEach(clearInterval)
   viewEl.value?.removeEventListener('wheel', onWheel)
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('keyup', onKeyup)
+  window.removeEventListener('blur', stopCamKeys)
+  if (camFrame != null) cancelAnimationFrame(camFrame)
 })
 </script>
 

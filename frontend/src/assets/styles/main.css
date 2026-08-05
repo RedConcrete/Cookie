@@ -1,6 +1,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 button, input, select, textarea { font-family: inherit; }
 
+/* Game UI shouldn't be text-selectable (drag-to-select fights with building
+   drag/pan). Form fields stay selectable so typing/copy-paste still works. */
+html, body, #app {
+  user-select: none;
+  -webkit-user-select: none;
+}
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Fruitpunch24 palette only (frontend/src/assets/colorpalate/fruitpunch24.hex) — see CLAUDE.md */
 :root {
   --bg:          #fff1a9;

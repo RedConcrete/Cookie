@@ -1,4 +1,5 @@
 import { reactive, computed, onUnmounted } from 'vue'
+import { registerGlobal, unregisterGlobal } from './tooltipMutex.js'
 
 const HOVER_MS      = 700   // fill duration
 const DRAIN_SLOW_MS = 2500  // drain after fill complete — tooltip stays visible until 0
@@ -23,6 +24,15 @@ export function useHoverReveal() {
 
   function cancel() { cancelAnimationFrame(raf); raf = null }
 
+  // Forces this tooltip closed instantly, bypassing any drain — used when
+  // another tooltip opens elsewhere, so only one can be shown/pinned at a time.
+  function forceClose() {
+    cancel()
+    state.visible  = false
+    state.phase    = 'off'
+    state.progress = 0
+  }
+
   function tick() {
     if (state.phase === 'fill') {
       state.progress = Math.min(1, (Date.now() - t0) / HOVER_MS)
@@ -35,12 +45,14 @@ export function useHoverReveal() {
       if (state.progress <= 0) {
         state.phase = 'off'
         state.visible = false
+        unregisterGlobal(forceClose)
         return
       }
     } else if (state.phase === 'drain-fast') {
       state.progress = Math.max(0, 1 - (Date.now() - t0) / DRAIN_FAST_MS)
       if (state.progress <= 0) {
         state.phase = 'off'
+        unregisterGlobal(forceClose)
         return
       }
     } else {
@@ -54,6 +66,7 @@ export function useHoverReveal() {
     state.visible = true
     t0 = Date.now() - state.progress * HOVER_MS
     state.phase = 'fill'
+    registerGlobal(forceClose)
     tick()
   }
 
@@ -74,7 +87,7 @@ export function useHoverReveal() {
     tick()
   }
 
-  onUnmounted(cancel)
+  onUnmounted(() => { cancel(); unregisterGlobal(forceClose) })
 
   const running = computed(() => state.phase !== 'off')
   const pinned  = computed(() => state.phase === 'drain-slow')
