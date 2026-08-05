@@ -8,10 +8,15 @@
     <div class="bf-hold-bar" :style="{ opacity: state.pressing ? 1 : 0, width: `calc(${Math.round(state.progress * 100)}% + 16px)` }"></div>
 
     <!-- Armed / blocked outline -->
-    <div 
-    class="bf-outline" 
+    <div
+    class="bf-outline"
     :style="{ opacity: state.armed || state.pressing ? 1 : 0, borderColor: blocked ? '#e67146' : (state.armed ? '#aea47e' : '#ebb85b'), background: blocked ? 'rgba(224,90,74,.22)' : 'transparent' }">
   </div>
+
+    <!-- Hover ring: wraps the whole card (label + scene), same footprint as
+         the drag outline above -- scoping it to just .bf-scene made its -8px
+         inset bleed upward into the label bar instead of framing it cleanly. -->
+    <div class="bf-hover-ring" :class="{ visible: hovering && !state.armed && !state.pressing }"></div>
 
     <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
     <div class="bf-overlay">
@@ -32,7 +37,6 @@
       class="bf-scene bf-scene-custom" :style="{ height: sceneHeight + 'px' }"
       @mouseenter="onSceneEnter" @mouseleave="onSceneLeave"
     >
-      <div class="bf-hover-ring" :class="{ visible: hovering && !state.armed && !state.pressing }"></div>
       <slot />
     </div>
   </div>
