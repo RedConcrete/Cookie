@@ -3,6 +3,7 @@ package cookie.server.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -21,6 +22,17 @@ public class UserEntity {
     // SteamAvatarService) -- nur wenn STEAM_WEB_API_KEY gesetzt ist. Null sonst.
     @Column(length = 512)
     private String avatarUrl;
+
+    // Cached copy of the actual avatar image bytes, downloaded once from `avatarUrl`
+    // and served back out via UserController#getAvatar -- so the client always loads
+    // it from our own server (with a long Cache-Control) instead of hammering Steam's
+    // CDN on every page load, which is what caused the avatar to flicker in/out.
+    @Lob
+    @Column(name = "avatar_bytes")
+    private byte[] avatarBytes;
+
+    @Column(name = "avatar_content_type", length = 64)
+    private String avatarContentType;
 
     // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
     // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
@@ -71,6 +83,22 @@ public class UserEntity {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public byte[] getAvatarBytes() {
+        return avatarBytes;
+    }
+
+    public void setAvatarBytes(byte[] avatarBytes) {
+        this.avatarBytes = avatarBytes;
+    }
+
+    public String getAvatarContentType() {
+        return avatarContentType;
+    }
+
+    public void setAvatarContentType(String avatarContentType) {
+        this.avatarContentType = avatarContentType;
     }
 
     public Long getVersion() {

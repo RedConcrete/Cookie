@@ -59,4 +59,27 @@ public class SteamAvatarService {
             return null;
         }
     }
+
+    public record AvatarImage(byte[] bytes, String contentType) {}
+
+    /** Downloads the actual image bytes from an avatarfull URL (as returned by fetchAvatarUrl). Null on any failure. */
+    public AvatarImage downloadAvatarImage(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) return null;
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(avatarUrl))
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+            HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                log.warn("Avatar-Bild-Download returned {}", response.statusCode());
+                return null;
+            }
+            String contentType = response.headers().firstValue("Content-Type").orElse("image/jpeg");
+            return new AvatarImage(response.body(), contentType);
+        } catch (Exception e) {
+            log.warn("Avatar-Bild-Download fehlgeschlagen: {}", e.getMessage());
+            return null;
+        }
+    }
 }

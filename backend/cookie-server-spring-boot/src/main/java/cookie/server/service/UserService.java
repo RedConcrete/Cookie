@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -69,15 +70,17 @@ public class UserService {
                         existing.setDisplayName(cleanName);
                         changed = true;
                     }
-                    // Avatar nur nachladen wenn noch keiner gecacht ist oder der Name sich
+                    // Avatar-URL nur nachladen wenn noch keine gecacht ist oder der Name sich
                     // geaendert hat -- nicht bei jedem Login neu gegen die Steam Web API pruefen.
-                    if (existing.getAvatarUrl() == null || changed) {
-                        String avatarUrl = steamAvatarService.fetchAvatarUrl(userId);
-                        if (avatarUrl != null) {
-                            existing.setAvatarUrl(avatarUrl);
+                    String oldAvatarUrl = existing.getAvatarUrl();
+                    if (oldAvatarUrl == null || changed) {
+                        String freshUrl = steamAvatarService.fetchAvatarUrl(userId);
+                        if (freshUrl != null) {
+                            existing.setAvatarUrl(freshUrl);
                             changed = true;
                         }
                     }
+                    changed |= downloadAvatarIfNeeded(existing, oldAvatarUrl);
                     if (changed) userRepository.save(existing);
                     return toDto(existing);
                 })
@@ -86,6 +89,7 @@ public class UserService {
                     newUser.setSteamId(userId);
                     newUser.setDisplayName(cleanName);
                     newUser.setAvatarUrl(steamAvatarService.fetchAvatarUrl(userId));
+                    downloadAvatarIfNeeded(newUser, null);
                     newUser.setCookies(playerConfig.getInitialCookies());
                     newUser.setSugar(playerConfig.getInitialSugar());
                     newUser.setFlour(playerConfig.getInitialFlour());
@@ -96,6 +100,29 @@ public class UserService {
                     userRepository.save(newUser);
                     return toDto(newUser);
                 });
+    }
+
+    // (Re)downloads the avatar image bytes whenever the URL is new/changed, or we simply
+    // never cached bytes yet (e.g. rows created before this field existed). Fetched once,
+    // then served back out of our own DB via getAvatarImage() -- see UserController#getAvatar.
+    private boolean downloadAvatarIfNeeded(UserEntity user, String previousAvatarUrl) {
+        String currentUrl = user.getAvatarUrl();
+        if (currentUrl == null) return false;
+        boolean needsDownload = user.getAvatarBytes() == null || !currentUrl.equals(previousAvatarUrl);
+        if (!needsDownload) return false;
+        SteamAvatarService.AvatarImage image = steamAvatarService.downloadAvatarImage(currentUrl);
+        if (image == null) return false;
+        user.setAvatarBytes(image.bytes());
+        user.setAvatarContentType(image.contentType());
+        return true;
+    }
+
+    public record AvatarPayload(byte[] bytes, String contentType) {}
+
+    public Optional<AvatarPayload> getAvatarImage(String userId) {
+        return userRepository.findById(userId)
+                .filter(u -> u.getAvatarBytes() != null)
+                .map(u -> new AvatarPayload(u.getAvatarBytes(), u.getAvatarContentType()));
     }
 
     private String normalizeDisplayName(String displayName) {
@@ -179,11 +206,18 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    // Relative path to our own cached-avatar endpoint (UserController#getAvatar), so clients
+    // always load the image from our server instead of hotlinking Steam's CDN directly.
+    // Null until the bytes are actually cached (e.g. no Steam Web API key configured).
+    public static String avatarEndpointFor(UserEntity entity) {
+        return entity.getAvatarBytes() != null ? "/api/v1/users/" + entity.getSteamId() + "/avatar" : null;
+    }
+
     private UserInformationDto toDto(UserEntity entity) {
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(entity.getSteamId());
         dto.setDisplayName(entity.getDisplayName());
-        dto.setAvatarUrl(entity.getAvatarUrl());
+        dto.setAvatarUrl(avatarEndpointFor(entity));
         dto.setCookies(entity.getCookies());
         dto.setSugar(entity.getSugar());
         dto.setFlour(entity.getFlour());

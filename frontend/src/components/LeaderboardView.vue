@@ -12,7 +12,7 @@
         @click="emit('view-profile', entry.steamId)"
       >
         <div class="lv-rank">#{{ entry.rank }}</div>
-        <div class="lv-name">{{ entry.steamId }}</div>
+        <div class="lv-name" :title="entry.displayName || entry.steamId">{{ entry.displayName || entry.steamId }}</div>
         <div class="lv-nw">{{ fmtBig(entry.netWorth) }}</div>
         <div class="lv-num">{{ fmt(entry.cookies) }}</div>
         <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
@@ -55,17 +55,17 @@ onMounted(load)
 </script>
 
 <style scoped>
-.lv-root { min-width: 480px; padding: 16px; }
+.lv-root { width: 100%; padding: 16px; }
 .lv-loading { color: var(--px-tan-ink); text-align: center; padding: 24px; }
 
-.lv-head-row, .lv-row { display: grid; grid-template-columns: 52px 1fr 100px 90px 100px; gap: 8px; align-items: center; }
+.lv-head-row, .lv-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 96px 84px 96px; gap: 8px; align-items: center; }
 .lv-head-row { padding: 9px 10px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); }
 .lv-row { padding: 11px 10px; border-bottom: 2px solid #fff1a9; cursor: pointer; }
 .lv-row:hover { background: #fff1a9; }
 .lv-row.self { background: rgba(74,124,47,.1); font-weight: 700; }
 
 .lv-rank { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
-.lv-name { font-size: 15px; color: var(--px-ink-txt); }
+.lv-name { font-size: 15px; color: var(--px-ink-txt); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lv-nw   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
 .lv-num  { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood-lt); }
 

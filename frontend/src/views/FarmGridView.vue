@@ -53,7 +53,7 @@
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
         <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
         <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
-          <img v-if="playerStore.avatarUrl" :src="playerStore.avatarUrl" alt="" class="hud-avatar-img" />
+          <img v-if="hudAvatarSrc" :src="hudAvatarSrc" alt="" class="hud-avatar-img" @error="hudAvatarError = true" />
           <PixelIcon v-else name="einw" :size="20" />
         </button>
       </div>
@@ -142,7 +142,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig } from '../services/api.js'
+import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig, avatarSrc } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
@@ -231,6 +231,12 @@ const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
 const sellFeeRate = ref(0.08)
+
+// Avatar: falls back to the placeholder icon if the cached image ever fails
+// to load, instead of showing a broken image forever.
+const hudAvatarError = ref(false)
+const hudAvatarSrc = computed(() => hudAvatarError.value ? null : avatarSrc(playerStore.avatarUrl))
+watch(() => playerStore.avatarUrl, () => { hudAvatarError.value = false })
 
 const dialog = ref(null)
 const detailBuilding = ref(null)
@@ -444,6 +450,30 @@ let lastFrameTime = 0
 
 function camActive() { return camPressed.up || camPressed.down || camPressed.left || camPressed.right }
 
+// ── Steam Deck / gamepad: left stick pans the camera, same as WASD ──
+// (part of the Steam Deck controller roadmap item — see docs/ROADMAP.md §4).
+// Browsers only report a gamepad via 'gamepadconnected' once it's actually
+// been touched, which conveniently matches "wenn ein Controller genutzt wird".
+const GAMEPAD_DEADZONE = 0.2
+const gamepadIndex = ref(null)
+function onGamepadConnected(e) { gamepadIndex.value = e.gamepad.index; startCamLoop() }
+function onGamepadDisconnected(e) { if (gamepadIndex.value === e.gamepad.index) gamepadIndex.value = null }
+
+function readGamepadPan() {
+  if (gamepadIndex.value === null || dialog.value || detailBuilding.value) return { dx: 0, dy: 0 }
+  const pad = navigator.getGamepads?.()[gamepadIndex.value]
+  if (!pad) return { dx: 0, dy: 0 }
+  const ax = pad.axes[0] ?? 0
+  const ay = pad.axes[1] ?? 0
+  const mag = Math.hypot(ax, ay)
+  if (mag < GAMEPAD_DEADZONE) return { dx: 0, dy: 0 }
+  // Rescale past the deadzone so movement starts at 0 right at the edge
+  // instead of jumping straight to ~deadzone speed, keeps small tilts controllable.
+  const scale = Math.min(1, (mag - GAMEPAD_DEADZONE) / (1 - GAMEPAD_DEADZONE)) / mag
+  // Stick axes: left/up are negative -- same sign convention as camPressed.left/up below (dx/dy += 1).
+  return { dx: -ax * scale, dy: -ay * scale }
+}
+
 function camTick(now) {
   const dt = Math.min(0.05, (now - lastFrameTime) / 1000)
   lastFrameTime = now
@@ -453,12 +483,17 @@ function camTick(now) {
   if (camPressed.up)    dy += 1
   if (camPressed.down)  dy -= 1
   if (dx !== 0 && dy !== 0) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2 }
+
+  const stick = readGamepadPan()
+  dx += stick.dx
+  dy += stick.dy
+
   if (dx !== 0 || dy !== 0) {
     panX.value += dx * cameraSpeed.value * dt
     panY.value += dy * cameraSpeed.value * dt
     clampPan()
   }
-  if (camActive()) camFrame = requestAnimationFrame(camTick)
+  if (camActive() || gamepadIndex.value !== null) camFrame = requestAnimationFrame(camTick)
   else camFrame = null
 }
 function startCamLoop() {
@@ -581,6 +616,8 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('keyup', onKeyup)
   window.addEventListener('blur', stopCamKeys)
+  window.addEventListener('gamepadconnected', onGamepadConnected)
+  window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
 })
 onUnmounted(() => {
   clearInterval(upgradeTimer)
@@ -591,6 +628,8 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('keyup', onKeyup)
   window.removeEventListener('blur', stopCamKeys)
+  window.removeEventListener('gamepadconnected', onGamepadConnected)
+  window.removeEventListener('gamepaddisconnected', onGamepadDisconnected)
   if (camFrame != null) cancelAnimationFrame(camFrame)
 })
 </script>

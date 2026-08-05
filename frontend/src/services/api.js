@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876'
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876'
 
 async function request(method, path, body) {
   const options = {
@@ -15,6 +15,13 @@ async function request(method, path, body) {
     throw new Error(message)
   }
   return res.json()
+}
+
+// `avatarUrl` on user/leaderboard/profile DTOs is a path on our own server
+// (cached avatar bytes, see UserController#getAvatar) -- resolve it against
+// BASE_URL so it works as an <img src> in Electron and web builds alike.
+export function avatarSrc(avatarUrl) {
+  return avatarUrl ? `${BASE_URL}${avatarUrl}` : null
 }
 
 // Fetch server config (devMode, sellFeeRate, …)

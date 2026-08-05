@@ -63,6 +63,7 @@ public class NetWorthService {
 
         LeaderboardEntryDto dto = new LeaderboardEntryDto();
         dto.setSteamId(user.getSteamId());
+        dto.setDisplayName(user.getDisplayName());
         dto.setCookies(user.getCookies());
         dto.setResourceValue(resourceValue);
         dto.setUpgradeValue(upgradeValue);
@@ -191,7 +192,7 @@ public class NetWorthService {
         PlayerProfileDto dto = new PlayerProfileDto();
         dto.setSteamId(user.getSteamId());
         dto.setDisplayName(user.getDisplayName());
-        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setAvatarUrl(UserService.avatarEndpointFor(user));
         dto.setRank((int) rank);
         dto.setNetWorth(nw.getNetWorth());
         dto.setCookies(nw.getCookies());

@@ -5,7 +5,7 @@
     <template v-else-if="data">
       <div class="pp-header">
         <div class="pp-avatar">
-          <img v-if="data.avatarUrl" :src="data.avatarUrl" alt="" class="pp-avatar-img" />
+          <img v-if="profileAvatarSrc" :src="profileAvatarSrc" alt="" class="pp-avatar-img" @error="avatarError = true" />
           <PixelIcon v-else name="einw" :size="24" />
         </div>
         <div class="pp-title">
@@ -63,7 +63,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getProfile } from '../services/api.js'
+import { getProfile, avatarSrc } from '../services/api.js'
 import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import OrdenDialog from './OrdenDialog.vue'
@@ -74,6 +74,8 @@ const { badges } = useBadges()
 const data    = ref(null)
 const loading = ref(true)
 const ordenOpen = ref(false)
+const avatarError = ref(false)
+const profileAvatarSrc = computed(() => avatarError.value ? null : avatarSrc(data.value?.avatarUrl))
 
 const activeUpgrades = computed(() => (data.value?.upgrades ?? []).filter(u => u.currentLevel > 0))
 
@@ -87,6 +89,7 @@ const stats = computed(() => !data.value ? [] : [
 async function load() {
   loading.value = true
   data.value = null
+  avatarError.value = false
   try { data.value = await getProfile(props.steamId) }
   finally { loading.value = false }
 }

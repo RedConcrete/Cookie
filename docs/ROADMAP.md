@@ -169,17 +169,23 @@ spezifiziert ist:
   mit einem Web-API-Key (https://steamcommunity.com/dev/apikey) aufrufen,
   `avatarfull`-URL am `UserEntity` cachen. Key als Server-Secret, nie committen.
 - [ ] **Steam-Deck-Controller-Steuerung.** Angefragt 2026-08-04 nach erstem
-  Test auf echtem Steam Deck. Noch nicht implementiert, nur geplant:
+  Test auf echtem Steam Deck. Teilweise umgesetzt:
+  - [x] **Linker Stick pannt die Kamera** — erledigt 2026-08-05.
+    `FarmGridView.vue` liest `navigator.getGamepads()` im selben rAF-Loop wie
+    WASD (`camTick`), gleiche Geschwindigkeit/Clamping/Settings-Anbindung
+    (`useCameraControls`) wie die Tastatur. Aktiviert sich automatisch über
+    `gamepadconnected` (Browser meldet das erst nach echter Eingabe am
+    Controller — passt zu "wenn ein Controller genutzt wird"), kein
+    Deck-spezifischer Erkennungs-Code nötig dafür.
   - **Erkennung:** `steamworks.js` bringt `isSteamRunningOnSteamDeck()`
     fertig mit (`client.d.ts`) — automatischer Check beim Start in
     `electron/main.js`, Ergebnis per IPC (analog `steam-auth`) ans Frontend
     durchreichen, z.B. `steam-deck-mode` Event oder Teil des bestehenden
     `steam-auth`-Payloads.
   - **Fadenkreuz-Modus (Standard auf Deck):** Crosshair fix in Bildschirm-
-    mitte. Linker Stick bewegt/pannt die Karte (`FarmGridView.vue`
-    Kamera-Pan-Logik existiert schon für Maus-Drag, müsste auf Gamepad-Input
-    umgelegt werden) — Crosshair-Position selbst bleibt zentriert, die Welt
-    bewegt sich darunter.
+    mitte. Kamera-Pan via Stick ist jetzt da (s.o.) — offen ist noch der
+    Crosshair selbst: Position bleibt zentriert, die Welt bewegt sich
+    darunter.
   - **Interaktion:** Wenn Crosshair über einem Gebäude steht und Spieler
     A drückt → selbes Verhalten wie Klick (`BuildingFrame.vue` `@open`).
     Braucht Hit-Test von Bildschirmmitte gegen die aktuell sichtbaren

@@ -1,6 +1,7 @@
 import { reactive, onUnmounted } from 'vue'
 
 const HOLD_MS = 620
+const CANCEL_DIST = 6 // px (screen space) — moving this far while still charging aborts the hold
 
 /**
  * Long-press-then-drag mechanic for moving buildings on the Hof grid.
@@ -28,8 +29,20 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
   let t0 = 0
   let wasArmed = false
   let moved = false
+  let cancelled = false
+  let downX = 0, downY = 0  // screen-space pointerdown origin, to detect move-away during charge
 
   function clearTimer() { clearInterval(timer); timer = null }
+
+  // Moving the pointer away while still charging (not armed yet) aborts the
+  // hold entirely — it stays aborted even if the button is kept held down.
+  function cancelHold() {
+    cancelled = true
+    clearTimer()
+    state.pressing = false
+    state.progress = 0
+    state.armed = false
+  }
 
   function snapped(pos) {
     if (!snap) return pos
@@ -41,7 +54,12 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
   }
 
   function onMove(e) {
-    if (!state.armed) return
+    if (cancelled) return
+    if (!state.armed) {
+      const dx = e.clientX - downX, dy = e.clientY - downY
+      if (dx * dx + dy * dy > CANCEL_DIST * CANCEL_DIST) cancelHold()
+      return
+    }
     moved = true
     const z = getZoom() || 1
     raw = { x: raw.x + e.movementX / z, y: raw.y + e.movementY / z }
@@ -56,7 +74,7 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
     if (ok) lastOk = { ...state.pos }
     else state.pos = { ...lastOk }
     onDropped?.({ ...lastOk })
-    const wasTap = !wasArmed && !moved
+    const wasTap = !wasArmed && !moved && !cancelled
     state.pressing = false
     state.armed = false
     state.progress = 0
@@ -70,6 +88,9 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
     state.armed = false
     wasArmed = false
     moved = false
+    cancelled = false
+    downX = e.clientX
+    downY = e.clientY
     raw = { ...state.pos }
     t0 = Date.now()
     clearTimer()

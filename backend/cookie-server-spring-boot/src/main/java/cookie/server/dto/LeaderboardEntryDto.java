@@ -3,6 +3,7 @@ package cookie.server.dto;
 public class LeaderboardEntryDto {
     private int rank;
     private String steamId;
+    private String displayName;
     private double netWorth;
     private double cookies;
     private double resourceValue;
@@ -13,6 +14,9 @@ public class LeaderboardEntryDto {
 
     public String getSteamId() { return steamId; }
     public void setSteamId(String steamId) { this.steamId = steamId; }
+
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
 
     public double getNetWorth() { return netWorth; }
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }

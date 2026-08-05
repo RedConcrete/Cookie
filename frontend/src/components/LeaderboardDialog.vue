@@ -34,5 +34,5 @@ function openProfile(steamId) {
 </script>
 
 <style scoped>
-.ld-box { width: 580px; max-width: 95vw; max-height: 90vh; overflow: auto; }
+.ld-box { width: 760px; max-width: 95vw; max-height: 90vh; overflow: auto; }
 </style>

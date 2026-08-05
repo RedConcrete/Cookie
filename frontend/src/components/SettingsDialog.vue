@@ -7,33 +7,25 @@
       </div>
 
       <div class="sd-body">
-        <div class="sd-slider-row">
-          <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
-          <input type="range" min="0" max="1" step="0.01" :value="audio.musicVolume.value"
-            @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider" />
-          <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
-        </div>
-
-        <div class="sd-slider-row">
-          <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value"><PixelIcon :name="audio.sfxMuted.value ? 'mute' : 'sound'" :size="14" /></button></div>
-          <input type="range" min="0" max="1" step="0.01" :value="audio.sfxVolume.value"
-            @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider" />
-          <span class="sd-slider-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
-        </div>
-
-        <div class="sd-toggle-row">
-          <span>Lohn-Warnung anzeigen</span>
-          <button class="sd-toggle" :class="{ on: wageWarning }" @click="wageWarning = !wageWarning"><span class="sd-toggle-knob"></span></button>
-        </div>
-        <div class="sd-toggle-row">
-          <span>Pixel-Zoom rasten</span>
-          <button class="sd-toggle" :class="{ on: pixelSnap }" @click="pixelSnap = !pixelSnap"><span class="sd-toggle-knob"></span></button>
-        </div>
-
-        <div class="sd-hotkeys">
-          <div class="sd-hotkeys-head">
-            <span class="sd-label">TASTENKÜRZEL</span>
+        <PixelSection title="LAUTSTÄRKE">
+          <div class="sd-slider-row">
+            <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
+            <input type="range" min="0" max="1" step="0.01" :value="audio.musicVolume.value"
+              @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider"
+              :style="{ '--fill': musicFillPct + '%' }" />
+            <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
           </div>
+
+          <div class="sd-slider-row">
+            <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value"><PixelIcon :name="audio.sfxMuted.value ? 'mute' : 'sound'" :size="14" /></button></div>
+            <input type="range" min="0" max="1" step="0.01" :value="audio.sfxVolume.value"
+              @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider"
+              :style="{ '--fill': sfxFillPct + '%' }" />
+            <span class="sd-slider-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
+          </div>
+        </PixelSection>
+
+        <PixelSection title="TASTENBELEGUNG">
           <div class="sd-hotkey-row">
             <span>Dialog schließen</span>
             <span class="sd-hotkey-key">ESC</span>
@@ -42,17 +34,14 @@
             <span>Hof zentrieren</span>
             <span class="sd-hotkey-key">LEER</span>
           </div>
-        </div>
+        </PixelSection>
 
-        <div class="sd-hotkeys">
-          <div class="sd-hotkeys-head">
-            <span class="sd-label">KAMERA BEWEGUNG</span>
-          </div>
-
+        <PixelSection title="KAMERA BEWEGUNG">
           <div class="sd-slider-row sd-cam-speed-row">
             <div class="sd-slider-label">Geschwindigkeit</div>
             <input type="range" min="120" max="1200" step="20" :value="camera.cameraSpeed.value"
-              @input="camera.cameraSpeed.value = +$event.target.value" class="sd-slider" />
+              @input="camera.cameraSpeed.value = +$event.target.value" class="sd-slider"
+              :style="{ '--fill': camSpeedFillPct + '%' }" />
             <span class="sd-slider-val">{{ camera.cameraSpeed.value }}</span>
           </div>
 
@@ -64,7 +53,7 @@
               @click="startListen(d.dir)"
             >{{ listeningFor === d.dir ? 'TASTE…' : camera.keyLabel(camera.cameraKeys[d.dir]) }}</button>
           </div>
-        </div>
+        </PixelSection>
 
         <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">SPIEL BEENDEN</button>
       </div>
@@ -73,16 +62,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAudio } from '../composables/useAudio.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelSection from './pixel/PixelSection.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const camera = useCameraControls()
-const wageWarning = ref(true)
-const pixelSnap = ref(false)
+
+const musicFillPct = computed(() => audio.musicVolume.value * 100)
+const sfxFillPct   = computed(() => audio.sfxVolume.value * 100)
 
 const camDirections = [
   { dir: 'up',    label: 'Nach oben' },
@@ -90,6 +81,8 @@ const camDirections = [
   { dir: 'left',  label: 'Nach links' },
   { dir: 'right', label: 'Nach rechts' },
 ]
+const CAM_SPEED_MIN = 120, CAM_SPEED_MAX = 1200
+const camSpeedFillPct = computed(() => (camera.cameraSpeed.value - CAM_SPEED_MIN) / (CAM_SPEED_MAX - CAM_SPEED_MIN) * 100)
 const listeningFor = ref(null)
 
 function startListen(dir) {
@@ -129,17 +122,44 @@ function exitGame() {
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
 .sd-slider-label { width: 168px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .sd-mute { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; }
-.sd-slider { flex: 1; accent-color: var(--px-orange); }
 .sd-slider-val { width: 40px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.sd-toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: var(--px-ink-txt); }
-.sd-toggle { width: 64px; height: 30px; background: var(--px-tan); border: 3px solid var(--px-ink); display: flex; padding: 2px; cursor: pointer; }
-.sd-toggle.on { background: var(--px-green); justify-content: flex-end; }
-.sd-toggle-knob { width: 26px; height: 100%; background: var(--px-cream2); border: 2px solid var(--px-ink); }
+/* Pixel-art range slider: blocky filled track + chunky button-like thumb,
+   built from the CSS custom prop --fill (0-100, set per-slider in the template)
+   instead of the smooth native OS slider look. */
+.sd-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  margin: 3px 0;
+  background: linear-gradient(to right, var(--px-green) var(--fill, 0%), var(--px-cream3) var(--fill, 0%));
+  border: 3px solid var(--px-ink);
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,.25);
+  cursor: pointer;
+}
+.sd-slider:disabled { opacity: .5; cursor: not-allowed; }
 
-.sd-hotkeys { border-top: 3px solid var(--px-tan); padding-top: 14px; border: 3px solid var(--px-brown2); background: var(--px-cream2); padding: 10px; }
-.sd-hotkeys-head { margin-bottom: 6px; }
-.sd-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; }
+.sd-slider::-webkit-slider-runnable-track { -webkit-appearance: none; height: 100%; background: transparent; }
+.sd-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 24px;
+  margin-top: -7px;
+  background: var(--px-orange);
+  border: 3px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt);
+  cursor: pointer;
+}
+.sd-slider::-moz-range-track { height: 10px; background: transparent; border: none; }
+.sd-slider::-moz-range-progress { height: 10px; background: transparent; }
+.sd-slider::-moz-range-thumb {
+  width: 16px; height: 24px;
+  background: var(--px-orange);
+  border: 3px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt);
+  cursor: pointer;
+}
 
 .sd-hotkey-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 2px solid #fff1a9; font-size: 15px; color: var(--px-ink-txt); }
 .sd-hotkey-row:last-child { border-bottom: none; }
@@ -153,7 +173,6 @@ function exitGame() {
 .sd-hotkey-btn.listening { background: var(--px-orange); color: var(--px-cream); box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt); }
 
 .sd-cam-speed-row { padding: 8px 10px 12px; }
-.sd-cam-speed-row .sd-slider-label { width: 120px; }
 
 .sd-exit-btn { background: var(--px-red); }
 </style>
