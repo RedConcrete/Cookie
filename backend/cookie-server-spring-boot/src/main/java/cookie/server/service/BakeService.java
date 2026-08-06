@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -80,14 +82,10 @@ public class BakeService {
     public BakeJobStatusDto startBake(String userId, String recipeId, int batches) {
         if (batches < 1) throw new IllegalArgumentException("Batches must be at least 1");
 
-        int extraSlots = playerUpgradeRepository
-                .findByUserIdAndUpgradeId(userId, "extra_oven")
-                .map(pu -> pu.getLevel())
-                .orElse(0);
-        int maxSlots = 1 + extraSlots;
-        long activeJobs = bakeJobRepository.countByUserIdAndClaimedFalse(userId);
-        if (activeJobs >= maxSlots) {
-            throw new IllegalStateException("Alle Ofen-Slots belegt. Erst einlösen oder Upgrade kaufen.");
+        // Nur ein Ofen, bewusst kein Mehrfach-Slot-Upgrade (siehe UpgradeService) -- wird später
+        // stattdessen über Backgeschwindigkeit/Ressourcenverbrauch balanciert.
+        if (bakeJobRepository.countByUserIdAndClaimedFalse(userId) >= 1) {
+            throw new IllegalStateException("Ofen belegt. Erst einlösen.");
         }
 
         RecipeEntity recipe = recipeRepository.findById(recipeId)
@@ -119,7 +117,10 @@ public class BakeService {
         job.setRecipeId(recipeId);
         job.setBatches(batches);
         job.setStartedAt(now);
-        long durationSeconds = appConfig.isDevMode() ? 0 : (long) recipe.getBakeDurationSeconds() * batches;
+        // Dev mode used to be instant (0s) for fast iteration, but that made a job go
+        // straight to "done" before the client could ever observe it mid-bake -- a flat
+        // 5s is still fast to test with but long enough to actually see the progress UI.
+        long durationSeconds = appConfig.isDevMode() ? 5 : (long) recipe.getBakeDurationSeconds() * batches;
         job.setCompletesAt(now.plusSeconds(durationSeconds));
         job.setClaimed(false);
         bakeJobRepository.save(job);
@@ -127,8 +128,21 @@ public class BakeService {
         return toStatus(job, recipe);
     }
 
+    // findByUserIdAndClaimedFalse() returns a single Optional -- if more than one
+    // unclaimed row ever exists for a user (e.g. leftovers from a bug, or a future
+    // multi-slot scenario), Spring Data throws IncorrectResultSizeDataAccessException
+    // instead of just picking one. That exception isn't handled by the global
+    // IllegalArgumentException/IllegalStateException handler, so it surfaced as a raw
+    // 500 that the frontend's poll() silently swallowed -- looked like "no active job"
+    // client-side while startBake()'s count-based slot check correctly still blocked
+    // new bakes. Always go through the list-returning query and pick the oldest instead.
+    private Optional<BakeJobEntity> findActiveJob(String userId) {
+        return bakeJobRepository.findAllByUserIdAndClaimedFalse(userId).stream()
+                .min(Comparator.comparing(BakeJobEntity::getStartedAt));
+    }
+
     public BakeJobStatusDto getStatus(String userId) {
-        return bakeJobRepository.findByUserIdAndClaimedFalse(userId)
+        return findActiveJob(userId)
                 .map(job -> {
                     RecipeEntity recipe = recipeRepository.findById(job.getRecipeId()).orElseThrow();
                     return toStatus(job, recipe);
@@ -138,7 +152,7 @@ public class BakeService {
 
     @Transactional
     public UserInformationDto claim(String userId) {
-        BakeJobEntity job = bakeJobRepository.findByUserIdAndClaimedFalse(userId)
+        BakeJobEntity job = findActiveJob(userId)
                 .orElseThrow(() -> new NoSuchElementException("No active bake job for user: " + userId));
 
         if (LocalDateTime.now().isBefore(job.getCompletesAt())) {

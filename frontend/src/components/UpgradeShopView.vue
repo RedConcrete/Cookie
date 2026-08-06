@@ -45,12 +45,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
-import { getUpgrades, buyUpgrade, initGame } from '../services/api.js'
+import { buyUpgrade, initGame } from '../services/api.js'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const playerStore = usePlayerStore()
-const upgrades = ref([])
+const upgrades = computed(() => playerStore.upgrades)
 const loading  = ref(true)
 const buying   = ref(null)
 
@@ -88,14 +88,14 @@ function tooltipNote(u) {
 
 async function load() {
   loading.value = true
-  try { upgrades.value = await getUpgrades(playerStore.steamId) }
+  try { await playerStore.loadUpgrades() }
   finally { loading.value = false }
 }
 
 async function buy(u) {
   buying.value = u.id
   try {
-    upgrades.value = await buyUpgrade(playerStore.steamId, u.id)
+    playerStore.upgrades = await buyUpgrade(playerStore.steamId, u.id)
     const data = await initGame(playerStore.steamId, 1)
     playerStore.updateFromDto(data.user)
   } catch (e) {

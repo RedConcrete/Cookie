@@ -142,7 +142,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, getUpgrades, trade, adminResetPlayer, getConfig, avatarSrc } from '../services/api.js'
+import { harvestResource, trade, adminResetPlayer, getConfig, avatarSrc } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
@@ -242,7 +242,6 @@ const dialog = ref(null)
 const detailBuilding = ref(null)
 const viewEl   = ref(null)
 const canvasEl = ref(null)
-const upgrades = ref([])
 
 // Track each building's current drag offset for collision detection + number spawning
 // Persisted per player so moved buildings stay put across reloads.
@@ -548,51 +547,74 @@ function onKeyup(e) {
 }
 
 // ── Harvest ──────────────────────────────────────────────
+// Hovering used to hit the backend every HARVEST_MS (900ms) -- doesn't scale.
+// Now the amount is predicted locally each visual tick (same formula the server
+// uses, cached boostLevel + prestigeMultiplier) for instant feedback, and only
+// synced to the backend every HARVEST_SYNC_MS (or on hover-stop). The backend
+// never trusts a client-supplied amount: it derives the real payout itself from
+// elapsed server time since the player's last accepted harvest (see
+// UserService#harvest) and snaps the store back to that authoritative value on
+// every sync, so short-term prediction drift can't accumulate.
 const harvestIntervals = {}
+const harvestSyncTimers = {}
 const harvestDelays = {}
 const HARVEST_DELAY_MS = 300
 const HARVEST_MS = 900
+const HARVEST_SYNC_MS = 3000
 
-async function doHarvest(buildingId, name) {
+function boostHarvestLevel() {
+  return playerStore.upgrades.find(u => u.id === 'boost_harvest')?.currentLevel ?? 0
+}
+
+// Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
+// formula (including the storage-full -> auto-sell-to-cookies overflow), just
+// scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
+function localHarvestTick(buildingId, name) {
+  const predicted = (1.0 + boostHarvestLevel() * 0.5) * playerStore.prestigeMultiplier
+  const key = name.toLowerCase()
+  const cap = playerStore.totalResourceCap ?? Infinity
+  const totalRes = RESOURCES.reduce((s, r) => s + (playerStore[r.key] ?? 0), 0)
+  const available = Math.max(0, cap - totalRes)
+  const overflow  = Math.max(0, predicted - available)
+  const toAdd     = predicted - overflow
+  if (toAdd > 0) playerStore[key] = (playerStore[key] ?? 0) + toAdd
+  if (overflow > 0) {
+    const price = marketStore.priceOf(name)
+    playerStore.cookies = (playerStore.cookies ?? 0) + overflow * price * (1 - sellFeeRate.value)
+  }
+  const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
+  spawnFarmNumber(predicted, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
+}
+
+// The actual, authoritative call -- backend computes the real amount from elapsed
+// server time and returns the true totals, which we snap the store to (corrects
+// any drift from the local prediction above).
+async function syncHarvest(name) {
   try {
-    const beforeRes     = playerStore[name.toLowerCase()] ?? 0
-    const beforeCookies = playerStore.cookies ?? 0
     const updated = await harvestResource(playerStore.steamId, name)
     playerStore.updateFromDto(updated)
-    const gainedRes     = (playerStore[name.toLowerCase()] ?? 0) - beforeRes
-    const gainedCookies = (playerStore.cookies ?? 0) - beforeCookies
-
-    // Storage full -> overflow gets auto-sold into cookies instead of stored.
-    // Back-compute the harvested amount from the payout so a number still shows.
-    let amount = gainedRes
-    if (amount <= 0 && gainedCookies > 0) {
-      const price = marketStore.priceOf(name)
-      if (price > 0) amount = gainedCookies / (price * (1 - sellFeeRate.value))
-    }
-    if (amount > 0) {
-      const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
-      spawnFarmNumber(amount, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
-    }
   } catch {}
 }
+
 function startHarvest(buildingId, name) {
   if (harvestIntervals[name] || harvestDelays[name]) return
   harvestDelays[name] = setTimeout(() => {
     harvestDelays[name] = null
-    doHarvest(buildingId, name)
-    harvestIntervals[name] = setInterval(() => doHarvest(buildingId, name), HARVEST_MS)
+    localHarvestTick(buildingId, name)
+    harvestIntervals[name] = setInterval(() => localHarvestTick(buildingId, name), HARVEST_MS)
+    harvestSyncTimers[name] = setInterval(() => syncHarvest(name), HARVEST_SYNC_MS)
   }, HARVEST_DELAY_MS)
 }
 function stopHarvest(name) {
   clearTimeout(harvestDelays[name]); harvestDelays[name] = null
   clearInterval(harvestIntervals[name]); harvestIntervals[name] = null
+  if (harvestSyncTimers[name]) {
+    clearInterval(harvestSyncTimers[name])
+    harvestSyncTimers[name] = null
+    syncHarvest(name) // flush the un-synced tail immediately instead of waiting up to HARVEST_SYNC_MS
+  }
 }
 
-async function loadUpgrades() {
-  try { upgrades.value = await getUpgrades(playerStore.steamId) } catch {}
-}
-
-let upgradeTimer = null
 let passiveTimer  = null
 
 function spawnPassiveNumbers() {
@@ -608,9 +630,7 @@ function spawnPassiveNumbers() {
 
 onMounted(() => {
   bakeStore.start(playerStore.steamId)
-  loadUpgrades()
   getConfig().then(cfg => { sellFeeRate.value = cfg.sellFeeRate ?? 0.08 }).catch(() => {})
-  upgradeTimer  = setInterval(loadUpgrades, 10000)
   passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeydown)
@@ -620,10 +640,10 @@ onMounted(() => {
   window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
 })
 onUnmounted(() => {
-  clearInterval(upgradeTimer)
   clearInterval(passiveTimer)
   Object.values(harvestDelays).forEach(clearTimeout)
   Object.values(harvestIntervals).forEach(clearInterval)
+  Object.values(harvestSyncTimers).forEach(clearInterval)
   viewEl.value?.removeEventListener('wheel', onWheel)
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('keyup', onKeyup)

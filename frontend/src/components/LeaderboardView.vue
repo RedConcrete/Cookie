@@ -37,8 +37,6 @@ async function load() {
   loading.value = true
   try {
     board.value = await getLeaderboard()
-    const own = board.value.find(e => e.steamId === playerStore.steamId)
-    if (own) playerStore.netWorth = own.netWorth
   } finally {
     loading.value = false
   }

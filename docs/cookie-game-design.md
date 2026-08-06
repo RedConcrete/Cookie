@@ -198,9 +198,12 @@ Rohstoffe hinweg relevant statt auf 1–2 Ressourcen konzentriert:
   währenddessen normal weiterspielen
 - Output = `recipe.output × batches × (1 + bakeBoostLevel × 0.10) × prestigeMultiplier`
 - Claim schreibt Cookies gut, sobald der Timer abgelaufen ist
-- Slots: 1 gleichzeitiger Bake-Job standardmäßig, +1 pro Stufe des
-  "Zweiter Ofen"-Upgrades (Abschnitt 9)
-- **Dev-Mode:** Backzeit ist 0 (instant) für schnelles Testen
+- Slots: bewusst nur 1 gleichzeitiger Bake-Job, kein Mehrfach-Slot-Upgrade
+  (früher "Zweiter Ofen", entfernt 2026-08-06) — Backhaus wird später über
+  Geschwindigkeit/Ressourcenverbrauch balanciert statt über parallele Slots
+- **Dev-Mode:** Backzeit ist auf 5s fix (nicht mehr instant) — instant ließ
+  einen Job sofort "fertig" sein, bevor die Fortschrittsanzeige je etwas zu
+  zeigen bekam
 
 ---
 
@@ -261,8 +264,8 @@ entfallen, Gebäude/Typ-D läuft jetzt über Abschnitt 4, nicht mehr hier):
 - *Turbopflücker*: −100 ms Ernte-Intervall pro Stufe (Basis 1000 ms, Min 200 ms, max Stufe 8)
 - *Große Schüssel*: +10 % Cookie-Ausbeute pro Backen-Batch
 
-**C) Kapazität**
-- *Zweiter Ofen*: +1 paralleler Bake-Job-Slot (max Stufe 3)
+Kapazität/Typ-C ("Zweiter Ofen") entfernt (2026-08-06) — nur 1 Bake-Job-Slot,
+bewusst kein Mehrfach-Slot-Upgrade mehr (siehe Abschnitt 7).
 
 **Kostenkurve** (alle Upgrades hier):
 ```

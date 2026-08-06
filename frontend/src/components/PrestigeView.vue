@@ -82,7 +82,10 @@ async function execute() {
     confirming.value = false
     const data = await initGame(playerStore.steamId, 1)
     playerStore.updateFromDto(data.user)
-    await playerStore.refreshNetWorth()
+    // Prestige wipes all upgrades server-side and bumps the prestige level --
+    // refresh both shared bits of state so net worth / the harvest formula
+    // reflect the reset immediately instead of waiting on a poll.
+    await Promise.all([playerStore.loadUpgrades(), playerStore.loadPrestigeMultiplier()])
   } catch (e) {
     alert(e.message)
   } finally {

@@ -35,8 +35,10 @@ public class UpgradeService {
     // Alte Automation-Upgrade-IDs, ersetzt durch das Einwohner/Gebäude-Kapazitäts-System
     // (siehe BuildingService: Produktionsgebäude sind jetzt selbst upgradeable für mehr
     // Arbeiter-Slots). Wird bei jedem Start entfernt, falls aus einer aelteren DB noch vorhanden.
+    // "extra_oven" ebenfalls entfernt (2026-08-06) -- es gibt bewusst nur einen Ofen, der später
+    // stattdessen ueber Geschwindigkeit/Ressourcenverbrauch skaliert wird, nicht über Mehrfach-Slots.
     private static final List<String> REMOVED_UPGRADE_IDS = List.of(
-        "auto_sugar", "auto_flour", "auto_eggs", "auto_butter", "auto_chocolate", "auto_milk"
+        "auto_sugar", "auto_flour", "auto_eggs", "auto_butter", "auto_chocolate", "auto_milk", "extra_oven"
     );
 
     @PostConstruct
@@ -55,11 +57,7 @@ public class UpgradeService {
 
             upgrade("boost_bake", "Große Schüssel",
                 "+10% Cookie-Ausbeute pro Backen-Batch",
-                UpgradeType.BOOST_BAKE, null, 100, 0.10, 0),
-
-            upgrade("extra_oven", "Zweiter Ofen",
-                "+1 gleichzeitiger Bake-Job-Slot",
-                UpgradeType.CAPACITY, null, 500, 1.0, 3)
+                UpgradeType.BOOST_BAKE, null, 100, 0.10, 0)
         ));
     }
 

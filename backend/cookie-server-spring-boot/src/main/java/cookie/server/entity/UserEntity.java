@@ -7,6 +7,8 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 public class UserEntity {
@@ -33,6 +35,13 @@ public class UserEntity {
 
     @Column(name = "avatar_content_type", length = 64)
     private String avatarContentType;
+
+    // Server clock of the last accepted harvest call for this player -- the harvest
+    // amount is elapsed-time-based (see UserService#harvest), never a client-supplied
+    // amount, so a hover session can be synced in infrequent batches instead of one
+    // request per tick while still being impossible to fake ("Client-Werte nie
+    // vertrauen" -- CLAUDE.md).
+    private LocalDateTime lastHarvestAt;
 
     // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
     // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
@@ -99,6 +108,14 @@ public class UserEntity {
 
     public void setAvatarContentType(String avatarContentType) {
         this.avatarContentType = avatarContentType;
+    }
+
+    public LocalDateTime getLastHarvestAt() {
+        return lastHarvestAt;
+    }
+
+    public void setLastHarvestAt(LocalDateTime lastHarvestAt) {
+        this.lastHarvestAt = lastHarvestAt;
     }
 
     public Long getVersion() {

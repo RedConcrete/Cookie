@@ -10,6 +10,8 @@ import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -18,6 +20,15 @@ public class UserService {
 
     private static final double RECIPE_INGREDIENT_PER_BATCH = 10.0;
     private static final double RECIPE_COOKIES_PER_BATCH    = 100.0;
+
+    // One "tick" worth of harvest = the amount a single hover-tick granted back when
+    // the client called this endpoint every HARVEST_TICK_MS while hovering. Now the
+    // client batches calls (every few seconds, or on hover-stop) and the amount scales
+    // with real elapsed server time instead -- MAX_HARVEST_BATCH_MS caps how much a
+    // single call can ever grant, so a client can't sit on the endpoint and claim hours
+    // of AFK hovering; it's clamped to a small multiple of the intended batch interval.
+    private static final long HARVEST_TICK_MS       = 900;
+    private static final long MAX_HARVEST_BATCH_MS  = 6000;
 
     private final UserRepository userRepository;
     private final PlayerConfig playerConfig;
@@ -174,7 +185,18 @@ public class UserService {
                 .map(pu -> pu.getLevel())
                 .orElse(0);
         double prestigeMultiplier = prestigeService.calcMultiplier(user.getPrestigeLevel());
-        double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier;
+
+        // Ticks are derived purely from our own clock (now - lastHarvestAt), never from
+        // anything the client sends -- the request body only carries which resource.
+        LocalDateTime now = LocalDateTime.now();
+        long elapsedMs = user.getLastHarvestAt() == null
+                ? HARVEST_TICK_MS
+                : Duration.between(user.getLastHarvestAt(), now).toMillis();
+        elapsedMs = Math.max(0, Math.min(elapsedMs, MAX_HARVEST_BATCH_MS));
+        double ticks = elapsedMs / (double) HARVEST_TICK_MS;
+        user.setLastHarvestAt(now);
+
+        double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier * ticks;
 
         double totalRes = user.getSugar() + user.getFlour() + user.getEggs()
                         + user.getButter() + user.getChocolate() + user.getMilk();

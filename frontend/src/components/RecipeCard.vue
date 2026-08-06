@@ -17,8 +17,6 @@
           <span class="rc-entry-time">{{ formatDuration(r.bakeDurationSeconds) }}</span>
         </button>
       </nav>
-
-      <div class="rc-page-num">SEITE I</div>
     </div>
 
     <!-- ── Right: selected recipe ─────────────────────── -->
@@ -42,34 +40,37 @@
           <div class="rc-cost-row"><span>ZUTATEN GESAMT</span><span>{{ fmt2(ingredientMarketCost) }} C</span></div>
         </div>
 
-        <div>
-          <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
-            <span>Backen</span>
-            <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>
+        <template v-if="!activeJob">
+          <div>
+            <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
+              <span>Backen</span>
+              <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>
+            </div>
+            <div class="rc-profit-row" :class="!bakeBetter ? 'winner' : ''">
+              <span>Ressourcen verkaufen</span>
+              <span>{{ fmt2(ingredientSellValue) }} <PixelIcon name="cookie" :size="12" /> </span>
+            </div>
+            <div class="rc-profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
+              {{ bakeBetter ? '+' : '' }}{{ fmt2(bakeOutput - ingredientSellValue) }} C durch Backen
+            </div>
           </div>
-          <div class="rc-profit-row" :class="!bakeBetter ? 'winner' : ''">
-            <span>Ressourcen verkaufen</span>
-            <span>{{ fmt2(ingredientSellValue) }} <PixelIcon name="cookie" :size="12" /> </span>
-          </div>
-          <div class="rc-profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
-            {{ bakeBetter ? '+' : '' }}{{ fmt2(bakeOutput - ingredientSellValue) }} C durch Backen
-          </div>
-        </div>
 
-        <div class="rc-batches">
-          <span>Batches</span>
-          <div class="rc-stepper">
-            <button @click="batches = Math.max(1, batches - 1)" :disabled="!!activeJob">&minus;</button>
-            <span class="rc-stepper-val">{{ batches }}</span>
-            <button @click="batches++" :disabled="!!activeJob">+</button>
+          <div class="rc-batches">
+            <span>Batches</span>
+            <div class="rc-stepper">
+              <button @click="batches = Math.max(1, batches - 1)">&minus;</button>
+              <span class="rc-stepper-val">{{ batches }}</span>
+              <button @click="batches++">+</button>
+            </div>
+            <span class="rc-stock-hint">BESTAND: {{ stockBatches }} MÖGLICH</span>
           </div>
-          <span class="rc-stock-hint">BESTAND: {{ stockBatches }} MÖGLICH</span>
-        </div>
+        </template>
       </template>
 
       <div v-else class="rc-empty">&larr; Rezept auswählen</div>
 
       <div class="rc-bake-section">
+        <!-- No active job: normal "pick a batch size and start" form -->
         <template v-if="selected && !activeJob">
           <div class="rc-bake-meta">
             <span>{{ selected.output * batches }} Cookies</span>
@@ -80,13 +81,14 @@
           </button>
         </template>
 
+        <!-- Job in progress: replaces the start form with a live progress bar until claimed -->
         <div v-if="activeJob" class="rc-progress">
           <div class="rc-progress-meta">
             <span>{{ activeJob.recipe?.name }} &middot; {{ activeJob.batches }}&times;</span>
             <span v-if="!activeJob.done">{{ formatDuration(activeJob.remainingSeconds) }}</span>
             <span v-else class="rc-done">FERTIG!</span>
           </div>
-          <div class="rc-progress-bar"><div class="rc-progress-fill" :style="{ width: progressPct + '%' }"></div></div>
+          <div class="rc-progress-track"><div class="rc-progress-bar" :style="{ width: progressPct + '%' }"></div></div>
           <button class="px-btn px-btn-buy rc-bake-btn" :disabled="!activeJob.done || busy" @click="claim">
             {{ busy ? '…' : `+${activeJob.totalCookies} COOKIES EINLÖSEN` }}
           </button>
@@ -94,8 +96,6 @@
 
         <div v-if="feedback" class="rc-feedback" :class="feedbackType">{{ feedback }}</div>
       </div>
-
-      <div class="rc-page-num">SEITE II</div>
     </div>
   </div>
 </template>
@@ -176,10 +176,17 @@ const progressPct = computed(() => {
 
 async function startBake() {
   busy.value = true
+  // Snapshot before the request -- ingredients are deducted server-side
+  // immediately, but bakeStart() only returns the job status (not the player),
+  // so without this the HUD wouldn't show the drop until something else
+  // happened to refresh the player. Deduct locally right away instead.
+  const spent = usedIngredients.value
   try {
     await bakeStart(playerStore.steamId, selectedId.value, batches.value)
-    await bakeStore.poll()
-    showFeedback('Backen gestartet!', 'ok')
+    for (const ing of spent) {
+      playerStore[ing.key] = Math.max(0, (playerStore[ing.key] ?? 0) - ing.total)
+    }
+    await bakeStore.poll() // swaps the form below for the progress bar
   } catch (e) { showFeedback(e.message, 'err') }
   finally     { busy.value = false }
 }
@@ -233,7 +240,6 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-entry:hover { background: #fff1a9; }
 .rc-entry.active { background: var(--px-gold); border-color: var(--px-ink); }
 .rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
-.rc-page-num { margin-top: auto; font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-ink); text-align: center; }
 
 .rc-right {
   flex: 1; background: var(--px-cream); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;
@@ -269,11 +275,15 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-bake-section { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .rc-bake-meta { display: flex; gap: 12px; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-tan-ink); }
 .rc-bake-btn { width: 100%; text-align: center; }
-.rc-progress { display: flex; flex-direction: column; gap: 6px; }
+
+.rc-progress { display: flex; flex-direction: column; gap: 8px; }
 .rc-progress-meta { display: flex; justify-content: space-between; font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
 .rc-done { color: #56642e; }
-.rc-progress-bar { height: 14px; background: var(--px-ink); border: 3px solid var(--px-ink); }
-.rc-progress-fill { height: 100%; background: var(--px-gold); }
+/* Same recipe as BuildingFrame.vue's .bf-hold-bar (the move/drag progress
+   bar): a single growing gold rectangle with a dark ink halo, no track. */
+.rc-progress-track { height: 14px; }
+.rc-progress-bar { height: 100%; background: var(--px-gold); box-shadow: 0 0 0 3px var(--px-ink); transition: width .3s linear; }
+
 .rc-feedback { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; }
 .rc-feedback.ok  { color: #56642e; }
 .rc-feedback.err { color: var(--px-red); }

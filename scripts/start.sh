@@ -35,9 +35,13 @@ chmod +x ./mvnw 2>/dev/null
 bash ./mvnw spring-boot:run > "$LOG_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 
-# Warte bis Backend antwortet (max 30s)
-for i in $(seq 1 30); do
-  if curl -s http://localhost:9876/actuator/health > /dev/null 2>&1; then
+# Warte bis Backend antwortet (max 90s -- mvnw baut bei Code-Aenderungen erst
+# neu (Maven-Kompilierung), bevor der Spring-Boot-Start selbst ueberhaupt
+# losgeht; 30s reichte dafuer bei einem kalten Build nicht immer aus.
+# /api/v1/config statt /actuator/health -- Actuator ist kein Dependency hier,
+# der alte Pfad haette nie einen echten 200er geliefert.
+for i in $(seq 1 90); do
+  if curl -sf http://localhost:9876/api/v1/config > /dev/null 2>&1; then
     echo "OK  (PID $BACKEND_PID)"
     break
   fi
@@ -48,7 +52,7 @@ for i in $(seq 1 30); do
     exit 1
   fi
   sleep 1
-  if [ $i -eq 30 ]; then
+  if [ $i -eq 90 ]; then
     echo "TIMEOUT"
     echo ""
     echo "  Backend-Log: $LOG_DIR/backend.log"
