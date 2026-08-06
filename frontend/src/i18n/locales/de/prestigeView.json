@@ -1,0 +1,20 @@
+{
+  "prestigeLevel": "PRESTIGE-LEVEL",
+  "multiplier": "MULTIPLIKATOR",
+  "multiplierEffect": "×{value} auf Ernte & Backen",
+  "formulaLabel": " | Formel: ",
+  "formulaTooltip": "1 + (0.1 × Prestige-Level)",
+  "formulaValue": "1 + 0.1×{level}",
+  "totalResets": "RESETS GESAMT",
+  "netWorthLabel": "NET WORTH",
+  "readyForPrestige": "BEREIT FÜR PRESTIGE!",
+  "missingAmount": "NOCH {amount} FEHLEN",
+  "afterPrestige": "Nach Prestige:",
+  "afterPrestigeSuffix": "auf alle Ernte- und Backerträge",
+  "warning": "Reset: Cookies, Ressourcen, Upgrades, Einwohner und alle zusätzlich gebauten Gebäude. Prestige-Level und Lifetime-Statistiken bleiben.",
+  "executeButton": "PRESTIGE AUSFÜHREN",
+  "confirmQuestion": "Wirklich alles zurücksetzen?",
+  "confirmYes": "JA, PRESTIGE!",
+  "cancelButton": "ABBRECHEN",
+  "locked": "NOCH NICHT VERFÜGBAR"
+}

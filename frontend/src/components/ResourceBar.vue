@@ -25,6 +25,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import NestedTooltip from './NestedTooltip.vue'
@@ -38,19 +39,20 @@ import milkIcon      from '../assets/Sprites/RecSprits/MilchIcon.png'
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
+const { t } = useI18n()
 
-const resources = [
-  { key: 'sugar',     label: 'Zucker',     name: 'SUGAR',     icon: sugarIcon  },
-  { key: 'flour',     label: 'Mehl',       name: 'FLOUR',     icon: flourIcon  },
-  { key: 'eggs',      label: 'Eier',       name: 'EGGS',      icon: eggsIcon   },
-  { key: 'butter',    label: 'Butter',     name: 'BUTTER',    icon: butterIcon },
-  { key: 'chocolate', label: 'Schokolade', name: 'CHOCOLATE', icon: chocoIcon  },
-  { key: 'milk',      label: 'Milch',      name: 'MILK',      icon: milkIcon   },
-]
+const resources = computed(() => [
+  { key: 'sugar',     label: t('resourceBar.sugar'),     name: 'SUGAR',     icon: sugarIcon  },
+  { key: 'flour',     label: t('resourceBar.flour'),     name: 'FLOUR',     icon: flourIcon  },
+  { key: 'eggs',      label: t('resourceBar.eggs'),      name: 'EGGS',      icon: eggsIcon   },
+  { key: 'butter',    label: t('resourceBar.butter'),    name: 'BUTTER',    icon: butterIcon },
+  { key: 'chocolate', label: t('resourceBar.chocolate'), name: 'CHOCOLATE', icon: chocoIcon  },
+  { key: 'milk',      label: t('resourceBar.milk'),      name: 'MILK',      icon: milkIcon   },
+])
 
 const cookieTooltip = computed(() => [
-  { text: `Cookies: ${fmt(playerStore.cookies)}` },
-  { text: `\nNet Worth: ${fmtBig(playerStore.netWorth)}` },
+  { text: t('resourceBar.cookiesLine', { value: fmt(playerStore.cookies) }) },
+  { text: t('resourceBar.netWorthLine', { value: fmtBig(playerStore.netWorth) }) },
 ])
 
 function resTooltip(res) {
@@ -58,9 +60,9 @@ function resTooltip(res) {
   const price    = marketStore.priceOf(res.name)
   const sellVal  = amount * price * 0.85   // nach 15% Gebühr
   return [
-    { text: `${res.label}: ${fmt(amount)}` },
-    { text: `\nMarktpreis: ${price.toFixed(4)} C` },
-    { text: `\nVerkaufswert: `, tooltip: 'Menge × Preis × 0.85 (nach Gebühr)' },
+    { text: t('resourceBar.resourceLine', { label: res.label, amount: fmt(amount) }) },
+    { text: t('resourceBar.marketPriceLine', { price: price.toFixed(4) }) },
+    { text: t('resourceBar.sellValueLabel'), tooltip: t('resourceBar.sellValueExplain') },
     { text: `${fmt2(sellVal)} C` },
   ]
 }

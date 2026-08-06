@@ -1,0 +1,18 @@
+{
+  "title": "EINWOHNER",
+  "total": "Gesamt",
+  "assigned": "Zugewiesen",
+  "idle": "Idle",
+  "costPerCitizen": "Kosten/Einw.",
+  "needTownHallBefore": "Baue zuerst das",
+  "townHall": "RATHAUS",
+  "needTownHallAfter": "um Einwohner kaufen zu können.",
+  "townHallLevel1Slots": "Rathaus Stufe 1 = 4 Einwohner-Slots.",
+  "rathausGivesSlots": "Jedes Rathaus-Level gibt 4 Einwohner-Slots.",
+  "citizenCostHint": "Einwohner kosten je {cost}",
+  "buyLabel": "KAUFEN",
+  "buyButton": "KAUFEN · {cost}",
+  "wanderersLabel": "{count} WANDERN HERUM",
+  "bought": "{count} Einwohner gekauft!",
+  "buyError": "Nicht genug Cookies oder Fehler."
+}

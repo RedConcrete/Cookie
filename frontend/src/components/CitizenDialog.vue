@@ -3,7 +3,7 @@
     <div class="cd-panel">
       <div class="cd-head">
         <PixelIcon name="einw" :size="28" />
-        <div class="cd-head-title">EINWOHNER</div>
+        <div class="cd-head-title">{{ t('citizenDialog.title') }}</div>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
@@ -11,36 +11,36 @@
         <!-- Status -->
         <div class="cd-section">
           <div class="cd-stat-row">
-            <span class="cd-stat-label">Gesamt</span>
+            <span class="cd-stat-label">{{ t('citizenDialog.total') }}</span>
             <span class="cd-stat-val">{{ playerStore.ownedCitizens }} / {{ playerStore.maxCitizens }}</span>
           </div>
           <div class="cd-stat-row">
-            <span class="cd-stat-label">Zugewiesen</span>
+            <span class="cd-stat-label">{{ t('citizenDialog.assigned') }}</span>
             <span class="cd-stat-val">{{ playerStore.assignedCitizens }}</span>
           </div>
           <div class="cd-stat-row">
-            <span class="cd-stat-label">Idle</span>
+            <span class="cd-stat-label">{{ t('citizenDialog.idle') }}</span>
             <span class="cd-stat-val" :class="{ 'cd-idle': playerStore.idleCitizens > 0 }">{{ playerStore.idleCitizens }}</span>
           </div>
           <div class="cd-stat-row">
-            <span class="cd-stat-label">Kosten/Einw.</span>
-            <span class="cd-stat-val">50 <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></span>
+            <span class="cd-stat-label">{{ t('citizenDialog.costPerCitizen') }}</span>
+            <span class="cd-stat-val">{{ CITIZEN_COST }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></span>
           </div>
         </div>
 
         <!-- Rathaus requirements -->
         <div v-if="playerStore.maxCitizens === 0" class="cd-hint cd-hint-warn">
-          Baue zuerst das <b>RATHAUS</b> um Einwohner kaufen zu können.<br>
-          Rathaus Stufe 1 = 4 Einwohner-Slots.
+          {{ t('citizenDialog.needTownHallBefore') }} <b>{{ t('citizenDialog.townHall') }}</b> {{ t('citizenDialog.needTownHallAfter') }}<br>
+          {{ t('citizenDialog.townHallLevel1Slots') }}
         </div>
         <div v-else class="cd-hint">
-          Jedes Rathaus-Level gibt 4 Einwohner-Slots.<br>
-          Einwohner kosten je 50 <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" />.
+          {{ t('citizenDialog.rathausGivesSlots') }}<br>
+          {{ t('citizenDialog.citizenCostHint', { cost: CITIZEN_COST }) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" />.
         </div>
 
         <!-- Buy controls -->
         <div class="cd-buy" v-if="playerStore.maxCitizens > 0">
-          <div class="cd-buy-label">KAUFEN</div>
+          <div class="cd-buy-label">{{ t('citizenDialog.buyLabel') }}</div>
           <div class="cd-buy-row">
             <button class="px-btn" :disabled="buyCount <= 1" @click="buyCount = Math.max(1, buyCount - 1)">−</button>
             <div class="cd-buy-count">{{ buyCount }}x</div>
@@ -50,7 +50,7 @@
               :disabled="buying || canBuyMore <= 0 || playerStore.cookies < buyCost"
               @click="buy"
             >
-              KAUFEN · {{ buyCost.toFixed(0) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" />
+              {{ t('citizenDialog.buyButton', { cost: buyCost.toFixed(0) }) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" />
             </button>
           </div>
           <div v-if="notice" class="cd-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -58,7 +58,7 @@
 
         <!-- Wanderer preview -->
         <div class="cd-wanderers" v-if="playerStore.idleCitizens > 0">
-          <div class="cd-wanderers-label">{{ playerStore.idleCitizens }} WANDERN HERUM</div>
+          <div class="cd-wanderers-label">{{ t('citizenDialog.wanderersLabel', { count: playerStore.idleCitizens }) }}</div>
           <div class="cd-wanderers-row">
             <div v-for="i in Math.min(5, playerStore.idleCitizens)" :key="i" class="cd-wanderer-icon">
               <PixelWorker anim="bob" :dur="0.8 + i * 0.1" :hat="HATS[i % HATS.length]" />
@@ -73,6 +73,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -81,6 +82,7 @@ import PixelWorker from './pixel/PixelWorker.vue'
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 
@@ -101,11 +103,11 @@ async function buy() {
   notice.value = ''
   try {
     await playerStore.buyCitizenAction(buyCount.value)
-    notice.value = `${buyCount.value} Einwohner gekauft!`
+    notice.value = t('citizenDialog.bought', { count: buyCount.value })
     noticeError.value = false
     buyCount.value = 1
   } catch {
-    notice.value = 'Nicht genug Cookies oder Fehler.'
+    notice.value = t('citizenDialog.buyError')
     noticeError.value = true
   } finally {
     buying.value = false

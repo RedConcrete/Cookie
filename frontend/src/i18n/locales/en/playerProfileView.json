@@ -1,0 +1,19 @@
+{
+  "rankPrestige": "Rank #{rank} · Prestige {level}",
+  "netWorthLabel": "NET WORTH",
+  "badgesCount": "BADGES · {count}",
+  "viewAll": "VIEW ALL →",
+  "noBadges": "No badges yet",
+  "upgradesTitle": "UPGRADES",
+  "upgradeLevel": "Level {level}",
+  "noUpgrades": "No upgrades",
+  "seasonHistoryTitle": "SEASON HISTORY",
+  "seasonHeaderSeason": "SEASON",
+  "seasonHeaderRank": "RANK",
+  "seasonHeaderNetWorth": "NET WORTH",
+  "seasonHeaderPrestige": "PRESTIGE",
+  "statCookies": "COOKIES",
+  "statResourceValue": "RESOURCE VALUE",
+  "statUpgradeValue": "UPGRADE VALUE",
+  "statLifetimeBaked": "BAKED (LIFETIME)"
+}

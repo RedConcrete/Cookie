@@ -1,6 +1,6 @@
 <template>
   <div class="us-root">
-    <div v-if="loading" class="us-loading">Lade...</div>
+    <div v-if="loading" class="us-loading">{{ t('common.loading') }}</div>
 
     <template v-else>
       <div class="us-groups">
@@ -11,10 +11,10 @@
               <PixelInfoPopover :rows="tooltipRows(u)" :title="u.name" :note="tooltipNote(u)" :width="260">
                 <div class="us-name">{{ u.name }}</div>
               </PixelInfoPopover>
-              <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
+              <div class="us-level">{{ t('upgradeShopView.level') }} {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
-              <template v-if="atMax(u)">MAX</template>
+              <template v-if="atMax(u)">{{ t('common.max') }}</template>
               <template v-else>{{ fmt(u.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></template>
             </button>
           </div>
@@ -29,10 +29,10 @@
               <PixelInfoPopover :rows="tooltipRows(u)" :title="u.name" :note="tooltipNote(u)" :width="260">
                 <div class="us-name">{{ u.name }}</div>
               </PixelInfoPopover>
-              <div class="us-level">STUFE {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
+              <div class="us-level">{{ t('upgradeShopView.level') }} {{ u.currentLevel }}<span v-if="u.maxLevel > 0"> / {{ u.maxLevel }}</span></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="!canAfford(u) || atMax(u) || buying === u.id" @click="buy(u)">
-              <template v-if="atMax(u)">MAX</template>
+              <template v-if="atMax(u)">{{ t('common.max') }}</template>
               <template v-else>{{ fmt(u.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></template>
             </button>
           </div>
@@ -44,26 +44,28 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buyUpgrade, initGame } from '../services/api.js'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const upgrades = computed(() => playerStore.upgrades)
 const loading  = ref(true)
 const buying   = ref(null)
 
 const TYPE_LABELS = {
-  BOOST_HARVEST: 'Boosts — Ernte',
-  BOOST_BAKE:    'Boosts — Backen',
-  AUTOMATION:    'Automatisierung',
-  CAPACITY:      'Kapazität',
+  BOOST_HARVEST: 'upgradeShopView.typeBoostHarvest',
+  BOOST_BAKE:    'upgradeShopView.typeBoostBake',
+  AUTOMATION:    'upgradeShopView.typeAutomation',
+  CAPACITY:      'upgradeShopView.typeCapacity',
 }
 
 function makeGroups(types) {
   return types
-    .map(type => ({ label: TYPE_LABELS[type], items: upgrades.value.filter(u => u.type === type) }))
+    .map(type => ({ label: t(TYPE_LABELS[type]), items: upgrades.value.filter(u => u.type === type) }))
     .filter(g => g.items.length > 0)
 }
 
@@ -77,13 +79,13 @@ function fmt(v)       { return Number(v).toFixed(2) }
 function tooltipRows(u) {
   const nextLvl = u.currentLevel + 1
   return [
-    { k: `Stufe ${nextLvl}`, v: `+${u.effectPerLevel * nextLvl} Effekt`, color: 'g' },
-    { k: 'Kosten', v: `${fmt(u.nextLevelCost)} C`, color: 'y' },
+    { k: t('upgradeShopView.tooltipLevel', { level: nextLvl }), v: t('upgradeShopView.tooltipEffect', { effect: u.effectPerLevel * nextLvl }), color: 'g' },
+    { k: t('upgradeShopView.tooltipCost'), v: `${fmt(u.nextLevelCost)} C`, color: 'y' },
   ]
 }
 
 function tooltipNote(u) {
-  return `${u.description} — Kostenformel: ${u.nextLevelCost.toFixed(0)} × 1.15^Stufe`
+  return `${u.description} ${t('upgradeShopView.costFormula', { cost: u.nextLevelCost.toFixed(0) })}`
 }
 
 async function load() {

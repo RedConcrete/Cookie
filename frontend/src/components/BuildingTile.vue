@@ -12,7 +12,7 @@
         <div class="oven-progress-fill" :style="{ width: bakeProgressPct + '%' }"></div>
       </div>
       <div class="oven-timer">
-        <template v-if="bakeStatus.done">✓ Fertig!</template>
+        <template v-if="bakeStatus.done">✓ {{ t('buildingTile.done') }}</template>
         <template v-else>⏱ {{ formatSec(bakeStatus.remainingSeconds) }}</template>
       </div>
     </div>
@@ -26,7 +26,7 @@
 
     <div v-if="upgradeBadges && upgradeBadges.length" class="tile-badges">
       <span v-for="b in upgradeBadges" :key="b.label" class="tile-badge">
-        {{ b.icon }} Stufe {{ b.level }}
+        {{ b.icon }} {{ t('buildingTile.level', { level: b.level }) }}
       </span>
     </div>
   </div>
@@ -34,6 +34,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   variant:       { type: String, required: true }, // 'market' | 'oven' | 'harvest'

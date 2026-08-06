@@ -4,9 +4,12 @@
 // so these numbers are illustrative placeholders until that system ships — only the
 // hover-harvest amounts (SUGAR/FLOUR/EGGS/BUTTER/CHOCOLATE/MILK) are wired to the real API.
 // wagePerMin must match BuildingService.java static definitions
+// title/resource-label text lives in i18n (locales/{de,en}/buildingInfo.json) — use
+// buildingTitle()/resourceLabel() below to resolve it, since this module has no
+// component context of its own to call useI18n() from.
 export const BUILDING_INFO = {
   pond: {
-    title: 'ZUCKERTEICH', icon: 'zucker', side: 'right', overlayRate: '+1.4/s', workers: 2, wagePerMin: 4,
+    titleKey: 'buildingInfo.pond', icon: 'zucker', side: 'right', overlayRate: '+1.4/s', workers: 2, wagePerMin: 4,
     resource: 'SUGAR',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+1.4/s', color: 'g' },
@@ -16,7 +19,7 @@ export const BUILDING_INFO = {
     ],
   },
   ofen: {
-    title: 'BACKOFEN', icon: 'ofen', side: 'right', overlayRate: '1/2', workers: 2, wagePerMin: 4,
+    titleKey: 'buildingInfo.ofen', icon: 'ofen', side: 'right', overlayRate: '1/2', workers: 2, wagePerMin: 4,
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '2 Batches', color: 'g' },
       { k: 'Hover · ohne Lohn', v: '+1 Batch', color: 'y' },
@@ -25,20 +28,20 @@ export const BUILDING_INFO = {
     ],
   },
   rathaus: {
-    title: 'RATHAUS', icon: 'haus', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
+    titleKey: 'buildingInfo.rathaus', icon: 'haus', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
     rows: [
       { k: 'Einwohner', v: '→ Dialog', color: 'w' },
       { k: 'Funktion', v: 'Einwohner-Slots', color: 'g' },
     ],
   },
   markt: {
-    title: 'MARKT', icon: 'stand', side: 'left', overlayRate: 'GEB. 8%', workers: 0, wagePerMin: 0,
+    titleKey: 'buildingInfo.markt', icon: 'stand', side: 'left', overlayRate: 'GEB. 8%', workers: 0, wagePerMin: 0,
     rows: [
       { k: 'Marktgebühr', v: '8 %', color: 'o' },
     ],
   },
   lager: {
-    title: 'LAGER', icon: 'lager', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
+    titleKey: 'buildingInfo.lager', icon: 'lager', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
     rows: [
       { k: 'Gesamtlimit', v: '→ Dialog', color: 'w' },
       { k: 'Auto-Verkauf', v: 'bei Überfluss', color: 'y' },
@@ -46,7 +49,7 @@ export const BUILDING_INFO = {
     note: 'Wenn das Lager voll ist, wird Überproduktion automatisch zum aktuellen Marktpreis verkauft.',
   },
   hof: {
-    title: 'BAUERNHOF', icon: 'mehl', side: 'right', overlayRate: '+2.1/s', workers: 3, wagePerMin: 6,
+    titleKey: 'buildingInfo.hof', icon: 'mehl', side: 'right', overlayRate: '+2.1/s', workers: 3, wagePerMin: 6,
     resource: 'FLOUR',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+2.1/s', color: 'g' },
@@ -56,7 +59,7 @@ export const BUILDING_INFO = {
     ],
   },
   huhn: {
-    title: 'HÜHNERHOF', icon: 'eier', side: 'right', overlayRate: '+0.8/s', workers: 2, wagePerMin: 4,
+    titleKey: 'buildingInfo.huhn', icon: 'eier', side: 'right', overlayRate: '+0.8/s', workers: 2, wagePerMin: 4,
     resource: 'EGGS',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+0.8/s', color: 'g' },
@@ -66,7 +69,7 @@ export const BUILDING_INFO = {
     ],
   },
   butter: {
-    title: 'BUTTEREI', icon: 'butter', side: 'right', overlayRate: '+0.6/s', workers: 1, wagePerMin: 2,
+    titleKey: 'buildingInfo.butter', icon: 'butter', side: 'right', overlayRate: '+0.6/s', workers: 1, wagePerMin: 2,
     resource: 'BUTTER',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+0.6/s', color: 'g' },
@@ -76,7 +79,7 @@ export const BUILDING_INFO = {
     ],
   },
   kakao: {
-    title: 'PLANTAGE', icon: 'schoko', side: 'left', overlayRate: '+1.2/s', workers: 2, wagePerMin: 4,
+    titleKey: 'buildingInfo.kakao', icon: 'schoko', side: 'left', overlayRate: '+1.2/s', workers: 2, wagePerMin: 4,
     resource: 'CHOCOLATE',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+1.2/s', color: 'g' },
@@ -86,7 +89,7 @@ export const BUILDING_INFO = {
     ],
   },
   kuh: {
-    title: 'KUHSTALL', icon: 'milch', side: 'left', overlayRate: '+4.8/s', workers: 4, wagePerMin: 8,
+    titleKey: 'buildingInfo.kuh', icon: 'milch', side: 'left', overlayRate: '+4.8/s', workers: 4, wagePerMin: 8,
     resource: 'MILK',
     rows: [
       { k: 'Passiv · mit Arbeitern', v: '+4.8/s', color: 'g' },
@@ -97,12 +100,24 @@ export const BUILDING_INFO = {
   },
 }
 
-export const RESOURCE_LABEL = {
-  SUGAR: 'Zucker', FLOUR: 'Mehl', EGGS: 'Eier',
-  BUTTER: 'Butter', CHOCOLATE: 'Schokolade', MILK: 'Milch',
+export const RESOURCE_LABEL_KEY = {
+  SUGAR: 'buildingInfo.resourceSugar', FLOUR: 'buildingInfo.resourceFlour', EGGS: 'buildingInfo.resourceEggs',
+  BUTTER: 'buildingInfo.resourceButter', CHOCOLATE: 'buildingInfo.resourceChocolate', MILK: 'buildingInfo.resourceMilk',
 }
 
 export const RESOURCE_ICON = {
   SUGAR: 'zucker', FLOUR: 'mehl', EGGS: 'eier',
   BUTTER: 'butter', CHOCOLATE: 'schoko', MILK: 'milch',
+}
+
+// Resolve translated display text — call from a component's computed/render scope
+// so it stays reactive to locale changes (this module has no i18n context of its own).
+export function buildingTitle(id, t) {
+  const key = BUILDING_INFO[id]?.titleKey
+  return key ? t(key) : ''
+}
+
+export function resourceLabel(resourceName, t) {
+  const key = RESOURCE_LABEL_KEY[resourceName]
+  return key ? t(key) : (resourceName ?? '')
 }

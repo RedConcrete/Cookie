@@ -8,7 +8,7 @@
           :class="{ inactive: chartRef && chartRef.visible[r.name] === false }"
           @click="chartRef?.toggle(r.name)"
         >
-          <span class="mv-legend-dot" :style="{ background: COLORS[r.name] }"></span>{{ r.label }}
+          <span class="mv-legend-dot" :style="{ background: COLORS[r.name] }"></span>{{ t(r.labelKey) }}
           <span class="mv-legend-val">{{ legendValue(r) }}</span>
         </button>
       </div>
@@ -24,13 +24,13 @@
 
     <div class="mv-table px-scroll">
       <div class="mv-row mv-head">
-        <div></div><div>RESSOURCE</div><div>PREIS</div><div>TREND</div><div>BESTAND</div><div>MENGE</div><div>AKTION</div>
-        <div class="mv-col-cost">KOSTEN &darr;</div>
+        <div></div><div>{{ t('marketView.colResource') }}</div><div>{{ t('marketView.colPrice') }}</div><div>{{ t('marketView.colTrend') }}</div><div>{{ t('marketView.colStock') }}</div><div>{{ t('marketView.colQty') }}</div><div>{{ t('marketView.colAction') }}</div>
+        <div class="mv-col-cost">{{ t('marketView.colCost') }} &darr;</div>
       </div>
 
       <div v-for="res in resources" :key="res.name" class="mv-row" :class="{ highlight: hoveredResource === res.name, success: flashSuccess[res.name] }">
         <div class="mv-icon"><PixelIcon :name="res.icon" :size="20" /></div>
-        <div class="mv-name">{{ res.label }}</div>
+        <div class="mv-name">{{ t(res.labelKey) }}</div>
         <div class="mv-price">{{ fmt(marketStore.priceOf(res.name)) }}</div>
         <div class="mv-trend" :style="{ color: trendOf(res.name) >= 0 ? '#56642e' : '#b74132' }">
           {{ trendOf(res.name) >= 0 ? '+' : '' }}{{ trendOf(res.name).toFixed(1) }} %
@@ -50,11 +50,11 @@
         </div>
 
         <div class="mv-actions">
-          <button class="px-btn px-btn-buy mv-action-btn" :disabled="busy[res.name] || !canBuy(res)" @click="doTrade(res, 'BUY')">KAUFEN</button>
-          <button class="px-btn px-btn-sell mv-action-btn" :disabled="busy[res.name] || !canSell(res)" @click="doTrade(res, 'SELL')">VERKAUF</button>
+          <button class="px-btn px-btn-buy mv-action-btn" :disabled="busy[res.name] || !canBuy(res)" @click="doTrade(res, 'BUY')">{{ t('marketView.buyButton') }}</button>
+          <button class="px-btn px-btn-sell mv-action-btn" :disabled="busy[res.name] || !canSell(res)" @click="doTrade(res, 'SELL')">{{ t('marketView.sellButton') }}</button>
         </div>
 
-        <PixelInfoPopover :rows="costRows(res)" :title="res.label + ' · KOSTEN'" side="left" :width="284" :z="9" bar-placement="edge">
+        <PixelInfoPopover :rows="costRows(res)" :title="t(res.labelKey) + ' · ' + t('marketView.costSuffix')" side="left" :width="284" :z="9" bar-placement="edge">
           <div class="mv-cost">
             <div class="mv-cost-buy">&minus;{{ fmt(buyCost(res)) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
             <div class="mv-cost-sell">+{{ fmt(netPayout(res)) }}<PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" /></div>
@@ -65,9 +65,9 @@
 
     <div v-if="errorMsg" class="err-overlay" @click.self="errorMsg = null">
       <div class="err-dialog">
-        <div class="err-title">Fehler</div>
+        <div class="err-title">{{ t('common.error') }}</div>
         <div class="err-body">{{ errorMsg }}</div>
-        <button class="px-btn px-btn-accent" style="margin-top:12px" @click="errorMsg = null">OK</button>
+        <button class="px-btn px-btn-accent" style="margin-top:12px" @click="errorMsg = null">{{ t('marketView.okButton') }}</button>
       </div>
     </div>
   </div>
@@ -75,6 +75,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { trade, getConfig } from '../services/api.js'
@@ -83,6 +84,7 @@ import PriceChart from '../components/PriceChart.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const chartRef     = ref(null)
@@ -122,12 +124,12 @@ onMounted(async () => {
 })
 
 const resources = [
-  { name: 'SUGAR',     label: 'Zucker',     key: 'sugar',     priceKey: 'sugarPrice',     icon: 'zucker' },
-  { name: 'FLOUR',     label: 'Mehl',       key: 'flour',     priceKey: 'flourPrice',     icon: 'mehl'   },
-  { name: 'EGGS',      label: 'Eier',       key: 'eggs',      priceKey: 'eggsPrice',      icon: 'eier'   },
-  { name: 'BUTTER',    label: 'Butter',     key: 'butter',    priceKey: 'butterPrice',    icon: 'butter' },
-  { name: 'CHOCOLATE', label: 'Schokolade', key: 'chocolate', priceKey: 'chocolatePrice', icon: 'schoko' },
-  { name: 'MILK',      label: 'Milch',      key: 'milk',      priceKey: 'milkPrice',      icon: 'milch'  },
+  { name: 'SUGAR',     labelKey: 'marketView.resourceSugar',     key: 'sugar',     priceKey: 'sugarPrice',     icon: 'zucker' },
+  { name: 'FLOUR',     labelKey: 'marketView.resourceFlour',     key: 'flour',     priceKey: 'flourPrice',     icon: 'mehl'   },
+  { name: 'EGGS',      labelKey: 'marketView.resourceEggs',      key: 'eggs',      priceKey: 'eggsPrice',      icon: 'eier'   },
+  { name: 'BUTTER',    labelKey: 'marketView.resourceButter',    key: 'butter',    priceKey: 'butterPrice',    icon: 'butter' },
+  { name: 'CHOCOLATE', labelKey: 'marketView.resourceChocolate', key: 'chocolate', priceKey: 'chocolatePrice', icon: 'schoko' },
+  { name: 'MILK',      labelKey: 'marketView.resourceMilk',      key: 'milk',      priceKey: 'milkPrice',      icon: 'milch'  },
 ]
 
 const amounts = reactive(Object.fromEntries(resources.map(r => [r.name, 10])))
@@ -171,9 +173,9 @@ function netPayout(res) { return buyCost(res) * (1 - sellFeeRate.value) }
 
 function costRows(res) {
   return [
-    { k: 'Menge × Preis', v: `${amounts[res.name]} × ${fmt(marketStore.priceOf(res.name))} C`, color: 'w' },
-    { k: 'Kaufkosten', v: `−${fmt(buyCost(res))} C`, color: 'o' },
-    { k: `Verkauf (−${Math.round(sellFeeRate.value * 100)}% Gebühr)`, v: `+${fmt(netPayout(res))} C`, color: 'g' },
+    { k: t('marketView.costRowQtyPrice'), v: `${amounts[res.name]} × ${fmt(marketStore.priceOf(res.name))} C`, color: 'w' },
+    { k: t('marketView.costRowBuy'), v: `−${fmt(buyCost(res))} C`, color: 'o' },
+    { k: t('marketView.costRowSell', { pct: Math.round(sellFeeRate.value * 100) }), v: `+${fmt(netPayout(res))} C`, color: 'g' },
   ]
 }
 
@@ -187,7 +189,7 @@ async function doTrade(res, action) {
     flashSuccess[res.name] = true
     setTimeout(() => { flashSuccess[res.name] = false }, 600)
   } catch (e) {
-    errorMsg.value = e?.message ?? 'Unbekannter Fehler'
+    errorMsg.value = e?.message ?? t('marketView.unknownError')
   } finally {
     busy[res.name] = false
   }

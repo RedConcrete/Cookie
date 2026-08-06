@@ -1,10 +1,10 @@
 <template>
   <div class="lv-root">
-    <div v-if="loading" class="lv-loading">Lade...</div>
+    <div v-if="loading" class="lv-loading">{{ t('common.loading') }}</div>
 
     <template v-else>
       <div class="lv-head-row">
-        <div>#</div><div>SPIELER</div><div>NET WORTH</div><div>COOKIES</div><div>RESSOURCEN</div>
+        <div>#</div><div>{{ t('leaderboardView.player') }}</div><div>{{ t('leaderboardView.netWorth') }}</div><div>{{ t('leaderboardView.cookies') }}</div><div>{{ t('leaderboardView.resources') }}</div>
       </div>
       <div
         v-for="entry in board" :key="entry.steamId" class="lv-row"
@@ -18,16 +18,18 @@
         <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
       </div>
 
-      <button class="px-btn px-btn-flat lv-refresh" @click="load">&#8635; AKTUALISIEREN</button>
+      <button class="px-btn px-btn-flat lv-refresh" @click="load">&#8635; {{ t('leaderboardView.refresh') }}</button>
     </template>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getLeaderboard } from '../services/api.js'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const board   = ref([])
 const loading = ref(true)

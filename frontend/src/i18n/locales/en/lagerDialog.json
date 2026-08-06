@@ -1,0 +1,19 @@
+{
+  "title": "STORAGE · LEVEL {level}",
+  "capacityLabel": "TOTAL CAPACITY",
+  "resSugar": "Sugar",
+  "resFlour": "Flour",
+  "resEggs": "Eggs",
+  "resButter": "Butter",
+  "resChocolate": "Chocolate",
+  "resMilk": "Milk",
+  "autoSellTitle": "AUTO-SELL",
+  "autoSellDesc": "When storage is full, overflowing resources are automatically sold at the current market price.",
+  "wageLine": "Level {level} wage: {wage} C/MIN",
+  "free": "(free)",
+  "upgradeLevelLine": "Level {from} → {to}",
+  "upgradeDesc": "+{bonus} capacity ·",
+  "upgradeBtn": "UPGRADE",
+  "upgradeSuccess": "Storage upgraded to level {level}!",
+  "notEnoughCookies": "Not enough cookies."
+}

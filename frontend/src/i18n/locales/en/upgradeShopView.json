@@ -1,0 +1,11 @@
+{
+  "level": "LEVEL",
+  "typeBoostHarvest": "Boosts — Harvest",
+  "typeBoostBake": "Boosts — Baking",
+  "typeAutomation": "Automation",
+  "typeCapacity": "Capacity",
+  "tooltipLevel": "Level {level}",
+  "tooltipEffect": "+{effect} effect",
+  "tooltipCost": "Cost",
+  "costFormula": "— Cost formula: {cost} × 1.15^Level"
+}

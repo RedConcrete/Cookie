@@ -1,0 +1,14 @@
+{
+  "sugar": "Zucker",
+  "flour": "Mehl",
+  "eggs": "Eier",
+  "butter": "Butter",
+  "chocolate": "Schokolade",
+  "milk": "Milch",
+  "cookiesLine": "Cookies: {value}",
+  "netWorthLine": "\nNet Worth: {value}",
+  "resourceLine": "{label}: {amount}",
+  "marketPriceLine": "\nMarktpreis: {price} C",
+  "sellValueLabel": "\nVerkaufswert: ",
+  "sellValueExplain": "Menge × Preis × 0.85 (nach Gebühr)"
+}

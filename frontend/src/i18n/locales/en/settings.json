@@ -1,0 +1,19 @@
+{
+  "title": "SETTINGS",
+  "language": "LANGUAGE",
+  "volume": "VOLUME",
+  "music": "Music",
+  "sfx": "Sound effects",
+  "hotkeys": "KEY BINDINGS",
+  "closeDialog": "Close dialog",
+  "centerFarm": "Center farm",
+  "spaceKey": "SPACE",
+  "camera": "CAMERA MOVEMENT",
+  "speed": "Speed",
+  "dirUp": "Move up",
+  "dirDown": "Move down",
+  "dirLeft": "Move left",
+  "dirRight": "Move right",
+  "pressKey": "PRESS KEY…",
+  "exitGame": "EXIT GAME"
+}

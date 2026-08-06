@@ -3,7 +3,7 @@
     <div class="bs-panel">
       <div class="bs-head">
         <PixelIcon name="lager" :size="28" />
-        <div class="bs-head-title">BAUVORHABEN</div>
+        <div class="bs-head-title">{{ t('buildShopDialog.title') }}</div>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
@@ -21,14 +21,14 @@
           <div class="bs-row-info">
             <div class="bs-row-name">{{ b.name }}</div>
             <div class="bs-row-sub">
-              <span class="bs-wage">LOHN {{ b.wagePerMin }} C/MIN</span>
-              <span v-if="b.storageCapBonus > 0" class="bs-cap">+{{ fmtK(b.storageCapBonus) }} LAGER</span>
+              <span class="bs-wage">{{ t('buildShopDialog.wage', { amount: b.wagePerMin }) }}</span>
+              <span v-if="b.storageCapBonus > 0" class="bs-cap">{{ t('buildShopDialog.storageBonus', { amount: fmtK(b.storageCapBonus) }) }}</span>
             </div>
-            <div v-if="b.level > 0" class="bs-level">LEVEL {{ b.level }}</div>
+            <div v-if="b.level > 0" class="bs-level">{{ t('buildShopDialog.level', { level: b.level }) }}</div>
           </div>
           <div class="bs-row-action">
             <template v-if="b.level > 0 && !b.canUpgrade">
-              <div class="bs-owned-badge"><PixelIcon name="check" :size="10" style="vertical-align:-1px;margin-right:3px" />GEBAUT</div>
+              <div class="bs-owned-badge"><PixelIcon name="check" :size="10" style="vertical-align:-1px;margin-right:3px" />{{ t('buildShopDialog.built') }}</div>
             </template>
             <template v-else>
               <div class="bs-cost">{{ fmtK(b.nextLevelCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" /></div>
@@ -37,7 +37,7 @@
                 :disabled="buying === b.id || playerStore.cookies < b.nextLevelCost"
                 @click="buy(b.id)"
               >
-                {{ b.level === 0 ? 'BAUEN' : 'AUFSTOCKEN' }}
+                {{ b.level === 0 ? t('buildShopDialog.build') : t('buildShopDialog.upgrade') }}
               </button>
             </template>
           </div>
@@ -45,8 +45,8 @@
       </div>
 
       <div class="bs-footer">
-        <span>Cookies: <b>{{ fmt(playerStore.cookies) }}</b></span>
-        <span>Lager-Cap: <b>{{ fmtK(playerStore.totalResourceCap) }}</b></span>
+        <span>{{ t('buildShopDialog.cookiesLabel') }} <b>{{ fmt(playerStore.cookies) }}</b></span>
+        <span>{{ t('buildShopDialog.storageCapLabel') }} <b>{{ fmtK(playerStore.totalResourceCap) }}</b></span>
       </div>
     </div>
   </div>
@@ -54,6 +54,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO } from './buildings/buildingInfo.js'
@@ -63,6 +64,7 @@ import PixelIcon from './pixel/PixelIcon.vue'
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const audio = useAudio()
+const { t } = useI18n()
 
 const buying      = ref(null)
 const notice      = ref('')
@@ -86,10 +88,11 @@ async function buy(buildingId) {
     // Update store directly so the computed buildings refreshes
     playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
     const b = updated.find(x => x.id === buildingId)
-    notice.value = `${b?.name ?? buildingId} gebaut!`
+    notice.value = t('buildShopDialog.built_notice', { name: b?.name ?? buildingId })
     noticeError.value = false
   } catch (e) {
-    notice.value = 'Nicht genug Cookies. Mindestens ' + (buildings.value.find(x => x.id === buildingId)?.nextLevelCost?.toFixed(0) ?? '?') + ' C nötig.'
+    const cost = buildings.value.find(x => x.id === buildingId)?.nextLevelCost?.toFixed(0) ?? '?'
+    notice.value = t('buildShopDialog.notEnoughCookies', { cost })
     noticeError.value = true
   } finally {
     buying.value = null

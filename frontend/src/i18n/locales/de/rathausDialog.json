@@ -1,0 +1,15 @@
+{
+  "title": "RATHAUS · STUFE {level}",
+  "statPopulation": "EINWOHNER",
+  "statAssigned": "ZUGEWIESEN",
+  "statIdle": "IDLE",
+  "statWage": "GESAMTLOHN",
+  "assignSectionLabel": "EINWOHNER-ZUWEISUNG",
+  "idleRowName": "Wandernd (idle)",
+  "emptyState": "Noch keine Einwohner gekauft.",
+  "upgradeLevelLine": "Stufe {from} → {to}",
+  "upgradeDesc": "+4 Einwohner-Slots ·",
+  "upgradeBtn": "AUFSTOCKEN",
+  "upgradeSuccess": "Rathaus auf Stufe {level} aufgestockt!",
+  "notEnoughCookies": "Nicht genug Cookies."
+}

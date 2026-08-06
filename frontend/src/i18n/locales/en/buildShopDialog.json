@@ -1,0 +1,13 @@
+{
+  "title": "CONSTRUCTION",
+  "wage": "WAGE {amount} C/MIN",
+  "storageBonus": "+{amount} STORAGE",
+  "level": "LEVEL {level}",
+  "built": "BUILT",
+  "build": "BUILD",
+  "upgrade": "UPGRADE",
+  "cookiesLabel": "Cookies:",
+  "storageCapLabel": "Storage Cap:",
+  "built_notice": "{name} built!",
+  "notEnoughCookies": "Not enough cookies. At least {cost} C needed."
+}

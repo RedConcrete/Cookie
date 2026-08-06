@@ -1,77 +1,85 @@
 <template>
   <div class="pv-root">
-    <div v-if="loading" class="pv-loading">Lade...</div>
+    <div v-if="loading" class="pv-loading">{{ t('common.loading') }}</div>
+    <div v-else-if="loadError" class="pv-locked">{{ t('common.error') }}: {{ loadError }}</div>
 
     <template v-else-if="status">
       <div class="pv-stats">
         <div class="pv-stat">
-          <div class="pv-stat-label">PRESTIGE-LEVEL</div>
+          <div class="pv-stat-label">{{ t('prestigeView.prestigeLevel') }}</div>
           <div class="pv-stat-val">{{ status.prestigeLevel }}</div>
         </div>
         <div class="pv-stat">
-          <div class="pv-stat-label">MULTIPLIKATOR</div>
-          <NestedTooltip :content="[
-            { text: '×' + fmt(status.multiplier) + ' auf Ernte & Backen' },
-            { text: ' | Formel: ', tooltip: '1 + (0.1 × Prestige-Level)' },
-            { text: '1 + 0.1×' + status.prestigeLevel },
-          ]">
+          <div class="pv-stat-label">{{ t('prestigeView.multiplier') }}</div>
+          <NestedTooltip :content="multiplierTooltip">
             <div class="pv-stat-val accent">&times;{{ fmt(status.multiplier) }}</div>
           </NestedTooltip>
         </div>
         <div class="pv-stat">
-          <div class="pv-stat-label">RESETS GESAMT</div>
+          <div class="pv-stat-label">{{ t('prestigeView.totalResets') }}</div>
           <div class="pv-stat-val">{{ status.totalPrestiges }}</div>
         </div>
       </div>
 
       <div class="pv-progress">
-        <div class="pv-progress-labels"><span>NET WORTH</span><span class="accent">{{ fmtBig(status.currentNetWorth) }} / {{ fmtBig(status.threshold) }}</span></div>
+        <div class="pv-progress-labels"><span>{{ t('prestigeView.netWorthLabel') }}</span><span class="accent">{{ fmtBig(status.currentNetWorth) }} / {{ fmtBig(status.threshold) }}</span></div>
         <div class="pv-bar"><div class="pv-bar-fill" :style="{ width: Math.min(100, progress) + '%' }"></div></div>
         <div class="pv-progress-hint">
-          <template v-if="status.canPrestige">BEREIT FÜR PRESTIGE!</template>
-          <template v-else>NOCH {{ fmtBig(status.threshold - status.currentNetWorth) }} FEHLEN</template>
+          <template v-if="status.canPrestige">{{ t('prestigeView.readyForPrestige') }}</template>
+          <template v-else>{{ t('prestigeView.missingAmount', { amount: fmtBig(status.threshold - status.currentNetWorth) }) }}</template>
         </div>
       </div>
 
-      <div class="pv-next">Nach Prestige: <strong>&times;{{ fmt(nextMultiplier) }}</strong> auf alle Ernte- und Backerträge</div>
+      <div class="pv-next">{{ t('prestigeView.afterPrestige') }} <strong>&times;{{ fmt(nextMultiplier) }}</strong> {{ t('prestigeView.afterPrestigeSuffix') }}</div>
 
-      <div class="pv-warning">Reset: Cookies, Ressourcen, Upgrades, Einwohner und alle zusätzlich gebauten Gebäude. Prestige-Level und Lifetime-Statistiken bleiben.</div>
+      <div class="pv-warning">{{ t('prestigeView.warning') }}</div>
 
       <template v-if="status.canPrestige">
         <div v-if="!confirming" class="pv-actions">
-          <button class="px-btn px-btn-accent" @click="confirming = true">PRESTIGE AUSFÜHREN</button>
+          <button class="px-btn px-btn-accent" @click="confirming = true">{{ t('prestigeView.executeButton') }}</button>
         </div>
         <div v-else class="pv-confirm">
-          <p>Wirklich alles zurücksetzen?</p>
+          <p>{{ t('prestigeView.confirmQuestion') }}</p>
           <div class="pv-confirm-btns">
-            <button class="px-btn px-btn-accent" :disabled="busy" @click="execute">{{ busy ? '...' : 'JA, PRESTIGE!' }}</button>
-            <button class="px-btn px-btn-flat" @click="confirming = false">ABBRECHEN</button>
+            <button class="px-btn px-btn-accent" :disabled="busy" @click="execute">{{ busy ? '...' : t('prestigeView.confirmYes') }}</button>
+            <button class="px-btn px-btn-flat" @click="confirming = false">{{ t('prestigeView.cancelButton') }}</button>
           </div>
         </div>
       </template>
-      <div v-else class="pv-locked">NOCH NICHT VERFÜGBAR</div>
+      <div v-else class="pv-locked">{{ t('prestigeView.locked') }}</div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getPrestigeStatus, doPrestige, initGame } from '../services/api.js'
 import NestedTooltip from './NestedTooltip.vue'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const status     = ref(null)
 const loading    = ref(true)
+const loadError  = ref('')
 const confirming = ref(false)
 const busy       = ref(false)
 
 const progress = computed(() => !status.value ? 0 : (status.value.currentNetWorth / status.value.threshold) * 100)
 const nextMultiplier = computed(() => !status.value ? 1 : 1 + 0.1 * (status.value.prestigeLevel + 1))
 
+const multiplierTooltip = computed(() => !status.value ? [] : [
+  { text: t('prestigeView.multiplierEffect', { value: fmt(status.value.multiplier) }) },
+  { text: t('prestigeView.formulaLabel'), tooltip: t('prestigeView.formulaTooltip') },
+  { text: t('prestigeView.formulaValue', { level: status.value.prestigeLevel }) },
+])
+
 async function load() {
   loading.value = true
+  loadError.value = ''
   try { status.value = await getPrestigeStatus(playerStore.steamId) }
+  catch (e) { loadError.value = e.message }
   finally { loading.value = false }
 }
 

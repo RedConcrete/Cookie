@@ -1,0 +1,19 @@
+{
+  "title": "EINSTELLUNGEN",
+  "language": "SPRACHE",
+  "volume": "LAUTSTÄRKE",
+  "music": "Musik",
+  "sfx": "Soundeffekte",
+  "hotkeys": "TASTENBELEGUNG",
+  "closeDialog": "Dialog schließen",
+  "centerFarm": "Hof zentrieren",
+  "spaceKey": "LEER",
+  "camera": "KAMERA BEWEGUNG",
+  "speed": "Geschwindigkeit",
+  "dirUp": "Nach oben",
+  "dirDown": "Nach unten",
+  "dirLeft": "Nach links",
+  "dirRight": "Nach rechts",
+  "pressKey": "TASTE…",
+  "exitGame": "SPIEL BEENDEN"
+}

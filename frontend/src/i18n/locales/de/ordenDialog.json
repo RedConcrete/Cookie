@@ -1,0 +1,22 @@
+{
+  "title": "ORDEN",
+  "filterAll": "ALLE {count}",
+  "filterEvents": "EVENTS {count}",
+  "filterCommunity": "COMMUNITY {count}",
+  "sortHint": "neueste zuerst",
+  "dateReceivedLabel": "ERHALTEN",
+  "emptyList": "Keine Orden in dieser Kategorie.",
+  "adminTitle": "ADMIN · ORDEN VERLEIHEN",
+  "adminOnlyBadge": "NUR ADMIN",
+  "playerLabel": "SPIELER",
+  "playerSearchPlaceholder": "Steam-Name",
+  "searchBtn": "SUCHEN",
+  "templateLabel": "ORDEN-VORLAGE",
+  "eventReasonLabel": "EVENT / BEGRÜNDUNG",
+  "notePlaceholder": "z.B. Sommer-Sprint · 1. Platz",
+  "dateFieldLabel": "Datum",
+  "dateHint": "wird im Profil angezeigt",
+  "grantBtn": "VERLEIHEN",
+  "revokeBtn": "ENTZIEHEN",
+  "adminHint": "Verliehene Orden landen sofort in der Vitrine des Spielers, mit Datum und Event-Namen. Vorlagen sind einbindbar, damit Event-Gewinner in wenigen Klicks ausgezeichnet werden."
+}

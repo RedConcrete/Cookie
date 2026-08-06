@@ -11,7 +11,7 @@
     <!-- ══ HUD (fixed overlay, outside canvas so it stays put while panning) ══ -->
     <div class="hud">
       <div class="hud-chips">
-        <PixelInfoPopover :rows="cookieRows" title="COOKIES" side="below-left" :width="272" :z="95">
+        <PixelInfoPopover :rows="cookieRows" :title="t('farmGridView.cookiesTitle')" side="below-left" :width="272" :z="95">
           <div class="hud-chip hud-chip-cookie">
             <PixelIcon name="cookie" :size="24" />
             <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
@@ -29,30 +29,30 @@
           </div>
         </PixelInfoPopover>
 
-        <PixelInfoPopover :rows="citizenRows" title="EINWOHNER" side="below-left" :width="240" :z="95">
+        <PixelInfoPopover :rows="citizenRows" :title="t('farmGridView.residentsTitle')" side="below-left" :width="240" :z="95">
           <div class="hud-chip hud-chip-clickable" @click="dialog = 'citizens'">
             <PixelIcon name="einw" :size="24" />
             <div class="hud-chip-val">{{ playerStore.ownedCitizens }}/{{ playerStore.maxCitizens }}</div>
-            <div class="hud-chip-label">EINW.</div>
+            <div class="hud-chip-label">{{ t('farmGridView.residentsLabel') }}</div>
           </div>
         </PixelInfoPopover>
       </div>
 
-      <PixelInfoPopover :rows="netWorthRows" title="NET WORTH" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
-        <div class="hud-networth" @click="dialog = 'networth'" title="Net Worth Verlauf">
-          <div class="hud-networth-label">NET WORTH</div>
+      <PixelInfoPopover :rows="netWorthRows" :title="t('farmGridView.netWorthTitle')" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
+        <div class="hud-networth" @click="dialog = 'networth'" :title="t('farmGridView.netWorthHint')">
+          <div class="hud-networth-label">{{ t('farmGridView.netWorthTitle') }}</div>
           <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
         </div>
       </PixelInfoPopover>
 
       <div class="hud-actions">
-        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" title="DEV: Reset">&#8635; DEV</button>
-        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="dialog = 'admin'" title="DEV: Admin-Panel">&#9881; ADMIN</button>
-        <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">UPGRADES</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">PRESTIGE</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">RANGLISTE</button>
-        <button class="px-btn" @click="dialog = 'settings'" title="Einstellungen">&#9776;</button>
-        <button class="hud-avatar" @click="dialog = 'profile'" title="Profil">
+        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" :title="t('farmGridView.devResetTitle')">&#8635; {{ t('farmGridView.devResetLabel') }}</button>
+        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="dialog = 'admin'" :title="t('farmGridView.devAdminTitle')">&#9881; {{ t('farmGridView.devAdminLabel') }}</button>
+        <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">{{ t('farmGridView.upgradesLabel') }}</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">{{ t('farmGridView.prestigeLabel') }}</button>
+        <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">{{ t('farmGridView.leaderboardLabel') }}</button>
+        <button class="px-btn" @click="dialog = 'settings'" :title="t('farmGridView.settingsTitle')">&#9776;</button>
+        <button class="hud-avatar" @click="dialog = 'profile'" :title="t('farmGridView.profileTitle')">
           <img v-if="hudAvatarSrc" :src="hudAvatarSrc" alt="" class="hud-avatar-img" @error="hudAvatarError = true" />
           <PixelIcon v-else name="einw" :size="20" />
         </button>
@@ -102,19 +102,19 @@
 
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
-      <button class="cam-center" title="Zentrieren (LEERTASTE)" @click="resetView">&#8857;</button>
-      <div class="cam-hint">ZENTRIEREN &middot; LEERTASTE</div>
+      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView">&#8857;</button>
+      <div class="cam-hint">{{ t('farmGridView.centerHint') }}</div>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
 
     <!-- Floating build button (bottom-right) -->
-    <button class="build-fab" title="Gebäude bauen" @click="dialog = 'buildshop'">+</button>
+    <button class="build-fab" :title="t('farmGridView.buildTitle')" @click="dialog = 'buildshop'">+</button>
 
     <!-- Mobile bottom nav -->
     <div class="mobile-nav">
-      <button v-for="n in mobileNavItems" :key="n.label" class="mobile-nav-item" @click="n.action">
+      <button v-for="n in mobileNavItems" :key="n.labelKey" class="mobile-nav-item" @click="n.action">
         <PixelIcon :name="n.icon" :size="20" />
-        <span>{{ n.label }}</span>
+        <span>{{ t(n.labelKey) }}</span>
       </button>
     </div>
 
@@ -139,6 +139,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
@@ -151,7 +152,7 @@ import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
 import { BASE, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
-import { BUILDING_INFO, RESOURCE_LABEL, RESOURCE_ICON } from '../components/buildings/buildingInfo.js'
+import { BUILDING_INFO, RESOURCE_ICON, buildingTitle, resourceLabel } from '../components/buildings/buildingInfo.js'
 import grassTile from '../assets/tiles/grass.png'
 const grassBg = `url(${grassTile})`
 
@@ -226,6 +227,7 @@ import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
 import AdminDialog from '../components/AdminDialog.vue'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
@@ -272,7 +274,7 @@ const buildings = computed(() =>
     .map(id => {
       const owned = playerStore.ownedBuildings.find(b => b.id === id)
       if (!owned || owned.level === 0) return null
-      return { id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], workers: owned.workers ?? 0 }
+      return { id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], title: buildingTitle(id, t), workers: owned.workers ?? 0 }
     })
     .filter(Boolean)
 )
@@ -327,11 +329,11 @@ const totalResources = computed(() =>
 )
 
 const mobileNavItems = [
-  { label: 'HOF',    icon: 'haus',  action: () => { dialog.value = null; resetView() } },
-  { label: 'MARKT',  icon: 'stand', action: () => { dialog.value = 'market' } },
-  { label: 'BACKEN', icon: 'ofen',  action: () => { dialog.value = 'bake' } },
-  { label: 'SHOP',   icon: 'shop',  action: () => { dialog.value = 'upgrades' } },
-  { label: 'RANG',   icon: 'pokal', action: () => { dialog.value = 'leaderboard' } },
+  { labelKey: 'farmGridView.navHome',        icon: 'haus',  action: () => { dialog.value = null; resetView() } },
+  { labelKey: 'farmGridView.navMarket',      icon: 'stand', action: () => { dialog.value = 'market' } },
+  { labelKey: 'farmGridView.navBake',        icon: 'ofen',  action: () => { dialog.value = 'bake' } },
+  { labelKey: 'farmGridView.navShop',        icon: 'shop',  action: () => { dialog.value = 'upgrades' } },
+  { labelKey: 'farmGridView.navLeaderboard', icon: 'pokal', action: () => { dialog.value = 'leaderboard' } },
 ]
 
 function onOpenBuilding(b) {
@@ -352,7 +354,7 @@ function fmtBig(v) {
 }
 
 const cookieRows = computed(() => [
-  { k: 'Bestand', v: fmt(playerStore.cookies) + ' C', color: 'w' },
+  { k: t('farmGridView.rowStock'), v: fmt(playerStore.cookies) + ' C', color: 'w' },
 ])
 
 const RESOURCES = [
@@ -369,26 +371,26 @@ const hudResources = computed(() => RESOURCES.map(r => {
   const price  = marketStore.priceOf(r.name)
   const sellVal = amount * price * 0.92
   return {
-    name: r.name, icon: r.icon, label: RESOURCE_LABEL[r.name],
+    name: r.name, icon: r.icon, label: resourceLabel(r.name, t),
     val: fmt(amount),
     rows: [
-      { k: 'Bestand', v: fmt(amount), color: 'w' },
-      { k: 'Marktpreis', v: price.toFixed(4) + ' C', color: 'y' },
-      { k: 'Verkaufswert', v: fmt2(sellVal) + ' C', color: 'g' },
+      { k: t('farmGridView.rowStock'), v: fmt(amount), color: 'w' },
+      { k: t('farmGridView.rowMarketPrice'), v: price.toFixed(4) + ' C', color: 'y' },
+      { k: t('farmGridView.rowSellValue'), v: fmt2(sellVal) + ' C', color: 'g' },
     ],
   }
 }))
 
 const citizenRows = computed(() => [
-  { k: 'Angesiedelt', v: `${playerStore.ownedCitizens}/${playerStore.maxCitizens}`, color: 'w' },
-  { k: 'Frei', v: playerStore.idleCitizens, color: 'g' },
+  { k: t('farmGridView.rowSettled'), v: `${playerStore.ownedCitizens}/${playerStore.maxCitizens}`, color: 'w' },
+  { k: t('farmGridView.rowFree'), v: playerStore.idleCitizens, color: 'g' },
 ])
 
 const netWorthRows = computed(() => [
-  { k: 'Cookies',    v: fmt2(playerStore.nwCookies) + ' C', color: 'w' },
-  { k: 'Ressourcen', v: fmt2(playerStore.nwResources) + ' C', color: 'w' },
-  { k: 'Upgrades',   v: fmt2(playerStore.nwUpgrades) + ' C', color: 'w' },
-  { k: 'Summe',      v: fmtBig(playerStore.netWorth), color: 'g' },
+  { k: t('farmGridView.rowCookies'),   v: fmt2(playerStore.nwCookies) + ' C', color: 'w' },
+  { k: t('farmGridView.rowResources'), v: fmt2(playerStore.nwResources) + ' C', color: 'w' },
+  { k: t('farmGridView.rowUpgrades'),  v: fmt2(playerStore.nwUpgrades) + ' C', color: 'w' },
+  { k: t('farmGridView.rowTotal'),     v: fmtBig(playerStore.netWorth), color: 'g' },
 ])
 
 // ── Pan + zoom ───────────────────────────────────────────

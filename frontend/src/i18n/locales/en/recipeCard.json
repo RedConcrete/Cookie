@@ -1,0 +1,22 @@
+{
+  "title": "RECIPE BOOK",
+  "sugar": "Sugar",
+  "flour": "Flour",
+  "eggs": "Eggs",
+  "butter": "Butter",
+  "chocolate": "Chocolate",
+  "milk": "Milk",
+  "ingredientsHeader": "INGREDIENTS (×{batches} BATCH)",
+  "ingredientsTotal": "INGREDIENTS TOTAL",
+  "bake": "Bake",
+  "sellResources": "Sell resources",
+  "profitDiff": "{sign}{value} C from baking",
+  "batches": "Batches",
+  "stockHint": "STOCK: {stockBatches} POSSIBLE",
+  "selectRecipe": "Select a recipe",
+  "starting": "STARTING…",
+  "startBaking": "START BAKING",
+  "done": "DONE!",
+  "claimCookies": "CLAIM +{count} COOKIES",
+  "claimSuccess": "+{earned} Cookies!"
+}

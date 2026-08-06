@@ -2,7 +2,7 @@
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
     <div class="nw-box px-panel">
       <div class="px-titlebar">
-        <span>NET WORTH &middot; {{ fmtBig(nw?.netWorth) }}</span>
+        <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
@@ -11,12 +11,12 @@
         <!-- ── Links: Breakdown ───────────────────────── -->
         <div class="nw-left px-scroll">
 
-          <div class="nw-section-label">Aufschlüsselung</div>
+          <div class="nw-section-label">{{ t('netWorthDialog.breakdownLabel') }}</div>
 
           <div v-if="nw" class="breakdown">
             <div class="bk-row">
               <PixelIcon name="cookie" :size="16" class="bk-icon" />
-              <span class="bk-label">Cookies</span>
+              <span class="bk-label">{{ t('netWorthDialog.cookiesLabel') }}</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#c78539' }"></div>
               </div>
@@ -25,7 +25,7 @@
 
             <div class="bk-row">
               <PixelIcon name="mehl" :size="16" class="bk-icon" />
-              <span class="bk-label">Ressourcen</span>
+              <span class="bk-label">{{ t('netWorthDialog.resourcesLabel') }}</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#349c58' }"></div>
               </div>
@@ -34,7 +34,7 @@
 
             <div class="bk-row">
               <PixelIcon name="upgrade" :size="16" class="bk-icon" />
-              <span class="bk-label">Upgrades</span>
+              <span class="bk-label">{{ t('netWorthDialog.upgradesLabel') }}</span>
               <div class="bk-bar-wrap">
                 <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#6f6e72' }"></div>
               </div>
@@ -42,17 +42,17 @@
             </div>
           </div>
 
-          <div v-else class="nw-loading">Lade…</div>
+          <div v-else class="nw-loading">{{ t('common.loading') }}</div>
 
           <div class="nw-divider"></div>
 
           <template v-if="nw">
             <div class="stat-row">
-              <span class="stat-label">Rang</span>
+              <span class="stat-label">{{ t('netWorthDialog.rankLabel') }}</span>
               <span class="stat-val">#{{ nw.rank }}</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Gesamt</span>
+              <span class="stat-label">{{ t('netWorthDialog.totalLabel') }}</span>
               <span class="stat-val accent">{{ fmtBig(nw.netWorth) }} C</span>
             </div>
           </template>
@@ -60,7 +60,7 @@
 
         <!-- ── Rechts: Chart ──────────────────────────── -->
         <div class="nw-right">
-          <div class="nw-section-label">Verlauf</div>
+          <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
 
           <div class="chart-toolbar">
             <div class="chart-toggles">
@@ -72,10 +72,10 @@
                 :style="{ '--dot': ds.color }"
                 @click="toggleDataset(ds.key)"
               >
-                <span class="dot"></span>{{ ds.label }}
+                <span class="dot"></span>{{ t(ds.labelKey) }}
               </button>
             </div>
-            <button class="pct-btn" @click="resetZoom" title="Zoom zurücksetzen">⊙</button>
+            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')">⊙</button>
           </div>
 
           <div class="chart-wrap">
@@ -90,6 +90,7 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Chart, LineController, LineElement, PointElement,
   LinearScale, TimeScale, Tooltip, Legend
@@ -106,14 +107,15 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale
 const props = defineProps({ steamId: { type: String, required: true } })
 const emit  = defineEmits(['close'])
 const audio = useAudio()
+const { t } = useI18n()
 
 const playerStore = usePlayerStore()
 
 const DATASETS = [
-  { key: 'netWorth',     label: 'Net Worth',  color: '#aea47e' },
-  { key: 'cookies',      label: 'Cookies',    color: '#c78539' },
-  { key: 'resourceValue',label: 'Ressourcen', color: '#349c58' },
-  { key: 'upgradeValue', label: 'Upgrades',   color: '#6f6e72' },
+  { key: 'netWorth',      labelKey: 'netWorthDialog.netWorthLabel', color: '#aea47e' },
+  { key: 'cookies',       labelKey: 'netWorthDialog.cookiesLabel',  color: '#c78539' },
+  { key: 'resourceValue', labelKey: 'netWorthDialog.resourcesLabel',color: '#349c58' },
+  { key: 'upgradeValue',  labelKey: 'netWorthDialog.upgradesLabel', color: '#6f6e72' },
 ]
 
 const nw        = ref(null)
@@ -144,7 +146,7 @@ function latestMs() {
 
 function buildDatasets() {
   return DATASETS.map(d => ({
-    label: d.label,
+    label: t(d.labelKey),
     dataKey: d.key,
     data: fullHistory.map(h => ({ x: new Date(h.timestamp), y: h[d.key] })),
     borderColor: d.color,

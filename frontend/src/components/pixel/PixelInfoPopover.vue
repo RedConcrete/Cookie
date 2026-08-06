@@ -19,7 +19,7 @@
           </div>
         </div>
         <div v-if="note" class="pip-note">{{ note }}</div>
-        <div v-if="pinned" class="pip-pin">GEPINNT &middot; MAUS RAUS = SCHLIESST</div>
+        <div v-if="pinned" class="pip-pin">{{ t('pixelInfoPopover.pinnedHint') }}</div>
       </div>
     </Teleport>
   </div>
@@ -27,8 +27,11 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PixelIcon from './PixelIcon.vue'
 import { useHoverReveal } from '../../composables/useHoverReveal.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   rows:  { type: Array, default: () => [] },   // [{ k, v, color }]  color: g|y|w|o|m|b

@@ -3,14 +3,14 @@
     <div class="ld-panel">
       <div class="ld-head">
         <PixelIcon name="lager" :size="28" />
-        <div class="ld-head-title">LAGER · STUFE {{ lagerLevel }}</div>
+        <div class="ld-head-title">{{ t('lagerDialog.title', { level: lagerLevel }) }}</div>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
       <div class="ld-body">
         <!-- Capacity overview -->
         <div class="ld-cap-row">
-          <div class="ld-cap-label">GESAMTKAPAZITÄT</div>
+          <div class="ld-cap-label">{{ t('lagerDialog.capacityLabel') }}</div>
           <div class="ld-cap-val">{{ fmtK(totalResources) }} / {{ fmtK(playerStore.totalResourceCap) }}</div>
         </div>
         <div class="ld-bar-outer">
@@ -34,25 +34,25 @@
 
         <!-- Auto-sell info -->
         <div class="ld-info">
-          <div class="ld-info-title">AUTO-VERKAUF</div>
+          <div class="ld-info-title">{{ t('lagerDialog.autoSellTitle') }}</div>
           <div class="ld-info-text">
-            Wenn das Lager voll ist, werden überlaufende Ressourcen automatisch zum aktuellen Marktpreis verkauft.
-            Stufe {{ lagerLevel }} Lohn: {{ lagerWage.toFixed(1) }} C/MIN
-            <span v-if="lagerLevel === 1" class="ld-free">(kostenlos)</span>
+            {{ t('lagerDialog.autoSellDesc') }}
+            {{ t('lagerDialog.wageLine', { level: lagerLevel, wage: lagerWage.toFixed(1) }) }}
+            <span v-if="lagerLevel === 1" class="ld-free">{{ t('lagerDialog.free') }}</span>
           </div>
         </div>
 
         <!-- Upgrade -->
         <div class="ld-upgrade">
           <div class="ld-upgrade-info">
-            <div class="ld-upgrade-label">Stufe {{ lagerLevel }} → {{ lagerLevel + 1 }}</div>
-            <div class="ld-upgrade-desc">+{{ fmtK(storageBonus) }} Kapazität · {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
+            <div class="ld-upgrade-label">{{ t('lagerDialog.upgradeLevelLine', { from: lagerLevel, to: lagerLevel + 1 }) }}</div>
+            <div class="ld-upgrade-desc">{{ t('lagerDialog.upgradeDesc', { bonus: fmtK(storageBonus) }) }} {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
           </div>
           <button
             class="px-btn px-btn-accent"
             :disabled="upgrading || playerStore.cookies < upgradeCost"
             @click="upgradeLager"
-          >AUFSTOCKEN</button>
+          >{{ t('lagerDialog.upgradeBtn') }}</button>
         </div>
         <div v-if="notice" class="ld-notice" :class="{ error: noticeError }">{{ notice }}</div>
       </div>
@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { buyBuilding } from '../services/api.js'
@@ -72,6 +73,7 @@ const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 
@@ -86,16 +88,17 @@ const storageBonus = computed(() => lagerData.value?.storageCapBonus ?? 1000)
 const lagerWage    = computed(() => lagerData.value?.wagePerMin ?? 0)
 
 const RESOURCES = [
-  { key: 'sugar',     label: 'Zucker',     icon: 'zucker', name: 'SUGAR'     },
-  { key: 'flour',     label: 'Mehl',       icon: 'mehl',   name: 'FLOUR'     },
-  { key: 'eggs',      label: 'Eier',       icon: 'eier',   name: 'EGGS'      },
-  { key: 'butter',    label: 'Butter',     icon: 'butter', name: 'BUTTER'    },
-  { key: 'chocolate', label: 'Schokolade', icon: 'schoko', name: 'CHOCOLATE' },
-  { key: 'milk',      label: 'Milch',      icon: 'milch',  name: 'MILK'      },
+  { key: 'sugar',     labelKey: 'lagerDialog.resSugar',     icon: 'zucker', name: 'SUGAR'     },
+  { key: 'flour',     labelKey: 'lagerDialog.resFlour',     icon: 'mehl',   name: 'FLOUR'     },
+  { key: 'eggs',      labelKey: 'lagerDialog.resEggs',      icon: 'eier',   name: 'EGGS'      },
+  { key: 'butter',    labelKey: 'lagerDialog.resButter',    icon: 'butter', name: 'BUTTER'    },
+  { key: 'chocolate', labelKey: 'lagerDialog.resChocolate', icon: 'schoko', name: 'CHOCOLATE' },
+  { key: 'milk',      labelKey: 'lagerDialog.resMilk',      icon: 'milch',  name: 'MILK'      },
 ]
 
 const resourceRows = computed(() => RESOURCES.map(r => ({
   ...r,
+  label: t(r.labelKey),
   amount: playerStore[r.key] ?? 0,
   pct: Math.min(100, ((playerStore[r.key] ?? 0) / playerStore.totalResourceCap) * 100),
   price: marketStore.priceOf(r.name),
@@ -123,10 +126,10 @@ async function upgradeLager() {
     // Refresh cap in store
     const newLager = updated.find(b => b.id === 'lager')
     if (newLager) playerStore.totalResourceCap = 100 + newLager.level * 1000
-    notice.value = `Lager auf Stufe ${lagerLevel.value} aufgestockt!`
+    notice.value = t('lagerDialog.upgradeSuccess', { level: lagerLevel.value })
     noticeError.value = false
   } catch {
-    notice.value = 'Nicht genug Cookies.'
+    notice.value = t('lagerDialog.notEnoughCookies')
     noticeError.value = true
   } finally {
     upgrading.value = false

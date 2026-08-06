@@ -2,11 +2,11 @@
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
     <div class="ad-box px-panel px-scroll">
       <div class="px-titlebar">
-        <span>ADMIN &middot; LIVE-BALANCE</span>
+        <span>{{ t('adminDialog.title') }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
-      <div v-if="loading" class="ad-loading">Lade…</div>
+      <div v-if="loading" class="ad-loading">{{ t('common.loading') }}</div>
 
       <div v-else class="ad-body">
         <div v-if="notice" class="ad-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -14,12 +14,12 @@
         <!-- ── Markt ─────────────────────────────────────── -->
         <section class="ad-section">
           <div class="ad-section-head">
-            <span>MARKT</span>
-            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveMarket">SPEICHERN</button>
+            <span>{{ t('adminDialog.marketSection') }}</span>
+            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveMarket">{{ t('adminDialog.save') }}</button>
           </div>
           <div class="ad-grid">
             <label v-for="f in marketFields" :key="f.key" class="ad-field">
-              <span>{{ f.label }}</span>
+              <span>{{ t(f.labelKey) }}</span>
               <input type="number" step="any" v-model.number="market[f.key]" />
             </label>
           </div>
@@ -28,12 +28,12 @@
         <!-- ── Balance (Gebäude/Bürger/Prestige) ────────────── -->
         <section class="ad-section">
           <div class="ad-section-head">
-            <span>BALANCE &middot; GEBÄUDE / BÜRGER / PRESTIGE</span>
-            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveBalance">SPEICHERN</button>
+            <span>{{ t('adminDialog.balanceSection') }}</span>
+            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveBalance">{{ t('adminDialog.save') }}</button>
           </div>
           <div class="ad-grid">
             <label v-for="f in balanceFields" :key="f.key" class="ad-field">
-              <span>{{ f.label }}</span>
+              <span>{{ t(f.labelKey) }}</span>
               <input type="number" step="any" v-model.number="balance[f.key]" />
             </label>
           </div>
@@ -41,39 +41,39 @@
 
         <!-- ── Upgrades ──────────────────────────────────── -->
         <section class="ad-section">
-          <div class="ad-section-head"><span>UPGRADES</span></div>
+          <div class="ad-section-head"><span>{{ t('adminDialog.upgradesSection') }}</span></div>
           <div v-for="u in upgrades" :key="u.id" class="ad-row">
             <div class="ad-row-name">{{ u.name }}</div>
-            <label class="ad-field ad-field-inline"><span>Basiskosten</span><input type="number" step="any" v-model.number="u.baseCost" /></label>
-            <label class="ad-field ad-field-inline"><span>Effekt/Stufe</span><input type="number" step="any" v-model.number="u.effectPerLevel" /></label>
-            <label class="ad-field ad-field-inline"><span>Max-Stufe</span><input type="number" step="1" v-model.number="u.maxLevel" /></label>
-            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveUpgrade(u)">SPEICHERN</button>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.baseCost') }}</span><input type="number" step="any" v-model.number="u.baseCost" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.effectPerLevel') }}</span><input type="number" step="any" v-model.number="u.effectPerLevel" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.maxLevel') }}</span><input type="number" step="1" v-model.number="u.maxLevel" /></label>
+            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveUpgrade(u)">{{ t('adminDialog.save') }}</button>
           </div>
         </section>
 
         <!-- ── Rezepte ───────────────────────────────────── -->
         <section class="ad-section">
-          <div class="ad-section-head"><span>REZEPTE</span></div>
+          <div class="ad-section-head"><span>{{ t('adminDialog.recipesSection') }}</span></div>
           <div v-for="r in recipes" :key="r.id" class="ad-row ad-row-recipe">
             <div class="ad-row-name">{{ r.name }}</div>
-            <label class="ad-field ad-field-inline"><span>Zucker</span><input type="number" step="any" v-model.number="r.sugar" /></label>
-            <label class="ad-field ad-field-inline"><span>Mehl</span><input type="number" step="any" v-model.number="r.flour" /></label>
-            <label class="ad-field ad-field-inline"><span>Eier</span><input type="number" step="any" v-model.number="r.eggs" /></label>
-            <label class="ad-field ad-field-inline"><span>Butter</span><input type="number" step="any" v-model.number="r.butter" /></label>
-            <label class="ad-field ad-field-inline"><span>Schoko</span><input type="number" step="any" v-model.number="r.chocolate" /></label>
-            <label class="ad-field ad-field-inline"><span>Milch</span><input type="number" step="any" v-model.number="r.milk" /></label>
-            <label class="ad-field ad-field-inline"><span>Output</span><input type="number" step="any" v-model.number="r.output" /></label>
-            <label class="ad-field ad-field-inline"><span>Backzeit (s)</span><input type="number" step="1" v-model.number="r.bakeDurationSeconds" /></label>
-            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveRecipe(r)">SPEICHERN</button>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.sugar') }}</span><input type="number" step="any" v-model.number="r.sugar" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.flour') }}</span><input type="number" step="any" v-model.number="r.flour" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.eggs') }}</span><input type="number" step="any" v-model.number="r.eggs" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.butter') }}</span><input type="number" step="any" v-model.number="r.butter" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.chocolate') }}</span><input type="number" step="any" v-model.number="r.chocolate" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.milk') }}</span><input type="number" step="any" v-model.number="r.milk" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.output') }}</span><input type="number" step="any" v-model.number="r.output" /></label>
+            <label class="ad-field ad-field-inline"><span>{{ t('adminDialog.bakeDuration') }}</span><input type="number" step="1" v-model.number="r.bakeDurationSeconds" /></label>
+            <button class="px-btn px-btn-accent ad-save" :disabled="saving" @click="saveRecipe(r)">{{ t('adminDialog.save') }}</button>
           </div>
         </section>
 
         <!-- ── Reset-Aktionen ────────────────────────────── -->
         <section class="ad-section">
-          <div class="ad-section-head"><span>RESET</span></div>
+          <div class="ad-section-head"><span>{{ t('adminDialog.resetSection') }}</span></div>
           <div class="ad-reset-row">
-            <button class="px-btn px-btn-sell" @click="resetMarket">MARKT ZURÜCKSETZEN</button>
-            <button class="px-btn px-btn-sell" @click="resetPlayer">SPIELER ZURÜCKSETZEN</button>
+            <button class="px-btn px-btn-sell" @click="resetMarket">{{ t('adminDialog.resetMarket') }}</button>
+            <button class="px-btn px-btn-sell" @click="resetPlayer">{{ t('adminDialog.resetPlayer') }}</button>
           </div>
         </section>
       </div>
@@ -83,6 +83,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import {
@@ -95,6 +96,7 @@ import {
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => { audio.playBookOpen(); load() })
 
@@ -109,36 +111,36 @@ const upgrades = ref([])
 const recipes  = ref([])
 
 const marketFields = [
-  { key: 'updateIntervalMs',      label: 'Tick-Intervall (ms)' },
-  { key: 'minPrice',              label: 'Preis-Notbremse (min)' },
-  { key: 'stockFluctuationRatio', label: 'Zufalls-Stock-Anteil/Tick' },
-  { key: 'sellFeeRate',           label: 'Marktgebühr' },
-  { key: 'initialSugarPrice',     label: 'Startpreis Zucker' },
-  { key: 'initialFlourPrice',     label: 'Startpreis Mehl' },
-  { key: 'initialEggsPrice',      label: 'Startpreis Eier' },
-  { key: 'initialButterPrice',    label: 'Startpreis Butter' },
-  { key: 'initialChocolatePrice', label: 'Startpreis Schokolade' },
-  { key: 'initialMilkPrice',      label: 'Startpreis Milch' },
-  { key: 'initialSugarStock',     label: 'Startbestand Zucker' },
-  { key: 'initialFlourStock',     label: 'Startbestand Mehl' },
-  { key: 'initialEggsStock',      label: 'Startbestand Eier' },
-  { key: 'initialButterStock',    label: 'Startbestand Butter' },
-  { key: 'initialChocolateStock', label: 'Startbestand Schokolade' },
-  { key: 'initialMilkStock',      label: 'Startbestand Milch' },
+  { key: 'updateIntervalMs',      labelKey: 'adminDialog.fieldTickInterval' },
+  { key: 'minPrice',              labelKey: 'adminDialog.fieldMinPrice' },
+  { key: 'stockFluctuationRatio', labelKey: 'adminDialog.fieldStockFluctuation' },
+  { key: 'sellFeeRate',           labelKey: 'adminDialog.fieldSellFee' },
+  { key: 'initialSugarPrice',     labelKey: 'adminDialog.fieldInitialSugarPrice' },
+  { key: 'initialFlourPrice',     labelKey: 'adminDialog.fieldInitialFlourPrice' },
+  { key: 'initialEggsPrice',      labelKey: 'adminDialog.fieldInitialEggsPrice' },
+  { key: 'initialButterPrice',    labelKey: 'adminDialog.fieldInitialButterPrice' },
+  { key: 'initialChocolatePrice', labelKey: 'adminDialog.fieldInitialChocolatePrice' },
+  { key: 'initialMilkPrice',      labelKey: 'adminDialog.fieldInitialMilkPrice' },
+  { key: 'initialSugarStock',     labelKey: 'adminDialog.fieldInitialSugarStock' },
+  { key: 'initialFlourStock',     labelKey: 'adminDialog.fieldInitialFlourStock' },
+  { key: 'initialEggsStock',      labelKey: 'adminDialog.fieldInitialEggsStock' },
+  { key: 'initialButterStock',    labelKey: 'adminDialog.fieldInitialButterStock' },
+  { key: 'initialChocolateStock', labelKey: 'adminDialog.fieldInitialChocolateStock' },
+  { key: 'initialMilkStock',      labelKey: 'adminDialog.fieldInitialMilkStock' },
 ]
 
 const balanceFields = [
-  { key: 'baseStorageCap',            label: 'Lager-Basis-Kapazität' },
-  { key: 'storagePerLevel',           label: 'Lager-Kapazität/Stufe' },
-  { key: 'citizensPerRatLevel',       label: 'Bürger pro Rathaus-Stufe' },
-  { key: 'citizenBaseCost',           label: 'Bürger-Basiskosten' },
-  { key: 'citizenCostGrowth',         label: 'Bürger-Kosten-Wachstum' },
-  { key: 'workersPerLevel',           label: 'Arbeiter-Slots/Gebäude-Stufe' },
-  { key: 'buildingCostGrowth',        label: 'Gebäude-Kosten-Wachstum' },
-  { key: 'passiveTickSeconds',        label: 'Passiv-Tick (s)' },
-  { key: 'prestigeBaseThreshold',     label: 'Prestige-Schwelle (Basis)' },
-  { key: 'prestigeThresholdGrowth',   label: 'Prestige-Schwelle-Wachstum' },
-  { key: 'prestigeMultiplierPerLevel',label: 'Prestige-Bonus/Stufe' },
+  { key: 'baseStorageCap',            labelKey: 'adminDialog.fieldBaseStorageCap' },
+  { key: 'storagePerLevel',           labelKey: 'adminDialog.fieldStoragePerLevel' },
+  { key: 'citizensPerRatLevel',       labelKey: 'adminDialog.fieldCitizensPerRatLevel' },
+  { key: 'citizenBaseCost',           labelKey: 'adminDialog.fieldCitizenBaseCost' },
+  { key: 'citizenCostGrowth',         labelKey: 'adminDialog.fieldCitizenCostGrowth' },
+  { key: 'workersPerLevel',           labelKey: 'adminDialog.fieldWorkersPerLevel' },
+  { key: 'buildingCostGrowth',        labelKey: 'adminDialog.fieldBuildingCostGrowth' },
+  { key: 'passiveTickSeconds',        labelKey: 'adminDialog.fieldPassiveTick' },
+  { key: 'prestigeBaseThreshold',     labelKey: 'adminDialog.fieldPrestigeBaseThreshold' },
+  { key: 'prestigeThresholdGrowth',   labelKey: 'adminDialog.fieldPrestigeThresholdGrowth' },
+  { key: 'prestigeMultiplierPerLevel',labelKey: 'adminDialog.fieldPrestigeMultiplierPerLevel' },
 ]
 
 function flash(msg, isError = false) {
@@ -156,7 +158,7 @@ async function load() {
     upgrades.value = u
     recipes.value = r
   } catch (e) {
-    flash(e?.message ?? 'Laden fehlgeschlagen', true)
+    flash(e?.message ?? t('adminDialog.loadFailed'), true)
   } finally {
     loading.value = false
   }
@@ -166,8 +168,8 @@ async function saveMarket() {
   saving.value = true
   try {
     Object.assign(market, await updateAdminMarketConfig(market))
-    flash('Markt-Config gespeichert.')
-  } catch (e) { flash(e?.message ?? 'Fehler', true) }
+    flash(t('adminDialog.marketSaved'))
+  } catch (e) { flash(e?.message ?? t('common.error'), true) }
   finally { saving.value = false }
 }
 
@@ -175,8 +177,8 @@ async function saveBalance() {
   saving.value = true
   try {
     Object.assign(balance, await updateAdminBalanceConfig(balance))
-    flash('Balance-Config gespeichert.')
-  } catch (e) { flash(e?.message ?? 'Fehler', true) }
+    flash(t('adminDialog.balanceSaved'))
+  } catch (e) { flash(e?.message ?? t('common.error'), true) }
   finally { saving.value = false }
 }
 
@@ -184,8 +186,8 @@ async function saveUpgrade(u) {
   saving.value = true
   try {
     await updateAdminUpgrade(u.id, u)
-    flash(`${u.name} gespeichert.`)
-  } catch (e) { flash(e?.message ?? 'Fehler', true) }
+    flash(t('adminDialog.itemSaved', { name: u.name }))
+  } catch (e) { flash(e?.message ?? t('common.error'), true) }
   finally { saving.value = false }
 }
 
@@ -193,22 +195,22 @@ async function saveRecipe(r) {
   saving.value = true
   try {
     await updateAdminRecipe(r.id, r)
-    flash(`${r.name} gespeichert.`)
-  } catch (e) { flash(e?.message ?? 'Fehler', true) }
+    flash(t('adminDialog.itemSaved', { name: r.name }))
+  } catch (e) { flash(e?.message ?? t('common.error'), true) }
   finally { saving.value = false }
 }
 
 async function resetMarket() {
-  try { await adminResetMarket(); flash('Markt zurückgesetzt.') }
-  catch (e) { flash(e?.message ?? 'Fehler', true) }
+  try { await adminResetMarket(); flash(t('adminDialog.marketReset')) }
+  catch (e) { flash(e?.message ?? t('common.error'), true) }
 }
 
 async function resetPlayer() {
   try {
     await adminResetPlayer(playerStore.steamId)
     await playerStore.init(playerStore.steamId)
-    flash('Spieler zurückgesetzt.')
-  } catch (e) { flash(e?.message ?? 'Fehler', true) }
+    flash(t('adminDialog.playerReset'))
+  } catch (e) { flash(e?.message ?? t('common.error'), true) }
 }
 </script>
 

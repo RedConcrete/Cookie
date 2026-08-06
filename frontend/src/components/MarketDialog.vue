@@ -2,7 +2,7 @@
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
     <div class="md-box px-panel">
       <div class="px-titlebar">
-        <span>MARKT</span>
+        <span>{{ t('marketDialog.title') }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
       <MarketView />
@@ -12,11 +12,13 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MarketView from '../views/MarketView.vue'
 import { useAudio } from '../composables/useAudio.js'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 </script>

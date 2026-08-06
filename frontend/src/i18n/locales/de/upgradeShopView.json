@@ -1,0 +1,11 @@
+{
+  "level": "STUFE",
+  "typeBoostHarvest": "Boosts — Ernte",
+  "typeBoostBake": "Boosts — Backen",
+  "typeAutomation": "Automatisierung",
+  "typeCapacity": "Kapazität",
+  "tooltipLevel": "Stufe {level}",
+  "tooltipEffect": "+{effect} Effekt",
+  "tooltipCost": "Kosten",
+  "costFormula": "— Kostenformel: {cost} × 1.15^Stufe"
+}

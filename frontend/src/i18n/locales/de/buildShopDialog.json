@@ -1,0 +1,13 @@
+{
+  "title": "BAUVORHABEN",
+  "wage": "LOHN {amount} C/MIN",
+  "storageBonus": "+{amount} LAGER",
+  "level": "LEVEL {level}",
+  "built": "GEBAUT",
+  "build": "BAUEN",
+  "upgrade": "AUFSTOCKEN",
+  "cookiesLabel": "Cookies:",
+  "storageCapLabel": "Lager-Cap:",
+  "built_notice": "{name} gebaut!",
+  "notEnoughCookies": "Nicht genug Cookies. Mindestens {cost} C nötig."
+}

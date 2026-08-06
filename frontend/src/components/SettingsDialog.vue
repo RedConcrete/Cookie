@@ -2,14 +2,25 @@
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
     <div class="sd-box px-panel px-scroll">
       <div class="px-titlebar">
-        <span>EINSTELLUNGEN</span>
+        <span>{{ t('settings.title') }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
       <div class="sd-body">
-        <PixelSection title="LAUTSTÄRKE">
+        <PixelSection :title="t('settings.language')">
+          <div class="sd-lang-row">
+            <button
+              v-for="lang in SUPPORTED_LOCALES" :key="lang"
+              class="px-btn sd-lang-btn"
+              :class="{ active: locale === lang }"
+              @click="setLocale(lang)"
+            >{{ lang.toUpperCase() }}</button>
+          </div>
+        </PixelSection>
+
+        <PixelSection :title="t('settings.volume')">
           <div class="sd-slider-row">
-            <div class="sd-slider-label">Musik <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
+            <div class="sd-slider-label">{{ t('settings.music') }} <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
             <input type="range" min="0" max="1" step="0.01" :value="audio.musicVolume.value"
               @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider"
               :style="{ '--fill': musicFillPct + '%' }" />
@@ -17,7 +28,7 @@
           </div>
 
           <div class="sd-slider-row">
-            <div class="sd-slider-label">Soundeffekte <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value"><PixelIcon :name="audio.sfxMuted.value ? 'mute' : 'sound'" :size="14" /></button></div>
+            <div class="sd-slider-label">{{ t('settings.sfx') }} <button class="sd-mute" @click="audio.sfxMuted.value = !audio.sfxMuted.value"><PixelIcon :name="audio.sfxMuted.value ? 'mute' : 'sound'" :size="14" /></button></div>
             <input type="range" min="0" max="1" step="0.01" :value="audio.sfxVolume.value"
               @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider"
               :style="{ '--fill': sfxFillPct + '%' }" />
@@ -25,20 +36,20 @@
           </div>
         </PixelSection>
 
-        <PixelSection title="TASTENBELEGUNG">
+        <PixelSection :title="t('settings.hotkeys')">
           <div class="sd-hotkey-row">
-            <span>Dialog schließen</span>
+            <span>{{ t('settings.closeDialog') }}</span>
             <span class="sd-hotkey-key">ESC</span>
           </div>
           <div class="sd-hotkey-row">
-            <span>Hof zentrieren</span>
-            <span class="sd-hotkey-key">LEER</span>
+            <span>{{ t('settings.centerFarm') }}</span>
+            <span class="sd-hotkey-key">{{ t('settings.spaceKey') }}</span>
           </div>
         </PixelSection>
 
-        <PixelSection title="KAMERA BEWEGUNG">
+        <PixelSection :title="t('settings.camera')">
           <div class="sd-slider-row sd-cam-speed-row">
-            <div class="sd-slider-label">Geschwindigkeit</div>
+            <div class="sd-slider-label">{{ t('settings.speed') }}</div>
             <input type="range" min="120" max="1200" step="20" :value="camera.cameraSpeed.value"
               @input="camera.cameraSpeed.value = +$event.target.value" class="sd-slider"
               :style="{ '--fill': camSpeedFillPct + '%' }" />
@@ -46,16 +57,16 @@
           </div>
 
           <div class="sd-hotkey-row" v-for="d in camDirections" :key="d.dir">
-            <span>{{ d.label }}</span>
+            <span>{{ t(d.labelKey) }}</span>
             <button
               class="sd-hotkey-key sd-hotkey-btn"
               :class="{ listening: listeningFor === d.dir }"
               @click="startListen(d.dir)"
-            >{{ listeningFor === d.dir ? 'TASTE…' : camera.keyLabel(camera.cameraKeys[d.dir]) }}</button>
+            >{{ listeningFor === d.dir ? t('settings.pressKey') : camera.keyLabel(camera.cameraKeys[d.dir]) }}</button>
           </div>
         </PixelSection>
 
-        <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">SPIEL BEENDEN</button>
+        <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">{{ t('settings.exitGame') }}</button>
       </div>
     </div>
   </div>
@@ -63,23 +74,26 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAudio } from '../composables/useAudio.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
+import { setLocale, SUPPORTED_LOCALES } from '../i18n/index.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelSection from './pixel/PixelSection.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const camera = useCameraControls()
+const { t, locale } = useI18n()
 
 const musicFillPct = computed(() => audio.musicVolume.value * 100)
 const sfxFillPct   = computed(() => audio.sfxVolume.value * 100)
 
 const camDirections = [
-  { dir: 'up',    label: 'Nach oben' },
-  { dir: 'down',  label: 'Nach unten' },
-  { dir: 'left',  label: 'Nach links' },
-  { dir: 'right', label: 'Nach rechts' },
+  { dir: 'up',    labelKey: 'settings.dirUp' },
+  { dir: 'down',  labelKey: 'settings.dirDown' },
+  { dir: 'left',  labelKey: 'settings.dirLeft' },
+  { dir: 'right', labelKey: 'settings.dirRight' },
 ]
 const CAM_SPEED_MIN = 120, CAM_SPEED_MAX = 1200
 const camSpeedFillPct = computed(() => (camera.cameraSpeed.value - CAM_SPEED_MIN) / (CAM_SPEED_MAX - CAM_SPEED_MIN) * 100)
@@ -118,6 +132,10 @@ function exitGame() {
 <style scoped>
 .sd-box { width: 420px; max-width: 95vw; max-height: 90vh; overflow: auto; }
 .sd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+.sd-lang-row { display: flex; gap: 10px; padding: 4px 10px 10px; }
+.sd-lang-btn { min-width: 64px; opacity: .6; }
+.sd-lang-btn.active { opacity: 1; background: var(--px-green); }
 
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
 .sd-slider-label { width: 168px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; white-space: nowrap; }

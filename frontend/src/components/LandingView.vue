@@ -22,14 +22,14 @@
     <div class="landing-center">
       <div class="landing-card px-panel">
         <div class="px-titlebar">
-          <span>WILLKOMMEN</span>
+          <span>{{ t('landingView.welcomeTitle') }}</span>
         </div>
         <div class="landing-body">
-          <p class="landing-text">Cookie ist ein Idle-Game mit geteiltem Online-Markt — Login läuft aktuell nur über den Steam-Client.</p>
+          <p class="landing-text">{{ t('landingView.description') }}</p>
           <button class="px-btn landing-login-btn" disabled>
-            <PixelIcon name="steam" :size="14" style="vertical-align:-2px;margin-right:6px" />MIT STEAM ANMELDEN
+            <PixelIcon name="steam" :size="14" style="vertical-align:-2px;margin-right:6px" />{{ t('landingView.loginButton') }}
           </button>
-          <div class="landing-soon">Browser-Login noch nicht verfügbar.</div>
+          <div class="landing-soon">{{ t('landingView.browserLoginSoon') }}</div>
         </div>
       </div>
     </div>
@@ -37,8 +37,11 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import TravelingWorker from './buildings/TravelingWorker.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
+
+const { t } = useI18n()
 
 const ANIMS = ['patrol', 'trek', 'wander', 'wander2', 'wander3', 'rowwalk', 'commute']
 const HATS   = ['#c78539', '#e67146', '#349c58', '#764032']

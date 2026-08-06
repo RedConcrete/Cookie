@@ -1,0 +1,15 @@
+{
+  "title": "TOWN HALL · LEVEL {level}",
+  "statPopulation": "CITIZENS",
+  "statAssigned": "ASSIGNED",
+  "statIdle": "IDLE",
+  "statWage": "TOTAL WAGE",
+  "assignSectionLabel": "CITIZEN ASSIGNMENT",
+  "idleRowName": "Wandering (idle)",
+  "emptyState": "No citizens purchased yet.",
+  "upgradeLevelLine": "Level {from} → {to}",
+  "upgradeDesc": "+4 citizen slots ·",
+  "upgradeBtn": "UPGRADE",
+  "upgradeSuccess": "Town hall upgraded to level {level}!",
+  "notEnoughCookies": "Not enough cookies."
+}

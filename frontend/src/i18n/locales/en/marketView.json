@@ -1,0 +1,23 @@
+{
+  "colResource": "RESOURCE",
+  "colPrice": "PRICE",
+  "colTrend": "TREND",
+  "colStock": "STOCK",
+  "colQty": "QTY",
+  "colAction": "ACTION",
+  "colCost": "COST",
+  "costSuffix": "COST",
+  "buyButton": "BUY",
+  "sellButton": "SELL",
+  "okButton": "OK",
+  "resourceSugar": "Sugar",
+  "resourceFlour": "Flour",
+  "resourceEggs": "Eggs",
+  "resourceButter": "Butter",
+  "resourceChocolate": "Chocolate",
+  "resourceMilk": "Milk",
+  "costRowQtyPrice": "Qty × price",
+  "costRowBuy": "Buy cost",
+  "costRowSell": "Sell (−{pct}% fee)",
+  "unknownError": "Unknown error"
+}

@@ -4,14 +4,14 @@
 
       <div class="orden-box px-panel">
         <div class="px-titlebar">
-          <span>ORDEN &middot; {{ steamId }}</span>
+          <span>{{ t('ordenDialog.title') }} &middot; {{ steamId }}</span>
           <button class="px-close" @click="emit('close')">&times;</button>
         </div>
         <div class="orden-filters">
-          <button class="orden-filter" :class="{ active: filter === 'ALL' }" @click="filter = 'ALL'">ALLE {{ badges.length }}</button>
-          <button class="orden-filter" :class="{ active: filter === 'EVENT' }" @click="filter = 'EVENT'">EVENTS {{ countOf('EVENT') }}</button>
-          <button class="orden-filter" :class="{ active: filter === 'COMMUNITY' }" @click="filter = 'COMMUNITY'">COMMUNITY {{ countOf('COMMUNITY') }}</button>
-          <span class="orden-sort-hint">neueste zuerst</span>
+          <button class="orden-filter" :class="{ active: filter === 'ALL' }" @click="filter = 'ALL'">{{ t('ordenDialog.filterAll', { count: badges.length }) }}</button>
+          <button class="orden-filter" :class="{ active: filter === 'EVENT' }" @click="filter = 'EVENT'">{{ t('ordenDialog.filterEvents', { count: countOf('EVENT') }) }}</button>
+          <button class="orden-filter" :class="{ active: filter === 'COMMUNITY' }" @click="filter = 'COMMUNITY'">{{ t('ordenDialog.filterCommunity', { count: countOf('COMMUNITY') }) }}</button>
+          <span class="orden-sort-hint">{{ t('ordenDialog.sortHint') }}</span>
         </div>
         <div class="orden-list px-scroll">
           <div v-for="m in filtered" :key="m.id" class="orden-item">
@@ -23,58 +23,58 @@
               <div class="orden-desc">{{ m.desc }}</div>
             </div>
             <div class="orden-date">
-              <div class="orden-date-label">ERHALTEN</div>
+              <div class="orden-date-label">{{ t('ordenDialog.dateReceivedLabel') }}</div>
               <div class="orden-date-val">{{ fmtDate(m.awardedOn) }}</div>
             </div>
           </div>
-          <div v-if="!filtered.length" class="orden-empty">Keine Orden in dieser Kategorie.</div>
+          <div v-if="!filtered.length" class="orden-empty">{{ t('ordenDialog.emptyList') }}</div>
         </div>
       </div>
 
       <div v-if="isAdmin" class="orden-box px-panel">
         <div class="px-titlebar admin-bar">
-          <span>ADMIN &middot; ORDEN VERLEIHEN</span>
-          <span class="orden-admin-badge">NUR ADMIN</span>
+          <span>{{ t('ordenDialog.adminTitle') }}</span>
+          <span class="orden-admin-badge">{{ t('ordenDialog.adminOnlyBadge') }}</span>
         </div>
         <div class="orden-admin-body px-scroll">
           <div>
-            <div class="orden-label">SPIELER</div>
+            <div class="orden-label">{{ t('ordenDialog.playerLabel') }}</div>
             <div class="orden-search">
-              <input v-model="playerQuery" class="orden-search-input" placeholder="Steam-Name" />
-              <button class="px-btn px-btn-flat">SUCHEN</button>
+              <input v-model="playerQuery" class="orden-search-input" :placeholder="t('ordenDialog.playerSearchPlaceholder')" />
+              <button class="px-btn px-btn-flat">{{ t('ordenDialog.searchBtn') }}</button>
             </div>
           </div>
 
           <div>
-            <div class="orden-label">ORDEN-VORLAGE</div>
+            <div class="orden-label">{{ t('ordenDialog.templateLabel') }}</div>
             <div class="orden-templates">
               <button
-                v-for="t in templates" :key="t.id" class="orden-template"
-                :class="{ active: selectedTemplate === t.id }" @click="selectedTemplate = t.id"
+                v-for="tpl in templates" :key="tpl.id" class="orden-template"
+                :class="{ active: selectedTemplate === tpl.id }" @click="selectedTemplate = tpl.id"
               >
-                <PixelIcon :name="t.icon" :size="24" />
-                <span>{{ t.name }}</span>
+                <PixelIcon :name="tpl.icon" :size="24" />
+                <span>{{ tpl.name }}</span>
               </button>
             </div>
           </div>
 
           <div>
-            <div class="orden-label">EVENT / BEGRÜNDUNG</div>
-            <input v-model="note" class="orden-note" placeholder="z.B. Sommer-Sprint · 1. Platz" />
+            <div class="orden-label">{{ t('ordenDialog.eventReasonLabel') }}</div>
+            <input v-model="note" class="orden-note" :placeholder="t('ordenDialog.notePlaceholder')" />
           </div>
 
           <div class="orden-date-row">
-            <span>Datum</span>
+            <span>{{ t('ordenDialog.dateFieldLabel') }}</span>
             <input v-model="grantDate" type="date" class="orden-date-input" />
-            <span class="orden-date-hint">wird im Profil angezeigt</span>
+            <span class="orden-date-hint">{{ t('ordenDialog.dateHint') }}</span>
           </div>
 
           <div class="orden-admin-actions">
-            <button class="px-btn px-btn-buy" :disabled="!selectedTemplate" @click="grantBadge">VERLEIHEN</button>
-            <button class="px-btn px-btn-flat">ENTZIEHEN</button>
+            <button class="px-btn px-btn-buy" :disabled="!selectedTemplate" @click="grantBadge">{{ t('ordenDialog.grantBtn') }}</button>
+            <button class="px-btn px-btn-flat">{{ t('ordenDialog.revokeBtn') }}</button>
           </div>
 
-          <div class="orden-hint">Verliehene Orden landen sofort in der Vitrine des Spielers, mit Datum und Event-Namen. Vorlagen sind einbindbar, damit Event-Gewinner in wenigen Klicks ausgezeichnet werden.</div>
+          <div class="orden-hint">{{ t('ordenDialog.adminHint') }}</div>
         </div>
       </div>
 
@@ -84,6 +84,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PixelIcon from './pixel/PixelIcon.vue'
 import { useBadges } from '../composables/useBadges.js'
 import { useAudio } from '../composables/useAudio.js'
@@ -94,6 +95,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 

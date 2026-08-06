@@ -1,8 +1,8 @@
 <template>
   <div class="chart-root">
     <div class="chart-toolbar">
-      <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" title="% Änderung">%</button>
-      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" title="Zoom zurücksetzen">RESET</button>
+      <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" :title="t('priceChart.pctChangeTitle')">%</button>
+      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" :title="t('priceChart.resetZoomTitle')">RESET</button>
     </div>
     <div class="chart-wrap" @mouseleave="onChartLeave">
       <canvas ref="canvasRef"></canvas>
@@ -12,6 +12,7 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Chart, LineController, LineElement, PointElement,
   LinearScale, TimeScale, Tooltip, Legend
@@ -26,6 +27,7 @@ Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale
 const emit = defineEmits(['hover-resource', 'hover-point', 'pct-mode-change'])
 
 const marketStore = useMarketStore()
+const { t }       = useI18n()
 const canvasRef   = ref(null)
 const pctMode     = ref(false)
 let chart         = null
@@ -46,9 +48,9 @@ const COLORS = {
   SUGAR: '#e67146', FLOUR: '#2a7d75', EGGS: '#349c58',
   BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#fff1a9',
 }
-const LABELS = {
-  SUGAR: 'Zucker', FLOUR: 'Mehl', EGGS: 'Eier',
-  BUTTER: 'Butter', CHOCOLATE: 'Schokolade', MILK: 'Milch',
+const LABEL_KEYS = {
+  SUGAR: 'priceChart.sugar', FLOUR: 'priceChart.flour', EGGS: 'priceChart.eggs',
+  BUTTER: 'priceChart.butter', CHOCOLATE: 'priceChart.chocolate', MILK: 'priceChart.milk',
 }
 
 const visible = reactive(Object.fromEntries(RESOURCES.map(r => [r, true])))
@@ -65,7 +67,7 @@ function buildDatasets(history) {
     const base = pctMode.value ? (rawValues.find(v => v > 0) ?? 1) : 1
     return {
       resourceKey: r,
-      label: LABELS[r],
+      label: t(LABEL_KEYS[r]),
       data: history.map((m, i) => ({
         x: new Date(m.date),
         y: pctMode.value ? ((rawValues[i] - base) / base) * 100 : rawValues[i],

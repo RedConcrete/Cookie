@@ -3,7 +3,7 @@
     <div class="rh-panel">
       <div class="rh-head">
         <PixelIcon name="haus" :size="28" />
-        <div class="rh-head-title">RATHAUS · STUFE {{ rathausLevel }}</div>
+        <div class="rh-head-title">{{ t('rathausDialog.title', { level: rathausLevel }) }}</div>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
@@ -11,25 +11,25 @@
         <!-- Stats row -->
         <div class="rh-stats">
           <div class="rh-stat">
-            <div class="rh-stat-label">EINWOHNER</div>
+            <div class="rh-stat-label">{{ t('rathausDialog.statPopulation') }}</div>
             <div class="rh-stat-val">{{ playerStore.ownedCitizens }} / {{ playerStore.maxCitizens }}</div>
           </div>
           <div class="rh-stat">
-            <div class="rh-stat-label">ZUGEWIESEN</div>
+            <div class="rh-stat-label">{{ t('rathausDialog.statAssigned') }}</div>
             <div class="rh-stat-val">{{ playerStore.assignedCitizens }}</div>
           </div>
           <div class="rh-stat">
-            <div class="rh-stat-label">IDLE</div>
+            <div class="rh-stat-label">{{ t('rathausDialog.statIdle') }}</div>
             <div class="rh-stat-val" :class="{ 'rh-idle': playerStore.idleCitizens > 0 }">{{ playerStore.idleCitizens }}</div>
           </div>
           <div class="rh-stat">
-            <div class="rh-stat-label">GESAMTLOHN</div>
+            <div class="rh-stat-label">{{ t('rathausDialog.statWage') }}</div>
             <div class="rh-stat-val rh-cost">{{ playerStore.totalWage.toFixed(1) }} C/MIN</div>
           </div>
         </div>
 
         <!-- Worker assignment list -->
-        <div class="rh-section-label">EINWOHNER-ZUWEISUNG</div>
+        <div class="rh-section-label">{{ t('rathausDialog.assignSectionLabel') }}</div>
         <div class="rh-assign-list px-scroll">
           <div v-for="b in assignedBuildings" :key="b.id" class="rh-assign-row">
             <PixelIcon :name="b.icon" :size="16" />
@@ -42,23 +42,23 @@
           </div>
           <div v-if="playerStore.idleCitizens > 0" class="rh-assign-row rh-assign-idle">
             <PixelIcon name="einw" :size="16" />
-            <div class="rh-assign-name">Wandernd (idle)</div>
+            <div class="rh-assign-name">{{ t('rathausDialog.idleRowName') }}</div>
             <div class="rh-assign-count rh-idle">{{ playerStore.idleCitizens }}</div>
           </div>
-          <div v-if="playerStore.ownedCitizens === 0" class="rh-empty">Noch keine Einwohner gekauft.</div>
+          <div v-if="playerStore.ownedCitizens === 0" class="rh-empty">{{ t('rathausDialog.emptyState') }}</div>
         </div>
 
         <!-- Upgrade section -->
         <div class="rh-upgrade">
           <div class="rh-upgrade-info">
-            <div class="rh-upgrade-label">Stufe {{ rathausLevel }} → {{ rathausLevel + 1 }}</div>
-            <div class="rh-upgrade-desc">+4 Einwohner-Slots · {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
+            <div class="rh-upgrade-label">{{ t('rathausDialog.upgradeLevelLine', { from: rathausLevel, to: rathausLevel + 1 }) }}</div>
+            <div class="rh-upgrade-desc">{{ t('rathausDialog.upgradeDesc') }} {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
           </div>
           <button
             class="px-btn px-btn-accent"
             :disabled="upgrading || playerStore.cookies < upgradeCost"
             @click="upgradeRathaus"
-          >AUFSTOCKEN</button>
+          >{{ t('rathausDialog.upgradeBtn') }}</button>
         </div>
         <div v-if="notice" class="rh-notice" :class="{ error: noticeError }">{{ notice }}</div>
       </div>
@@ -68,15 +68,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buyBuilding } from '../services/api.js'
-import { BUILDING_INFO } from './buildings/buildingInfo.js'
+import { BUILDING_INFO, buildingTitle } from './buildings/buildingInfo.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 
@@ -91,7 +93,7 @@ const upgradeCost  = computed(() => rathausData.value?.nextLevelCost ?? 800)
 const assignedBuildings = computed(() =>
   playerStore.ownedBuildings
     .filter(b => b.maxWorkers > 0)
-    .map(b => ({ ...b, ...BUILDING_INFO[b.id] }))
+    .map(b => ({ ...b, ...BUILDING_INFO[b.id], title: buildingTitle(b.id, t) }))
 )
 
 async function upgradeRathaus() {
@@ -101,10 +103,10 @@ async function upgradeRathaus() {
   try {
     const updated = await buyBuilding(playerStore.steamId, 'rathaus')
     playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
-    notice.value = `Rathaus auf Stufe ${rathausLevel.value} aufgestockt!`
+    notice.value = t('rathausDialog.upgradeSuccess', { level: rathausLevel.value })
     noticeError.value = false
   } catch {
-    notice.value = 'Nicht genug Cookies.'
+    notice.value = t('rathausDialog.notEnoughCookies')
     noticeError.value = true
   } finally {
     upgrading.value = false

@@ -7,25 +7,25 @@
         </div>
         <div class="bd-head-text">
           <div class="bd-head-name">{{ building.title }}</div>
-          <div class="bd-head-sub">Stufe {{ level }} &middot; liefert {{ resourceLabel }}</div>
+          <div class="bd-head-sub">{{ t('buildingDetailDialog.subtitle', { level, resource: resourceLabelText }) }}</div>
         </div>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
       <div class="bd-body">
         <div class="bd-col bd-col-crew">
-          <div class="bd-label">EINWOHNER {{ workerCount }}/{{ maxWorkers }}</div>
+          <div class="bd-label">{{ t('buildingDetailDialog.residents', { count: workerCount, max: maxWorkers }) }}</div>
           <div class="bd-crew">
             <!-- Active worker slots — each has a red X to unassign -->
             <div v-for="i in workerCount" :key="'a'+i" class="bd-crew-cell bd-crew-cell-active">
-              <button class="bd-crew-x" @click="adjustWorkers(-1)" title="Entfernen">×</button>
+              <button class="bd-crew-x" @click="adjustWorkers(-1)" :title="t('buildingDetailDialog.remove')">×</button>
               <PixelWorker variant="work"
                 :anim="playerStore.workersIdle ? 'bob' : bodyAnim"
                 :dur="1.1"
                 :tool="!playerStore.workersIdle ? { anim: 'tap', dur: 1.1, color: '#aea47e' } : null" />
               <div class="bd-crew-name">{{ crewNames[(i - 1) % crewNames.length] }}</div>
               <div class="bd-crew-tag" :class="{ idle: playerStore.workersIdle }">
-                {{ playerStore.workersIdle ? 'IDLE' : (building.act || 'AKTIV') }}
+                {{ playerStore.workersIdle ? t('buildingDetailDialog.idle') : (building.act || t('buildingDetailDialog.active')) }}
               </div>
             </div>
             <!-- Add slot — shown if available citizens exist and slots remain -->
@@ -33,34 +33,34 @@
               v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0"
               class="bd-crew-add"
               @click="adjustWorkers(1)"
-              title="Einwohner zuweisen"
+              :title="t('buildingDetailDialog.assign')"
             >+</button>
             <!-- Locked slot hint -->
             <div v-else-if="workerCount < maxWorkers" class="bd-crew-locked">
-              {{ playerStore.ownedCitizens === 0 ? 'KEINE EINW.' : 'ALLE ZUG.' }}
+              {{ playerStore.ownedCitizens === 0 ? t('buildingDetailDialog.noResidents') : t('buildingDetailDialog.allAssigned') }}
             </div>
           </div>
 
           <div class="bd-stats">
             <div class="bd-stat">
-              <div class="bd-stat-label">LOHN</div>
+              <div class="bd-stat-label">{{ t('buildingDetailDialog.wage') }}</div>
               <div class="bd-stat-val bd-stat-red">{{ wageRow?.v ?? '—' }}</div>
             </div>
             <div class="bd-stat">
-              <div class="bd-stat-label">ERTRAG</div>
+              <div class="bd-stat-label">{{ t('buildingDetailDialog.yield') }}</div>
               <div class="bd-stat-val bd-stat-green">{{ yieldRow?.v ?? '—' }}</div>
             </div>
           </div>
 
-          <div class="bd-hint">Jeder zusätzliche Einwohner erhöht den Ertrag und den Lohn. Zu viele Arbeiter bei niedrigem Cookie-Fluss = Minus.</div>
+          <div class="bd-hint">{{ t('buildingDetailDialog.hint') }}</div>
         </div>
 
         <div class="bd-col bd-col-build">
-          <div class="bd-label">STATUS</div>
+          <div class="bd-label">{{ t('buildingDetailDialog.status') }}</div>
           <div class="bd-buildup">
             <div>
-              <div class="bd-buildup-name">Stufe {{ level }}</div>
-              <div class="bd-buildup-note">{{ level > 0 ? 'Gebäude in Betrieb' : 'Noch nicht gebaut' }}</div>
+              <div class="bd-buildup-name">{{ t('buildingDetailDialog.levelLabel', { level }) }}</div>
+              <div class="bd-buildup-note">{{ level > 0 ? t('buildingDetailDialog.operating') : t('buildingDetailDialog.notBuilt') }}</div>
             </div>
             <div class="bd-level-badge">
               <PixelIcon v-if="level > 0" name="check" :size="14" />
@@ -69,23 +69,23 @@
           </div>
           <div class="bd-buildup" v-if="ownedData && ownedData.storageCapBonus">
             <div>
-              <div class="bd-buildup-name">Lager-Cap</div>
-              <div class="bd-buildup-note">+{{ (ownedData.storageCapBonus / 1000).toFixed(0) }}K pro Level</div>
+              <div class="bd-buildup-name">{{ t('buildingDetailDialog.storageCap') }}</div>
+              <div class="bd-buildup-note">{{ t('buildingDetailDialog.storagePerLevel', { amount: (ownedData.storageCapBonus / 1000).toFixed(0) }) }}</div>
             </div>
           </div>
           <div v-if="level > 0" class="bd-buildup">
             <div>
-              <div class="bd-buildup-name">Stufe {{ level }} &rarr; {{ level + 1 }}</div>
-              <div class="bd-buildup-note">+1 Einwohner-Slot &middot; {{ upgradeCost.toFixed(0) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
+              <div class="bd-buildup-name">{{ t('buildingDetailDialog.levelTransition', { from: level, to: level + 1 }) }}</div>
+              <div class="bd-buildup-note">{{ t('buildingDetailDialog.upgradeCost', { cost: upgradeCost.toFixed(0) }) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="upgrading || playerStore.cookies < upgradeCost" @click="upgradeBuilding">
-              AUSBAUEN
+              {{ t('buildingDetailDialog.upgrade') }}
             </button>
           </div>
           <div v-if="notice" class="bd-notice">{{ notice }}</div>
 
           <div class="bd-storage">
-            <div class="bd-label" style="margin-bottom:8px">LAGERSTAND {{ resourceLabel.toUpperCase() }}</div>
+            <div class="bd-label" style="margin-bottom:8px">{{ t('buildingDetailDialog.storageLevel', { resource: resourceLabelText.toUpperCase() }) }}</div>
             <div class="bd-storage-bar"><div class="bd-storage-fill" :style="{ width: storagePct + '%' }"></div></div>
             <div class="bd-storage-text">{{ storageText }}</div>
           </div>
@@ -97,22 +97,24 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { changeWorkers, buyBuilding } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
-import { RESOURCE_LABEL } from './buildings/buildingInfo.js'
+import { resourceLabel } from './buildings/buildingInfo.js'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const audio = useAudio()
+const { t } = useI18n()
 
 onMounted(() => audio.playBookOpen())
 
 const playerStore = usePlayerStore()
 
-const resourceLabel = computed(() => RESOURCE_LABEL[props.building.resource] ?? props.building.title)
+const resourceLabelText = computed(() => resourceLabel(props.building.resource, t) || props.building.title)
 
 // Get real building data from store (level, workers, maxWorkers)
 const ownedData = computed(() => playerStore.ownedBuildings.find(b => b.id === props.building.id))
@@ -145,7 +147,7 @@ async function adjustWorkers(delta) {
     const updated = await changeWorkers(playerStore.steamId, props.building.id, delta)
     playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
   } catch (e) {
-    notice.value = 'Fehler beim Ändern der Einwohner.'
+    notice.value = t('buildingDetailDialog.errorChangingWorkers')
     setTimeout(() => { notice.value = '' }, 2000)
   }
 }
@@ -157,7 +159,7 @@ async function upgradeBuilding() {
     const updated = await buyBuilding(playerStore.steamId, props.building.id)
     playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
   } catch (e) {
-    notice.value = 'Nicht genug Cookies.'
+    notice.value = t('buildingDetailDialog.notEnoughCookies')
     setTimeout(() => { notice.value = '' }, 2000)
   } finally {
     upgrading.value = false

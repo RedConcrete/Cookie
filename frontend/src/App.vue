@@ -7,7 +7,7 @@
         <CookieSpinner />
       </div>
       <div v-else-if="playerStore.error" class="status-overlay error">
-        Fehler: {{ playerStore.error }}
+        {{ t('common.error') }}: {{ playerStore.error }}
       </div>
       <RouterView v-else />
     </template>
@@ -16,6 +16,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from './stores/player.js'
 import { useAudio } from './composables/useAudio.js'
 import CookieSpinner from './components/CookieSpinner.vue'
@@ -23,6 +24,7 @@ import LandingView from './components/LandingView.vue'
 
 const playerStore = usePlayerStore()
 const audio       = useAudio()
+const { t } = useI18n()
 
 const blocked = ref(false)
 

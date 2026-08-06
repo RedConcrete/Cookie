@@ -1,6 +1,6 @@
 <template>
   <div class="pp-root">
-    <div v-if="loading" class="pp-loading">Lade...</div>
+    <div v-if="loading" class="pp-loading">{{ t('common.loading') }}</div>
 
     <template v-else-if="data">
       <div class="pp-header">
@@ -10,10 +10,10 @@
         </div>
         <div class="pp-title">
           <div class="pp-name">{{ data.displayName || data.steamId }}</div>
-          <div class="pp-rank">Platz #{{ data.rank }} &middot; Prestige {{ data.prestigeLevel }}</div>
+          <div class="pp-rank">{{ t('playerProfileView.rankPrestige', { rank: data.rank, level: data.prestigeLevel }) }}</div>
         </div>
         <div class="pp-nw">
-          <div class="pp-nw-label">NET WORTH</div>
+          <div class="pp-nw-label">{{ t('playerProfileView.netWorthLabel') }}</div>
           <div class="pp-nw-val">{{ fmtBig(data.netWorth) }}</div>
         </div>
       </div>
@@ -27,29 +27,29 @@
 
       <div class="pp-section">
         <div class="pp-section-head">
-          <span class="pp-label">ORDEN &middot; {{ badges.length }}</span>
-          <button class="pp-link" @click="ordenOpen = true">ALLE ANSEHEN &rarr;</button>
+          <span class="pp-label">{{ t('playerProfileView.badgesCount', { count: badges.length }) }}</span>
+          <button class="pp-link" @click="ordenOpen = true">{{ t('playerProfileView.viewAll') }}</button>
         </div>
         <div class="pp-badges">
           <div v-for="m in badges.slice(0, 6)" :key="m.id" class="pp-badge-chip" :style="{ background: m.color }" :title="m.name">
             <PixelIcon :name="m.icon" :size="24" />
           </div>
-          <div v-if="!badges.length" class="pp-no-badges">Noch keine Orden</div>
+          <div v-if="!badges.length" class="pp-no-badges">{{ t('playerProfileView.noBadges') }}</div>
         </div>
       </div>
 
       <div class="pp-section">
-        <div class="pp-label">UPGRADES</div>
+        <div class="pp-label">{{ t('playerProfileView.upgradesTitle') }}</div>
         <div class="pp-upgrades">
-          <div v-for="u in activeUpgrades" :key="u.id" class="pp-upgrade-chip">{{ u.name }} &middot; Stufe {{ u.currentLevel }}</div>
-          <div v-if="activeUpgrades.length === 0" class="pp-no-badges">Keine Upgrades</div>
+          <div v-for="u in activeUpgrades" :key="u.id" class="pp-upgrade-chip">{{ u.name }} &middot; {{ t('playerProfileView.upgradeLevel', { level: u.currentLevel }) }}</div>
+          <div v-if="activeUpgrades.length === 0" class="pp-no-badges">{{ t('playerProfileView.noUpgrades') }}</div>
         </div>
       </div>
 
       <template v-if="data.seasonHistory?.length">
-        <div class="pp-label" style="margin-top:6px">SEASON-HISTORIE</div>
+        <div class="pp-label" style="margin-top:6px">{{ t('playerProfileView.seasonHistoryTitle') }}</div>
         <div class="pp-season-table">
-          <div class="pp-season-row pp-season-head"><div>SEASON</div><div>PLATZ</div><div>NET WORTH</div><div>PRESTIGE</div></div>
+          <div class="pp-season-row pp-season-head"><div>{{ t('playerProfileView.seasonHeaderSeason') }}</div><div>{{ t('playerProfileView.seasonHeaderRank') }}</div><div>{{ t('playerProfileView.seasonHeaderNetWorth') }}</div><div>{{ t('playerProfileView.seasonHeaderPrestige') }}</div></div>
           <div v-for="s in data.seasonHistory" :key="s.seasonId" class="pp-season-row">
             <div>{{ s.seasonName }}</div><div>#{{ s.finalRank }}</div><div>{{ fmtBig(s.finalNetWorth) }}</div><div>{{ s.prestigeLevelAtEnd }}</div>
           </div>
@@ -63,6 +63,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getProfile, avatarSrc } from '../services/api.js'
 import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -70,6 +71,7 @@ import OrdenDialog from './OrdenDialog.vue'
 
 const props = defineProps({ steamId: { type: String, required: true } })
 
+const { t } = useI18n()
 const { badges } = useBadges()
 const data    = ref(null)
 const loading = ref(true)
@@ -80,10 +82,10 @@ const profileAvatarSrc = computed(() => avatarError.value ? null : avatarSrc(dat
 const activeUpgrades = computed(() => (data.value?.upgrades ?? []).filter(u => u.currentLevel > 0))
 
 const stats = computed(() => !data.value ? [] : [
-  { label: 'COOKIES', val: fmtBig(data.value.cookies) },
-  { label: 'RESSOURCENWERT', val: fmtBig(data.value.resourceValue) },
-  { label: 'UPGRADE-WERT', val: fmtBig(data.value.upgradeValue) },
-  { label: 'GEBACKEN (LIFETIME)', val: fmtBig(data.value.lifetimeCookiesBaked) },
+  { label: t('playerProfileView.statCookies'), val: fmtBig(data.value.cookies) },
+  { label: t('playerProfileView.statResourceValue'), val: fmtBig(data.value.resourceValue) },
+  { label: t('playerProfileView.statUpgradeValue'), val: fmtBig(data.value.upgradeValue) },
+  { label: t('playerProfileView.statLifetimeBaked'), val: fmtBig(data.value.lifetimeCookiesBaked) },
 ])
 
 async function load() {

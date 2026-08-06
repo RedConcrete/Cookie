@@ -3,10 +3,10 @@
 
     <!-- ── Left: recipe index ─────────────────────────── -->
     <div class="rc-left">
-      <div class="rc-left-title">REZEPTBUCH</div>
+      <div class="rc-left-title">{{ t('recipeCard.title') }}</div>
       <div class="rc-rule"></div>
 
-      <div v-if="!recipes.length" class="rc-loading">Lade…</div>
+      <div v-if="!recipes.length" class="rc-loading">{{ t('common.loading') }}</div>
 
       <nav class="rc-index">
         <button
@@ -27,7 +27,7 @@
         <div class="rc-heading">{{ selected.name.toUpperCase() }}</div>
 
         <div>
-          <div class="rc-label">ZUTATEN (&times;{{ batches }} BATCH)</div>
+          <div class="rc-label">{{ t('recipeCard.ingredientsHeader', { batches }) }}</div>
           <div class="rc-ingredients">
             <div v-for="ing in usedIngredients" :key="ing.key" class="rc-ing-row">
               <PixelIcon :name="ing.icon" :size="20" />
@@ -37,37 +37,37 @@
               <span class="rc-ing-sum">= {{ fmt2(ing.cost) }}</span>
             </div>
           </div>
-          <div class="rc-cost-row"><span>ZUTATEN GESAMT</span><span>{{ fmt2(ingredientMarketCost) }} C</span></div>
+          <div class="rc-cost-row"><span>{{ t('recipeCard.ingredientsTotal') }}</span><span>{{ fmt2(ingredientMarketCost) }} C</span></div>
         </div>
 
         <template v-if="!activeJob">
           <div>
             <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
-              <span>Backen</span>
+              <span>{{ t('recipeCard.bake') }}</span>
               <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>
             </div>
             <div class="rc-profit-row" :class="!bakeBetter ? 'winner' : ''">
-              <span>Ressourcen verkaufen</span>
+              <span>{{ t('recipeCard.sellResources') }}</span>
               <span>{{ fmt2(ingredientSellValue) }} <PixelIcon name="cookie" :size="12" /> </span>
             </div>
             <div class="rc-profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
-              {{ bakeBetter ? '+' : '' }}{{ fmt2(bakeOutput - ingredientSellValue) }} C durch Backen
+              {{ t('recipeCard.profitDiff', { sign: bakeBetter ? '+' : '', value: fmt2(bakeOutput - ingredientSellValue) }) }}
             </div>
           </div>
 
           <div class="rc-batches">
-            <span>Batches</span>
+            <span>{{ t('recipeCard.batches') }}</span>
             <div class="rc-stepper">
               <button @click="batches = Math.max(1, batches - 1)">&minus;</button>
               <span class="rc-stepper-val">{{ batches }}</span>
               <button @click="batches++">+</button>
             </div>
-            <span class="rc-stock-hint">BESTAND: {{ stockBatches }} MÖGLICH</span>
+            <span class="rc-stock-hint">{{ t('recipeCard.stockHint', { stockBatches }) }}</span>
           </div>
         </template>
       </template>
 
-      <div v-else class="rc-empty">&larr; Rezept auswählen</div>
+      <div v-else class="rc-empty">&larr; {{ t('recipeCard.selectRecipe') }}</div>
 
       <div class="rc-bake-section">
         <!-- No active job: normal "pick a batch size and start" form -->
@@ -77,7 +77,7 @@
             <span>{{ formatDuration(selected.bakeDurationSeconds * batches) }}</span>
           </div>
           <button class="px-btn px-btn-accent rc-bake-btn" :disabled="!canBake || busy" @click="startBake">
-            {{ busy ? 'STARTET…' : 'BACKEN STARTEN' }}
+            {{ busy ? t('recipeCard.starting') : t('recipeCard.startBaking') }}
           </button>
         </template>
 
@@ -86,11 +86,11 @@
           <div class="rc-progress-meta">
             <span>{{ activeJob.recipe?.name }} &middot; {{ activeJob.batches }}&times;</span>
             <span v-if="!activeJob.done">{{ formatDuration(activeJob.remainingSeconds) }}</span>
-            <span v-else class="rc-done">FERTIG!</span>
+            <span v-else class="rc-done">{{ t('recipeCard.done') }}</span>
           </div>
           <div class="rc-progress-track"><div class="rc-progress-bar" :style="{ width: progressPct + '%' }"></div></div>
           <button class="px-btn px-btn-buy rc-bake-btn" :disabled="!activeJob.done || busy" @click="claim">
-            {{ busy ? '…' : `+${activeJob.totalCookies} COOKIES EINLÖSEN` }}
+            {{ busy ? '…' : t('recipeCard.claimCookies', { count: activeJob.totalCookies }) }}
           </button>
         </div>
 
@@ -102,6 +102,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore }   from '../stores/bake.js'
@@ -114,17 +115,18 @@ const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
+const { t }       = useI18n()
 
 const SELL_FEE = 0.08
 
-const INGREDIENTS = [
-  { key: 'sugar',     label: 'Zucker',     icon: 'zucker', market: 'SUGAR'     },
-  { key: 'flour',     label: 'Mehl',       icon: 'mehl',   market: 'FLOUR'     },
-  { key: 'eggs',      label: 'Eier',       icon: 'eier',   market: 'EGGS'      },
-  { key: 'butter',    label: 'Butter',     icon: 'butter', market: 'BUTTER'    },
-  { key: 'chocolate', label: 'Schokolade', icon: 'schoko', market: 'CHOCOLATE' },
-  { key: 'milk',      label: 'Milch',      icon: 'milch',  market: 'MILK'      },
-]
+const INGREDIENTS = computed(() => [
+  { key: 'sugar',     label: t('recipeCard.sugar'),     icon: 'zucker', market: 'SUGAR'     },
+  { key: 'flour',     label: t('recipeCard.flour'),     icon: 'mehl',   market: 'FLOUR'     },
+  { key: 'eggs',      label: t('recipeCard.eggs'),      icon: 'eier',   market: 'EGGS'      },
+  { key: 'butter',    label: t('recipeCard.butter'),    icon: 'butter', market: 'BUTTER'    },
+  { key: 'chocolate', label: t('recipeCard.chocolate'), icon: 'schoko', market: 'CHOCOLATE' },
+  { key: 'milk',      label: t('recipeCard.milk'),      icon: 'milch',  market: 'MILK'      },
+])
 
 const recipes    = computed(() => playerStore.recipes)
 const activeJob  = computed(() => bakeStore.status)
@@ -140,7 +142,7 @@ function selectRecipe(id) { selectedId.value = id }
 
 const usedIngredients = computed(() => {
   if (!selected.value) return []
-  return INGREDIENTS
+  return INGREDIENTS.value
     .map(ing => {
       const amount = selected.value[ing.key] ?? 0
       const total  = amount * batches.value
@@ -199,7 +201,7 @@ async function claim() {
     playerStore.updateFromDto(updated)
     spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#c78539', icon: 'cookie' })
     await bakeStore.poll()
-    showFeedback(`+${earned} Cookies!`, 'ok')
+    showFeedback(t('recipeCard.claimSuccess', { earned }), 'ok')
   } catch (e) { showFeedback(e.message, 'err') }
   finally     { busy.value = false }
 }
