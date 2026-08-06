@@ -108,7 +108,7 @@
 
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
-      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView">&#8857;</button>
+      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView"><PixelIcon name="zentrieren" :size="18" /></button>
       <div class="cam-hint">{{ t('farmGridView.centerHint') }}</div>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>

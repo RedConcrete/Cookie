@@ -34,38 +34,46 @@
                 `stv-branch-${(n.branch || '').toLowerCase()}`,
                 { 'stv-node-nopoints': nodeState(n) === 'allocatable' && tree.skillPoints < 1 },
               ]"
-              :disabled="!canAllocate(n) || allocating"
-              @click="allocate(n)"
+              :disabled="!n.root && (!canAllocate(n) || allocating)"
+              @click="onNodeClick(n)"
             >
               <PixelIcon :name="branchIcon(n)" :size="22" />
             </button>
           </PixelInfoPopover>
         </div>
 
-        <!-- ── Skill-Punkte + Kauf: schwebt zentriert über dem Baum ── -->
-        <div class="stv-buy-hud">
-          <div class="stv-hud-points">
-            <PixelIcon name="upgrade" :size="18" />
-            <span class="stv-hud-val">{{ tree.skillPoints }}</span>
-            <span class="stv-hud-label">{{ t('skillTreeView.skillPointsLabel') }}</span>
-          </div>
-          <button
-            class="px-btn px-btn-accent"
-            :disabled="!canAfford || buying"
-            @click="buyPoint"
-          >
-            {{ t('skillTreeView.buyPointLabel') }} &middot; {{ fmt(tree.nextPointCost) }}
-            <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
-          </button>
-        </div>
-
         <!-- ── Kamera zentrieren ──────────────────────────────── -->
         <div class="stv-cam-controls">
-          <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')">&#8857;</button>
+          <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
 
         <div v-if="notice" class="stv-notice" :class="{ error: noticeError }">{{ notice }}</div>
+      </div>
+
+      <!-- ── Skill-Punkte kaufen: Popup, öffnet per Klick auf die Wurzel ── -->
+      <div v-if="buyDialogOpen" class="stv-buy-overlay" @click.self="buyDialogOpen = false">
+        <div class="stv-buy-panel px-panel">
+          <div class="px-titlebar">
+            <span>{{ t('skillTreeView.skillPointsLabel') }}</span>
+            <button class="px-close" @click="buyDialogOpen = false">&times;</button>
+          </div>
+          <div class="stv-buy-panel-body">
+            <div class="stv-hud-points">
+              <PixelIcon name="upgrade" :size="18" />
+              <span class="stv-hud-val">{{ tree.skillPoints }}</span>
+              <span class="stv-hud-label">{{ t('skillTreeView.skillPointsLabel') }}</span>
+            </div>
+            <button
+              class="px-btn px-btn-accent"
+              :disabled="!canAfford || buying"
+              @click="buyPoint"
+            >
+              {{ t('skillTreeView.buyPointLabel') }} &middot; {{ fmt(tree.nextPointCost) }}
+              <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
+            </button>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -88,6 +96,7 @@ const buying    = ref(false)
 const allocating = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
+const buyDialogOpen = ref(false)
 
 function flash(msg, isError = false) {
   notice.value = msg
@@ -118,6 +127,7 @@ function canAllocate(n) {
 }
 
 function nodeRows(n) {
+  if (n.root) return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.rootBuyHint'), color: 'y' }]
   const state = nodeState(n)
   if (state === 'allocated') return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' }]
   if (state === 'allocatable') {
@@ -140,6 +150,11 @@ async function buyPoint() {
   } finally {
     buying.value = false
   }
+}
+
+function onNodeClick(n) {
+  if (n.root) { buyDialogOpen.value = true; return }
+  allocate(n)
 }
 
 async function allocate(n) {
@@ -197,7 +212,7 @@ const viewEl = ref(null)
 const panX = ref(0)
 const panY = ref(0)
 const zoom = ref(0.55)
-const MIN_ZOOM = 0.3
+const MIN_ZOOM = 0.12
 const MAX_ZOOM = 1.2
 
 const canvasStyle = computed(() => ({
@@ -256,16 +271,21 @@ onMounted(async () => {
 }
 .stv-viewport:active { cursor: grabbing; }
 
-/* Floats centered over the canvas instead of a full-width header bar. */
-.stv-buy-hud {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 12px;
-  background: var(--px-wood); border: 3px solid var(--px-ink);
-  padding: 8px 14px; box-shadow: 0 6px 0 rgba(0,0,0,.4); z-index: 20;
+/* Buy-point popup, opened by clicking the root node -- no permanent HUD
+   bar sitting over the canvas, so the tree gets the full viewport. */
+.stv-buy-overlay {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(16,11,7,.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.stv-buy-panel { width: 320px; max-width: 90vw; }
+.stv-buy-panel-body {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 18px;
 }
 .stv-hud-points { display: flex; align-items: center; gap: 6px; }
-.stv-hud-val { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
-.stv-hud-label { font-size: 11px; color: var(--px-cream); }
+.stv-hud-val { font-family: 'Silkscreen', monospace; font-size: 15px; color: #56642e; }
+.stv-hud-label { font-size: 11px; color: var(--px-tan-ink); }
 
 /* Clearly visible + labeled, same treatment as FarmGridView's cam-controls. */
 .stv-cam-controls {
@@ -273,7 +293,8 @@ onMounted(async () => {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 .stv-cam-btn {
-  width: 40px; height: 40px; font-size: 18px; line-height: 1;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
   background: var(--px-wood3); border: 3px solid var(--px-ink); color: var(--px-cream);
   cursor: pointer; box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
 }

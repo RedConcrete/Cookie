@@ -28,6 +28,7 @@ import medal  from '../../assets/icons/medal.svg'
 import krone  from '../../assets/icons/krone.svg'
 import stern  from '../../assets/icons/stern.svg'
 import upgrade from '../../assets/icons/upgrade.svg'
+import zentrieren from '../../assets/icons/zentrieren.svg'
 import check   from '../../assets/icons/check.svg'
 import music   from '../../assets/icons/music.svg'
 import sound   from '../../assets/icons/sound.svg'
@@ -37,7 +38,7 @@ import steam   from '../../assets/icons/steam.svg'
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
-  upgrade, check, music, sound, mute, steam,
+  upgrade, zentrieren, check, music, sound, mute, steam,
 }
 
 // Echte Marken-Logos (unveraendertes Original-SVG, kein 8x8-Pixel-Raster) --

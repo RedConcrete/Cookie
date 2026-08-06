@@ -77,7 +77,7 @@
                 <span class="dot"></span>{{ t(ds.labelKey) }}
               </button>
             </div>
-            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')">⊙</button>
+            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')"><PixelIcon name="zentrieren" :size="14" /></button>
           </div>
 
           <div class="chart-wrap">
@@ -417,6 +417,7 @@ onUnmounted(() => {
 .pct-btn {
   padding: 4px 10px; border: 2px solid var(--px-brown2);
   background: var(--px-cream2);
+  display: flex; align-items: center; justify-content: center;
   color: var(--px-tan-ink); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
