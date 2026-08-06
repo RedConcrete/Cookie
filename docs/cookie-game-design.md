@@ -52,6 +52,7 @@ alles andere läuft im laufenden Betrieb.
 | Pixel-Art-Rework (Abschnitt 8) | – | ✅ | fertig, kein Plan mehr |
 | Sound (Musik + SFX) | – | ✅ | fertig |
 | Hotkeys (konfigurierbar) | – | ✅ | fertig |
+| Lokalisierung (Deutsch/Englisch) | – | ✅ | fertig, siehe Abschnitt 8.2 |
 
 **Legacy/tot im Frontend** (aus der Vor-Hof-Grid-Ära, nicht mehr geroutet):
 `IdleView.vue`, `BakeView.vue`, `MarketTable.vue`, `TradePanel.vue`,
@@ -240,6 +241,14 @@ verwenden — keine Zwischentöne, kein Anti-Aliasing, keine Verläufe.
 | `#e67146` | `#ebb85b` | `#c78539` | `#a15c34` |
 | `#764032` | `#402e2b` | `#56642e` | `#7e9432` |
 | `#c9c03d` | `#fff1a9` | `#e67a84` | `#c23753` |
+
+### 8.2 Lokalisierung
+
+Deutsch + Englisch über `vue-i18n`, Umschalter in den Einstellungen
+(persistiert in `localStorage`). Ein JSON-Locale-Paar pro Komponente unter
+`frontend/src/i18n/locales/{de,en}/`, automatisch gemergt. Details/Konventionen
+für neue Texte: `CLAUDE.md` Abschnitt "Lokalisierung (i18n)". Backend-Texte
+(Fehlermeldungen, DB-Namen) bleiben deutsch, nicht Teil der Umstellung.
 
 **Ist-Stand:** Die bestehenden Gebäude-SVGs
 (`frontend/src/assets/buildings/*.svg`, z. B. `kuh.svg`, `huhn.svg`,

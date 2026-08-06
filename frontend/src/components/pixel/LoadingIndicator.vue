@@ -1,7 +1,7 @@
 <template>
   <span class="pli">
     <PixelIcon name="cookie" :size="size" class="pli-icon" />
-    <span class="pli-text">{{ t('common.loading') }}{{ dots }}</span>
+    <span class="pli-text">{{ t('common.loading') }}<span class="pli-dots">{{ dots }}</span></span>
   </span>
 </template>
 
@@ -33,6 +33,7 @@ onUnmounted(() => clearInterval(timer))
 .pli { display: inline-flex; align-items: center; gap: 8px; }
 .pli-icon { animation: pli-spin 1s steps(8, end) infinite; }
 .pli-text { font-family: 'Silkscreen', monospace; }
+.pli-dots { display: inline-block; width: 1.5em; text-align: left; }
 
 @keyframes pli-spin {
   to { transform: rotate(360deg); }

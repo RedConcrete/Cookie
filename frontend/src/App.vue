@@ -4,7 +4,7 @@
 
     <template v-else>
       <div v-if="playerStore.loading" class="status-overlay">
-        <CookieSpinner />
+        <LoadingIndicator :size="48" />
       </div>
       <div v-else-if="playerStore.error" class="status-overlay error">
         {{ t('common.error') }}: {{ playerStore.error }}
@@ -19,7 +19,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from './stores/player.js'
 import { useAudio } from './composables/useAudio.js'
-import CookieSpinner from './components/CookieSpinner.vue'
+import LoadingIndicator from './components/pixel/LoadingIndicator.vue'
 import LandingView from './components/LandingView.vue'
 
 const playerStore = usePlayerStore()

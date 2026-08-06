@@ -30,7 +30,8 @@
 
         <!-- Worker assignment list -->
         <div class="rh-section-label">{{ t('rathausDialog.assignSectionLabel') }}</div>
-        <div class="rh-assign-list px-scroll">
+        <PixelScrollBox class="rh-assign-list">
+          <div class="rh-assign-rows">
           <div v-for="b in assignedBuildings" :key="b.id" class="rh-assign-row">
             <PixelIcon :name="b.icon" :size="16" />
             <div class="rh-assign-name">{{ b.title }}</div>
@@ -46,7 +47,8 @@
             <div class="rh-assign-count rh-idle">{{ playerStore.idleCitizens }}</div>
           </div>
           <div v-if="playerStore.ownedCitizens === 0" class="rh-empty">{{ t('rathausDialog.emptyState') }}</div>
-        </div>
+          </div>
+        </PixelScrollBox>
 
         <!-- Upgrade section -->
         <div class="rh-upgrade">
@@ -74,6 +76,7 @@ import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO, buildingTitle } from './buildings/buildingInfo.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
@@ -138,7 +141,8 @@ async function upgradeRathaus() {
 
 .rh-section-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; }
 
-.rh-assign-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+.rh-assign-list { max-height: 240px; }
+.rh-assign-rows { display: flex; flex-direction: column; gap: 6px; }
 .rh-assign-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
 .rh-assign-idle { opacity: 0.75; }
 .rh-assign-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); flex: 1; }

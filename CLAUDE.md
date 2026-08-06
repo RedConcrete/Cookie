@@ -39,7 +39,9 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
 Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
 Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint),
-Lokalisierung DE/EN (vue-i18n, Sprachumschalter in den Einstellungen).
+Lokalisierung DE/EN (vue-i18n, Sprachumschalter in den Einstellungen), custom
+Pixel-Scrollbar (`PixelScrollBox.vue`) + animierte Lade-Anzeige
+(`LoadingIndicator.vue`) in allen scrollenden Dialogen.
 
 ## Lokalisierung (i18n)
 

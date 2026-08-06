@@ -42,7 +42,7 @@
             </template>
           </div>
         </div>
-      </div>
+      </PixelScrollBox>
 
       <div class="bs-footer">
         <span>{{ t('buildShopDialog.cookiesLabel') }} <b>{{ fmt(playerStore.cookies) }}</b></span>
@@ -60,6 +60,7 @@ import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO } from './buildings/buildingInfo.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
@@ -126,7 +127,7 @@ onMounted(async () => {
 }
 .bs-notice.error { color: #764032; background: #fff1a9; border-color: var(--px-red); }
 
-.bs-list { overflow-y: auto; flex: 1; }
+.bs-list { flex: 1 1 auto; min-height: 0; }
 
 .bs-row {
   display: flex; align-items: center; gap: 12px; padding: 12px 18px;

@@ -22,7 +22,8 @@
       </div>
     </div>
 
-    <div class="mv-table px-scroll">
+    <PixelScrollBox class="mv-table">
+      <div class="mv-table-inner">
       <div class="mv-row mv-head">
         <div></div><div>{{ t('marketView.colResource') }}</div><div>{{ t('marketView.colPrice') }}</div><div>{{ t('marketView.colTrend') }}</div><div>{{ t('marketView.colStock') }}</div><div>{{ t('marketView.colQty') }}</div><div>{{ t('marketView.colAction') }}</div>
         <div class="mv-col-cost">{{ t('marketView.colCost') }} &darr;</div>
@@ -61,7 +62,8 @@
           </div>
         </PixelInfoPopover>
       </div>
-    </div>
+      </div>
+    </PixelScrollBox>
 
     <div v-if="errorMsg" class="err-overlay" @click.self="errorMsg = null">
       <div class="err-dialog">
@@ -83,6 +85,7 @@ import { useAudio } from '../composables/useAudio.js'
 import PriceChart from '../components/PriceChart.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
+import PixelScrollBox from '../components/pixel/PixelScrollBox.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
@@ -214,7 +217,8 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 
 .mv-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--px-wood3); border: 2px solid var(--px-ink); }
 
-.mv-table { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 16px; background: var(--px-cream2); display: flex; flex-direction: column; gap: 3px; }
+.mv-table { flex: 1 1 auto; min-height: 0; background: var(--px-cream2); }
+.mv-table-inner { padding: 10px 16px; display: flex; flex-direction: column; gap: 3px; }
 .mv-row {
   display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 130px 190px 200px;
   gap: 10px; align-items: center; padding: 7px 10px; min-width: 900px;

@@ -156,6 +156,36 @@ spezifiziert ist:
   auf weitere Sprachen ausgelegt (neuer `locales/<code>/`-Ordner genügt).
   Backend-seitige Texte (z. B. Fehlermeldungen, Gebäude-/Item-Namen aus
   der DB) bleiben deutsch — nicht Teil dieser Umstellung.
+- [x] **Custom Pixel-Scrollbar + Lade-Animation** — erledigt 2026-08-06.
+  Native `::-webkit-scrollbar`-Optik ließ sich nicht auf den exakten
+  3D-Block-Look der Slider (`.sd-slider`) bringen (Browser begrenzt Border/
+  Bevel auf der echten Scrollbar); stattdessen neue Komponente
+  `frontend/src/components/pixel/PixelScrollBox.vue` — versteckt die native
+  Scrollbar, zeichnet Track/Thumb selbst (identischer Border/Bevel wie die
+  Slider), inkl. Drag-to-Scroll und Klick-auf-Track. Ersetzt die alte
+  `.px-scroll`-Utility-Klasse (aus `pixel.css` entfernt) an allen 12
+  Stellen, die vorher scrollten. Neue Lade-Anzeige
+  `frontend/src/components/pixel/LoadingIndicator.vue` (drehendes
+  Cookie-Icon + Punkte-Animation `...`→`..`→`.`→`..`) ersetzt den reinen
+  "Lade..."-Text an allen 7 Ladeanzeigen.
+  **Für neue scrollende Dialoge:** `PixelScrollBox` verwenden statt
+  nativem `overflow:auto` — braucht vom Elternelement eine definierte Höhe
+  (fixe `height`, oder `flex:1 1 auto;min-height:0` in einer Flex-Column
+  mit `max-height` auf dem Container). Wichtige Falle dabei: `flex:1`
+  (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
+  `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
+  verwenden, siehe `SettingsDialog.vue`/`AdminDialog.vue` als Vorbild.
+- [ ] **Prestige-Dialog lud nicht (2026-08-06 gemeldet)** — Symptom: leerer
+  Dialog ohne Fehlermeldung. Ursache im Frontend gefunden und behoben:
+  `PrestigeView.vue`s `load()` hatte kein `catch`, ein fehlgeschlagener
+  API-Call blieb still (Dialog blieb leer statt Fehler zu zeigen) — jetzt
+  wird `t('common.error')` + die Server-Fehlermeldung angezeigt. Die
+  eigentliche Root Cause (warum der Call fehlschlägt) ist **noch nicht
+  bestätigt** — Rückmeldung vom Spieler steht aus, welcher Fehlertext jetzt
+  erscheint. Erst dann klären, ob es ein Backend-Problem ist (evtl. im
+  Zusammenhang mit den zeitgleichen Änderungen an `UserEntity`/
+  `BakeService`/`UpgradeService`/`UserService`, die schon vor dieser Session
+  als uncommitted im Repo lagen).
 - [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
   fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
   Backzeit, Upgrade-Kostenkurven) sind nie in einer echten Testphase

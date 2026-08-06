@@ -13,7 +13,8 @@
           <button class="orden-filter" :class="{ active: filter === 'COMMUNITY' }" @click="filter = 'COMMUNITY'">{{ t('ordenDialog.filterCommunity', { count: countOf('COMMUNITY') }) }}</button>
           <span class="orden-sort-hint">{{ t('ordenDialog.sortHint') }}</span>
         </div>
-        <div class="orden-list px-scroll">
+        <PixelScrollBox class="orden-list">
+          <div class="orden-list-inner">
           <div v-for="m in filtered" :key="m.id" class="orden-item">
             <div class="orden-plate" :style="{ background: m.color }">
               <PixelIcon :name="m.icon" :size="32" />
@@ -28,7 +29,8 @@
             </div>
           </div>
           <div v-if="!filtered.length" class="orden-empty">{{ t('ordenDialog.emptyList') }}</div>
-        </div>
+          </div>
+        </PixelScrollBox>
       </div>
 
       <div v-if="isAdmin" class="orden-box px-panel">
@@ -36,7 +38,8 @@
           <span>{{ t('ordenDialog.adminTitle') }}</span>
           <span class="orden-admin-badge">{{ t('ordenDialog.adminOnlyBadge') }}</span>
         </div>
-        <div class="orden-admin-body px-scroll">
+        <PixelScrollBox class="orden-admin-body">
+          <div class="orden-admin-body-inner">
           <div>
             <div class="orden-label">{{ t('ordenDialog.playerLabel') }}</div>
             <div class="orden-search">
@@ -75,7 +78,8 @@
           </div>
 
           <div class="orden-hint">{{ t('ordenDialog.adminHint') }}</div>
-        </div>
+          </div>
+        </PixelScrollBox>
       </div>
 
     </div>
@@ -86,6 +90,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBadges } from '../composables/useBadges.js'
 import { useAudio } from '../composables/useAudio.js'
 
@@ -132,7 +137,8 @@ function grantBadge() {
 .orden-filter.active { background: var(--px-cream); border-color: var(--px-brown2); color: var(--px-ink-txt); }
 .orden-sort-hint { margin-left: auto; font-size: 13px; color: var(--px-tan-ink); }
 
-.orden-list { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.orden-list { flex: 1 1 auto; min-height: 0; }
+.orden-list-inner { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .orden-item { display: grid; grid-template-columns: 56px 1fr 116px; gap: 14px; align-items: center; padding: 12px; background: var(--px-cream2); border: 3px solid var(--px-brown2); }
 .orden-item:hover { background: #fff1a9; }
 .orden-plate { width: 48px; height: 48px; border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 rgba(0,0,0,.25), inset 2px 2px 0 rgba(255,255,255,.35); display: flex; align-items: center; justify-content: center; }
@@ -145,7 +151,8 @@ function grantBadge() {
 
 .admin-bar { background: #402e2b; }
 .orden-admin-badge { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 4px 7px; background: var(--px-red); color: #fff1a9; border: 3px solid var(--px-ink); }
-.orden-admin-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.orden-admin-body { flex: 1 1 auto; min-height: 0; }
+.orden-admin-body-inner { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 .orden-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 7px; }
 
 .orden-search { display: flex; border: 3px solid var(--px-ink); }

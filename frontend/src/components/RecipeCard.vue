@@ -20,9 +20,11 @@
     </div>
 
     <!-- ── Right: selected recipe ─────────────────────── -->
-    <div class="rc-right px-scroll">
+    <div class="rc-right">
       <button class="px-close rc-close" @click="emit('close')">&times;</button>
 
+      <PixelScrollBox class="rc-scroll">
+      <div class="rc-scroll-inner">
       <template v-if="selected">
         <div class="rc-heading">{{ selected.name.toUpperCase() }}</div>
 
@@ -96,6 +98,8 @@
 
         <div v-if="feedback" class="rc-feedback" :class="feedbackType">{{ feedback }}</div>
       </div>
+      </div>
+      </PixelScrollBox>
     </div>
   </div>
 </template>
@@ -106,6 +110,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBakeStore }   from '../stores/bake.js'
 import { bakeStart, bakeClaim } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
@@ -245,9 +250,11 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
 
 .rc-right {
-  flex: 1; background: var(--px-cream); padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;
-  position: relative; overflow-y: auto;
+  flex: 1; background: var(--px-cream); position: relative;
+  display: flex; flex-direction: column; overflow: hidden;
 }
+.rc-scroll { flex: 1 1 auto; min-height: 0; }
+.rc-scroll-inner { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
 .rc-close { position: absolute; top: 12px; right: 14px; }
 .rc-heading { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); padding-right: 24px; }
 .rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 8px; }

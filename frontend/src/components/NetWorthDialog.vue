@@ -9,7 +9,8 @@
       <div class="nw-layout">
 
         <!-- ── Links: Breakdown ───────────────────────── -->
-        <div class="nw-left px-scroll">
+        <PixelScrollBox class="nw-left">
+          <div class="nw-left-inner">
 
           <div class="nw-section-label">{{ t('netWorthDialog.breakdownLabel') }}</div>
 
@@ -56,7 +57,8 @@
               <span class="stat-val accent">{{ fmtBig(nw.netWorth) }} C</span>
             </div>
           </template>
-        </div>
+          </div>
+        </PixelScrollBox>
 
         <!-- ── Rechts: Chart ──────────────────────────── -->
         <div class="nw-right">
@@ -97,6 +99,7 @@ import {
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { getNetWorth, getNetWorthHistory } from '../services/api.js'
 import { usePlayerStore } from '../stores/player.js'
@@ -355,12 +358,8 @@ onUnmounted(() => {
 }
 
 /* ── Links ─────────────────────────────────────── */
-.nw-left {
-  width: 280px; flex-shrink: 0;
-  padding: 16px; border-right: 3px solid var(--px-tan);
-  display: flex; flex-direction: column; gap: 8px;
-  overflow-y: auto;
-}
+.nw-left { width: 280px; flex-shrink: 0; border-right: 3px solid var(--px-tan); }
+.nw-left-inner { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 
 .nw-section-label {
   font-family: 'Silkscreen', monospace; font-size: 10px;
