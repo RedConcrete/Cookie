@@ -175,17 +175,25 @@ spezifiziert ist:
   (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
   `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
   verwenden, siehe `SettingsDialog.vue`/`AdminDialog.vue` als Vorbild.
-- [ ] **Prestige-Dialog lud nicht (2026-08-06 gemeldet)** — Symptom: leerer
-  Dialog ohne Fehlermeldung. Ursache im Frontend gefunden und behoben:
-  `PrestigeView.vue`s `load()` hatte kein `catch`, ein fehlgeschlagener
-  API-Call blieb still (Dialog blieb leer statt Fehler zu zeigen) — jetzt
-  wird `t('common.error')` + die Server-Fehlermeldung angezeigt. Die
-  eigentliche Root Cause (warum der Call fehlschlägt) ist **noch nicht
-  bestätigt** — Rückmeldung vom Spieler steht aus, welcher Fehlertext jetzt
-  erscheint. Erst dann klären, ob es ein Backend-Problem ist (evtl. im
-  Zusammenhang mit den zeitgleichen Änderungen an `UserEntity`/
-  `BakeService`/`UpgradeService`/`UserService`, die schon vor dieser Session
-  als uncommitted im Repo lagen).
+- [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
+  im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
+  Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)
+  ist also nicht die Ursache; der eigentliche Frontend-Bug (`loading` wird nach
+  erfolgreicher Antwort nicht auf `false` gesetzt) wurde nicht mehr weiter
+  verfolgt, da das Prestige-System laut Spieler ohnehin nicht in der aktuellen
+  Form bleibt, sondern später neu gebaut wird. Deshalb komplett aus der Spieler-UI
+  entfernt statt gefixt: HUD-Button + `<PrestigeDialog>` aus `FarmGridView.vue`
+  raus, `PrestigeDialog.vue`/`PrestigeView.vue` gelöscht, dazugehörige
+  Locale-Dateien (`prestigeDialog.json`/`prestigeView.json`, de+en) gelöscht.
+  **Bewusst NICHT angetastet:** Backend (`PrestigeService`, `GameController`,
+  `UserEntity`-Felder `prestigeLevel`/`totalPrestiges`), `GameBalanceConfig`
+  inkl. der zugehörigen Felder im `AdminDialog.vue` (Marktdaten-Panel), und
+  `playerStore.prestigeMultiplier` (bleibt bei Default `1`, fließt weiterhin in
+  die Ernte-Formel in `FarmGridView.vue` ein, `loadPrestigeMultiplier()` läuft
+  unverändert beim Player-Init und funktioniert nachweislich). Beim Neubau des
+  Prestige-Systems: diese Altlasten (Backend-Endpoints, Admin-Felder,
+  `prestigeMultiplier`-Anbindung) sind noch da und wiederverwendbar, statt von
+  Null anzufangen.
 - [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
   fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
   Backzeit, Upgrade-Kostenkurven) sind nie in einer echten Testphase

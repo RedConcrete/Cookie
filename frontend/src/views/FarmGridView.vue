@@ -49,7 +49,6 @@
         <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" :title="t('farmGridView.devResetTitle')">&#8635; {{ t('farmGridView.devResetLabel') }}</button>
         <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="dialog = 'admin'" :title="t('farmGridView.devAdminTitle')">&#9881; {{ t('farmGridView.devAdminLabel') }}</button>
         <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">{{ t('farmGridView.upgradesLabel') }}</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'prestige'">{{ t('farmGridView.prestigeLabel') }}</button>
         <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">{{ t('farmGridView.leaderboardLabel') }}</button>
         <button class="px-btn" @click="dialog = 'settings'" :title="t('farmGridView.settingsTitle')">&#9776;</button>
         <button class="hud-avatar" @click="dialog = 'profile'" :title="t('farmGridView.profileTitle')">
@@ -123,7 +122,6 @@
     <BakeDialog         v-if="dialog === 'bake'"        @close="dialog = null" />
     <BuildingDetailDialog v-if="detailBuilding"         :building="detailBuilding" @close="detailBuilding = null" />
     <UpgradeDialog      v-if="dialog === 'upgrades'"    @close="dialog = null" />
-    <PrestigeDialog     v-if="dialog === 'prestige'"    @close="dialog = null" />
     <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
     <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
     <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
@@ -215,7 +213,6 @@ import MarketDialog from '../components/MarketDialog.vue'
 import BakeDialog from '../components/BakeDialog.vue'
 import BuildingDetailDialog from '../components/BuildingDetailDialog.vue'
 import UpgradeDialog from '../components/UpgradeDialog.vue'
-import PrestigeDialog from '../components/PrestigeDialog.vue'
 import LeaderboardDialog from '../components/LeaderboardDialog.vue'
 import SettingsDialog from '../components/SettingsDialog.vue'
 import PlayerProfileDialog from '../components/PlayerProfileDialog.vue'

@@ -46,7 +46,7 @@ alles andere läuft im laufenden Betrieb.
 | Rezept-Varianten + Bake-Timer | ✅ | ✅ | spielbar (3 Rezepte) |
 | Upgrade-System (Boosts + Kapazität) | ✅ | ✅ | spielbar |
 | Net Worth / History-Graph | ✅ | ✅ | spielbar |
-| Prestige | ✅ | ✅ | spielbar |
+| Prestige | ✅ | – | UI entfernt 2026-08-06, Backend bleibt (Abschnitt 11) |
 | Season-Reset | ✅ | ✅ (Admin) | spielbar, siehe Lücke in Abschnitt 12 |
 | Leaderboard / Profil | ✅ | ✅ | spielbar |
 | Pixel-Art-Rework (Abschnitt 8) | – | ✅ | fertig, kein Plan mehr |
@@ -306,6 +306,14 @@ Lifetime gebackene Cookies, Upgrade-Liste, Season-Historie.
 ---
 
 ## 11. Prestige & Season
+
+**Prestige-UI aktuell entfernt (2026-08-06)** — Spieler-seitiger Dialog/HUD-
+Button wurden aus dem Frontend genommen (Details: `ROADMAP.md` Abschnitt 4),
+das System wird neu gebaut. Backend (Endpoints, `UserEntity`-Felder,
+`GameBalanceConfig`) und `playerStore.prestigeMultiplier` (fließt weiter in
+die Ernte-Formel ein, bleibt bis zum ersten Prestige bei `1`) bestehen
+weiter — unten beschriebene Mechanik ist der Ist-Stand des Backends, nicht
+mehr über die UI erreichbar.
 
 **Prestige** — freiwillig pro Spieler, vom Rang komplett entkoppelt:
 ```
