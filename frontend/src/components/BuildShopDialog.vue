@@ -9,7 +9,7 @@
 
       <div class="bs-notice" v-if="notice" :class="{ error: noticeError }">{{ notice }}</div>
 
-      <div class="bs-list px-scroll">
+      <PixelScrollBox class="bs-list">
         <div
           v-for="b in buildings" :key="b.id"
           class="bs-row"

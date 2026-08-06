@@ -6,7 +6,7 @@
       <div class="rc-left-title">{{ t('recipeCard.title') }}</div>
       <div class="rc-rule"></div>
 
-      <div v-if="!recipes.length" class="rc-loading">{{ t('common.loading') }}</div>
+      <div v-if="!recipes.length" class="rc-loading"><LoadingIndicator /></div>
 
       <nav class="rc-index">
         <button
@@ -105,6 +105,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import { useBakeStore }   from '../stores/bake.js'
 import { bakeStart, bakeClaim } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'

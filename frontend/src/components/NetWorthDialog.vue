@@ -42,7 +42,7 @@
             </div>
           </div>
 
-          <div v-else class="nw-loading">{{ t('common.loading') }}</div>
+          <div v-else class="nw-loading"><LoadingIndicator /></div>
 
           <div class="nw-divider"></div>
 
@@ -96,6 +96,7 @@ import {
   LinearScale, TimeScale, Tooltip, Legend
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { getNetWorth, getNetWorthHistory } from '../services/api.js'
 import { usePlayerStore } from '../stores/player.js'

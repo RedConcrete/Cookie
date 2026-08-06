@@ -1,12 +1,13 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="ad-box px-panel px-scroll">
+    <div class="ad-box px-panel">
       <div class="px-titlebar">
         <span>{{ t('adminDialog.title') }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
-      <div v-if="loading" class="ad-loading">{{ t('common.loading') }}</div>
+      <PixelScrollBox class="ad-scroll">
+      <div v-if="loading" class="ad-loading"><LoadingIndicator /></div>
 
       <div v-else class="ad-body">
         <div v-if="notice" class="ad-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -77,6 +78,7 @@
           </div>
         </section>
       </div>
+      </PixelScrollBox>
     </div>
   </div>
 </template>
@@ -86,6 +88,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import {
   getAdminConfig, updateAdminMarketConfig, updateAdminBalanceConfig,
   getAdminUpgrades, updateAdminUpgrade,
@@ -215,7 +219,8 @@ async function resetPlayer() {
 </script>
 
 <style scoped>
-.ad-box { width: 900px; max-width: 95vw; max-height: 88vh; overflow: auto; display: flex; flex-direction: column; }
+.ad-box { width: 900px; max-width: 95vw; max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; }
+.ad-scroll { flex: 1 1 auto; min-height: 0; }
 .ad-loading { padding: 24px; text-align: center; color: var(--px-tan-ink); }
 .ad-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
 

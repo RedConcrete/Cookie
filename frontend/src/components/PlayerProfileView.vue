@@ -1,6 +1,6 @@
 <template>
   <div class="pp-root">
-    <div v-if="loading" class="pp-loading">{{ t('common.loading') }}</div>
+    <div v-if="loading" class="pp-loading"><LoadingIndicator /></div>
 
     <template v-else-if="data">
       <div class="pp-header">
@@ -65,6 +65,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getProfile, avatarSrc } from '../services/api.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import OrdenDialog from './OrdenDialog.vue'

@@ -1,6 +1,6 @@
 <template>
   <div class="pv-root">
-    <div v-if="loading" class="pv-loading">{{ t('common.loading') }}</div>
+    <div v-if="loading" class="pv-loading"><LoadingIndicator /></div>
     <div v-else-if="loadError" class="pv-locked">{{ t('common.error') }}: {{ loadError }}</div>
 
     <template v-else-if="status">
@@ -57,6 +57,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getPrestigeStatus, doPrestige, initGame } from '../services/api.js'
 import NestedTooltip from './NestedTooltip.vue'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()

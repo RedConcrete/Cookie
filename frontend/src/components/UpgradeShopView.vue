@@ -1,6 +1,6 @@
 <template>
   <div class="us-root">
-    <div v-if="loading" class="us-loading">{{ t('common.loading') }}</div>
+    <div v-if="loading" class="us-loading"><LoadingIndicator /></div>
 
     <template v-else>
       <div class="us-groups">
@@ -47,6 +47,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buyUpgrade, initGame } from '../services/api.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 

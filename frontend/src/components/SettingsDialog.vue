@@ -1,11 +1,12 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="sd-box px-panel px-scroll">
+    <div class="sd-box px-panel">
       <div class="px-titlebar">
         <span>{{ t('settings.title') }}</span>
         <button class="px-close" @click="emit('close')">&times;</button>
       </div>
 
+      <PixelScrollBox class="sd-scroll">
       <div class="sd-body">
         <PixelSection :title="t('settings.language')">
           <div class="sd-lang-row">
@@ -68,6 +69,7 @@
 
         <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame">{{ t('settings.exitGame') }}</button>
       </div>
+      </PixelScrollBox>
     </div>
   </div>
 </template>
@@ -80,6 +82,7 @@ import { useCameraControls } from '../composables/useCameraControls.js'
 import { setLocale, SUPPORTED_LOCALES } from '../i18n/index.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelSection from './pixel/PixelSection.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
@@ -130,7 +133,8 @@ function exitGame() {
 </script>
 
 <style scoped>
-.sd-box { width: 420px; max-width: 95vw; max-height: 90vh; overflow: auto; }
+.sd-box { width: 420px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.sd-scroll { flex: 1 1 auto; min-height: 0; }
 .sd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
 .sd-lang-row { display: flex; gap: 10px; padding: 4px 10px 10px; }

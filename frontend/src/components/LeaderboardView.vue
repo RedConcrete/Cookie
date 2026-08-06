@@ -1,6 +1,6 @@
 <template>
   <div class="lv-root">
-    <div v-if="loading" class="lv-loading">{{ t('common.loading') }}</div>
+    <div v-if="loading" class="lv-loading"><LoadingIndicator /></div>
 
     <template v-else>
       <div class="lv-head-row">
@@ -28,6 +28,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getLeaderboard } from '../services/api.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
