@@ -272,7 +272,11 @@ frontend/
 │   │   ├── UpgradeDialog.vue
 │   │   ├── BakeDialog.vue
 │   │   ├── ResourceBar.vue       ← Header-Ressourcenanzeige
+│   │   ├── SettingsDialog.vue    ← Einstellungen inkl. Sprachumschalter
 │   │   └── CookieSpinner.vue     ← Lade-Animation
+│   ├── i18n/
+│   │   ├── index.js              ← vue-i18n Setup (DE/EN, localStorage)
+│   │   └── locales/{de,en}/      ← ein JSON-Paar pro Komponente
 │   ├── stores/
 │   │   ├── player.js    ← Pinia: Spielerdaten, Net-Worth-Polling (10s)
 │   │   └── market.js    ← Pinia: Marktpreise + Historie
@@ -281,6 +285,15 @@ frontend/
 │       └── websocket.js  ← WS-Client mit Auto-Reconnect
 └── package.json
 ```
+
+---
+
+## Lokalisierung
+
+Deutsch + Englisch, umschaltbar über das Einstellungs-Menü im Spiel (Sprache
+wird in `localStorage` gemerkt). Umsetzung: `vue-i18n`, ein JSON-Dateipaar
+pro Komponente unter `frontend/src/i18n/locales/{de,en}/`. Weitere Sprachen
+lassen sich durch Hinzufügen eines neuen `locales/<code>/`-Ordners ergänzen.
 
 ---
 

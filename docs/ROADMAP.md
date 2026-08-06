@@ -145,6 +145,17 @@ Mit Punkt 3 oben neu bewertet, ist praktisch die gesamte Phase 1–6
 implementiert. Was laut Design-Doc noch offen oder nur teilweise
 spezifiziert ist:
 
+- [x] **Lokalisierung DE/EN** — erledigt 2026-08-06. Frontend auf
+  `vue-i18n` umgestellt (Composition API, ein JSON-Locale-Paar pro
+  Komponente unter `frontend/src/i18n/locales/{de,en}/`), Sprachumschalter
+  in `SettingsDialog.vue`, Auswahl persistiert in `localStorage`. Texte aus
+  reinen JS-Datenmodulen (`buildingInfo.js`: Gebäude-/Ressourcennamen)
+  über Key-Referenzen + Resolver-Funktion (`buildingTitle()`/
+  `resourceLabel()`) angebunden, da diese Module keinen eigenen
+  i18n-Kontext haben. Aktuell nur Deutsch/Englisch befüllt, Struktur ist
+  auf weitere Sprachen ausgelegt (neuer `locales/<code>/`-Ordner genügt).
+  Backend-seitige Texte (z. B. Fehlermeldungen, Gebäude-/Item-Namen aus
+  der DB) bleiben deutsch — nicht Teil dieser Umstellung.
 - [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
   fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
   Backzeit, Upgrade-Kostenkurven) sind nie in einer echten Testphase

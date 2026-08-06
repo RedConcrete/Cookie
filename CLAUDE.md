@@ -34,11 +34,28 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
   außerhalb der Palette, exit 1 bei Verstoß). Bestehende Gebäude-SVGs sind
   Platzhalter und davon ausgenommen (siehe `docs/ROADMAP.md`).
 
-## Aktueller Stand (2026-07-31)
+## Aktueller Stand (2026-08-06)
 
 Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
 Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
-Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint).
+Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint),
+Lokalisierung DE/EN (vue-i18n, Sprachumschalter in den Einstellungen).
+
+## Lokalisierung (i18n)
+
+Frontend nutzt `vue-i18n` (Composition API, `legacy:false`). Setup:
+`frontend/src/i18n/index.js`. Texte liegen als ein JSON-Paar pro Komponente
+unter `frontend/src/i18n/locales/{de,en}/<namespace>.json` (Namespace =
+Dateiname = Komponentenname in camelCase, automatisch per
+`import.meta.glob` gemergt). Sprache umschaltbar über Einstellungen
+(`SettingsDialog.vue`), Wahl wird in `localStorage` gespeichert.
+
+Neue Texte: in der jeweiligen Komponente `const { t } = useI18n()`
+verwenden, Key in beiden Locale-Dateien (de + en) ergänzen. Bei
+Text-Daten außerhalb von `.vue`-Dateien (z. B. `buildingInfo.js`) den Key
+in der Datenstruktur ablegen und erst in der konsumierenden Komponente
+über `t()` auflösen (siehe `buildingTitle()`/`resourceLabel()` dort als
+Vorbild) — reine JS-Module haben keinen eigenen i18n-Kontext.
 
 **Vollständige Fix-/Roadmap-Liste (Bugs, Aufräumarbeiten, Build/Deployment,
 Design-Doc-Pflege): `docs/ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob der
