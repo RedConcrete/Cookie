@@ -4,9 +4,10 @@ import cookie.server.config.AppConfig;
 import cookie.server.config.GameBalanceConfig;
 import cookie.server.config.MarketConfig;
 import cookie.server.entity.RecipeEntity;
-import cookie.server.entity.UpgradeEntity;
+import cookie.server.entity.SkillNodeEntity;
 import cookie.server.repository.RecipeRepository;
-import cookie.server.repository.UpgradeRepository;
+import cookie.server.repository.SkillNodeRepository;
+import cookie.server.service.SkillTreeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +18,7 @@ import java.util.Map;
  * Live editierbare Balance-Config fürs Admin-Panel. Aendert die laufenden
  * Spring-Beans direkt (MarketConfig/GameBalanceConfig sind Singletons, auf die
  * alle Services schon verweisen) -- kein Neustart noetig, Aenderung wirkt sofort
- * im naechsten Tick/Request. Upgrades und Rezepte sind DB-Zeilen und damit
+ * im naechsten Tick/Request. Skill-Knoten und Rezepte sind DB-Zeilen und damit
  * ohnehin schon "live", hier nur ein Edit-Endpunkt dafuer.
  */
 @RestController
@@ -27,17 +28,20 @@ public class AdminConfigController {
     private final AppConfig appConfig;
     private final MarketConfig marketConfig;
     private final GameBalanceConfig balanceConfig;
-    private final UpgradeRepository upgradeRepository;
+    private final SkillNodeRepository skillNodeRepository;
+    private final SkillTreeService skillTreeService;
     private final RecipeRepository recipeRepository;
 
     public AdminConfigController(AppConfig appConfig, MarketConfig marketConfig,
                                   GameBalanceConfig balanceConfig,
-                                  UpgradeRepository upgradeRepository,
+                                  SkillNodeRepository skillNodeRepository,
+                                  SkillTreeService skillTreeService,
                                   RecipeRepository recipeRepository) {
         this.appConfig = appConfig;
         this.marketConfig = marketConfig;
         this.balanceConfig = balanceConfig;
-        this.upgradeRepository = upgradeRepository;
+        this.skillNodeRepository = skillNodeRepository;
+        this.skillTreeService = skillTreeService;
         this.recipeRepository = recipeRepository;
     }
 
@@ -97,32 +101,41 @@ public class AdminConfigController {
         balanceConfig.setPrestigeBaseThreshold(update.getPrestigeBaseThreshold());
         balanceConfig.setPrestigeThresholdGrowth(update.getPrestigeThresholdGrowth());
         balanceConfig.setPrestigeMultiplierPerLevel(update.getPrestigeMultiplierPerLevel());
+        balanceConfig.setSkillPointBaseCost(update.getSkillPointBaseCost());
+        balanceConfig.setSkillPointCostGrowth(update.getSkillPointCostGrowth());
 
         return ResponseEntity.ok(balanceConfig);
     }
 
-    // ── Upgrades ─────────────────────────────────────────────────────
+    // ── Skill Tree ───────────────────────────────────────────────────
 
-    @GetMapping("/upgrades")
-    public ResponseEntity<?> listUpgradesAdmin(
+    @GetMapping("/skilltree/nodes")
+    public ResponseEntity<?> listSkillNodesAdmin(
             @RequestHeader(value = "X-Admin-Token", required = false) String token) {
         if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
-        return ResponseEntity.ok(upgradeRepository.findAll());
+        return ResponseEntity.ok(skillNodeRepository.findAll());
     }
 
-    @PutMapping("/upgrades/{id}")
-    public ResponseEntity<?> updateUpgrade(
+    @PutMapping("/skilltree/nodes/{id}")
+    public ResponseEntity<?> updateSkillNode(
             @PathVariable String id,
             @RequestHeader(value = "X-Admin-Token", required = false) String token,
-            @RequestBody UpgradeEntity update) {
+            @RequestBody SkillNodeEntity update) {
         if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
-        UpgradeEntity existing = upgradeRepository.findById(id).orElseThrow(
-                () -> new java.util.NoSuchElementException("Upgrade not found: " + id));
+        SkillNodeEntity existing = skillNodeRepository.findById(id).orElseThrow(
+                () -> new java.util.NoSuchElementException("Skill node not found: " + id));
 
-        existing.setBaseCost(update.getBaseCost());
-        existing.setEffectPerLevel(update.getEffectPerLevel());
-        existing.setMaxLevel(update.getMaxLevel());
-        return ResponseEntity.ok(upgradeRepository.save(existing));
+        existing.setName(update.getName());
+        existing.setDescription(update.getDescription());
+        existing.setBranch(update.getBranch());
+        existing.setEffectType(update.getEffectType());
+        existing.setTargetResource(update.getTargetResource());
+        existing.setEffectValue(update.getEffectValue());
+        existing.setX(update.getX());
+        existing.setY(update.getY());
+        SkillNodeEntity saved = skillNodeRepository.save(existing);
+        skillTreeService.refreshCache();
+        return ResponseEntity.ok(saved);
     }
 
     // ── Rezepte ──────────────────────────────────────────────────────

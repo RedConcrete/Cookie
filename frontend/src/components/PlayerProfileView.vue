@@ -39,10 +39,10 @@
       </div>
 
       <div class="pp-section">
-        <div class="pp-label">{{ t('playerProfileView.upgradesTitle') }}</div>
+        <div class="pp-label">{{ t('playerProfileView.skillTreeTitle') }}</div>
         <div class="pp-upgrades">
-          <div v-for="u in activeUpgrades" :key="u.id" class="pp-upgrade-chip">{{ u.name }} &middot; {{ t('playerProfileView.upgradeLevel', { level: u.currentLevel }) }}</div>
-          <div v-if="activeUpgrades.length === 0" class="pp-no-badges">{{ t('playerProfileView.noUpgrades') }}</div>
+          <div v-for="n in allocatedSkillNodes" :key="n.id" class="pp-upgrade-chip">{{ n.name }}</div>
+          <div v-if="allocatedSkillNodes.length === 0" class="pp-no-badges">{{ t('playerProfileView.noSkillNodes') }}</div>
         </div>
       </div>
 
@@ -80,12 +80,12 @@ const ordenOpen = ref(false)
 const avatarError = ref(false)
 const profileAvatarSrc = computed(() => avatarError.value ? null : avatarSrc(data.value?.avatarUrl))
 
-const activeUpgrades = computed(() => (data.value?.upgrades ?? []).filter(u => u.currentLevel > 0))
+const allocatedSkillNodes = computed(() => data.value?.skillNodes ?? [])
 
 const stats = computed(() => !data.value ? [] : [
   { label: t('playerProfileView.statCookies'), val: fmtBig(data.value.cookies) },
   { label: t('playerProfileView.statResourceValue'), val: fmtBig(data.value.resourceValue) },
-  { label: t('playerProfileView.statUpgradeValue'), val: fmtBig(data.value.upgradeValue) },
+  { label: t('playerProfileView.statSkillTreeValue'), val: fmtBig(data.value.skillTreeValue) },
   { label: t('playerProfileView.statLifetimeBaked'), val: fmtBig(data.value.lifetimeCookiesBaked) },
 ])
 

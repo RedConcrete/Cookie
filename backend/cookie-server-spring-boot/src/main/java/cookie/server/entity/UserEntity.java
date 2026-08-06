@@ -70,6 +70,15 @@ public class UserEntity {
     @Column(name = "owned_citizens", columnDefinition = "integer default 0")
     private int ownedCitizens = 0;
 
+    @Column(name = "skill_points", columnDefinition = "integer default 0")
+    private int skillPoints = 0;
+
+    @Column(name = "total_skill_points_bought", columnDefinition = "integer default 0")
+    private int totalSkillPointsBought = 0;
+
+    @Column(name = "total_skill_point_cookies_spent", columnDefinition = "double precision default 0")
+    private double totalSkillPointCookiesSpent = 0;
+
     public String getSteamId() {
         return steamId;
     }
@@ -212,6 +221,15 @@ public class UserEntity {
 
     public boolean isWorkersIdle() { return workersIdle; }
     public void setWorkersIdle(boolean workersIdle) { this.workersIdle = workersIdle; }
+
+    public int getSkillPoints() { return skillPoints; }
+    public void setSkillPoints(int skillPoints) { this.skillPoints = skillPoints; }
+
+    public int getTotalSkillPointsBought() { return totalSkillPointsBought; }
+    public void setTotalSkillPointsBought(int totalSkillPointsBought) { this.totalSkillPointsBought = totalSkillPointsBought; }
+
+    public double getTotalSkillPointCookiesSpent() { return totalSkillPointCookiesSpent; }
+    public void setTotalSkillPointCookiesSpent(double totalSkillPointCookiesSpent) { this.totalSkillPointCookiesSpent = totalSkillPointCookiesSpent; }
     public int getOwnedCitizens() { return ownedCitizens; }
     public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
 }

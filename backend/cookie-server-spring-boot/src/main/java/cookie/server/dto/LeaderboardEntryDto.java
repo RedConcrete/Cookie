@@ -7,7 +7,7 @@ public class LeaderboardEntryDto {
     private double netWorth;
     private double cookies;
     private double resourceValue;
-    private double upgradeValue;
+    private double skillTreeValue;
 
     public int getRank() { return rank; }
     public void setRank(int rank) { this.rank = rank; }
@@ -27,6 +27,6 @@ public class LeaderboardEntryDto {
     public double getResourceValue() { return resourceValue; }
     public void setResourceValue(double resourceValue) { this.resourceValue = resourceValue; }
 
-    public double getUpgradeValue() { return upgradeValue; }
-    public void setUpgradeValue(double upgradeValue) { this.upgradeValue = upgradeValue; }
+    public double getSkillTreeValue() { return skillTreeValue; }
+    public void setSkillTreeValue(double skillTreeValue) { this.skillTreeValue = skillTreeValue; }
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { initGame, getBuildingLayout, buyCitizens as apiBuyCitizens, getUpgrades, getPrestigeStatus } from '../services/api.js'
+import { initGame, getBuildingLayout, buyCitizens as apiBuyCitizens, getSkillTree, getPrestigeStatus } from '../services/api.js'
 import { connectMarketWebSocket } from '../services/websocket.js'
 import { useMarketStore } from './market.js'
 
@@ -35,11 +35,11 @@ export const usePlayerStore = defineStore('player', () => {
   const recipes       = ref([])
   const ownedBuildings = ref([])  // PlayerBuildingDto[], all buildings (level 0 = not owned)
 
-  // Shared across the app (UpgradeShopView, PrestigeView, FarmGridView's harvest
+  // Shared across the app (SkillTreeView, PrestigeView, FarmGridView's harvest
   // prediction) so there's one fetch each, refreshed on the actions that actually
-  // change them (buy an upgrade, prestige) instead of every consumer polling its
-  // own copy on a blind interval.
-  const upgrades           = ref([])  // UpgradeWithStatusDto[]
+  // change them (buy a skill point, allocate a node, prestige) instead of every
+  // consumer polling its own copy on a blind interval.
+  const skillTree = ref({ nodes: [], edges: [], skillPoints: 0, totalSkillPointsBought: 0, totalSkillPointCookiesSpent: 0, nextPointCost: 0 })
   const prestigeMultiplier = ref(1)
 
   const marketStore = useMarketStore()
@@ -54,15 +54,15 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   // Net worth: computed purely from state already held client-side (cookies,
-  // resources, live market prices via the WebSocket, cumulative upgrade spend)
+  // resources, live market prices via the WebSocket, cumulative skill tree spend)
   // instead of polling a dedicated backend endpoint every few seconds for the
   // HUD's live ticker. The backend stays authoritative for the leaderboard,
   // profile, and prestige eligibility -- those still ask the server directly.
   const nwCookies   = computed(() => cookies.value)
   const nwResources = computed(() => Object.entries(RESOURCE_MARKET_NAME)
     .reduce((sum, [key, name]) => sum + resourceValue(key) * marketStore.priceOf(name), 0))
-  const nwUpgrades  = computed(() => upgrades.value.reduce((s, u) => s + (u.totalSpent ?? 0), 0))
-  const netWorth    = computed(() => nwCookies.value + nwResources.value + nwUpgrades.value)
+  const nwSkillTreeValue = computed(() => skillTree.value.totalSkillPointCookiesSpent ?? 0)
+  const netWorth    = computed(() => nwCookies.value + nwResources.value + nwSkillTreeValue.value)
 
   function resourceValue(key) {
     return { sugar, flour, eggs, butter, chocolate, milk }[key].value
@@ -83,7 +83,7 @@ export const usePlayerStore = defineStore('player', () => {
         marketStore.setHistory(snapshots)
       })
 
-      await Promise.all([loadUpgrades(), loadPrestigeMultiplier()])
+      await Promise.all([loadSkillTree(), loadPrestigeMultiplier()])
     } catch (e) {
       error.value = e.message
       console.error('[Player] Init failed', e)
@@ -92,9 +92,9 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  async function loadUpgrades() {
+  async function loadSkillTree() {
     if (!steamId.value) return
-    try { upgrades.value = await getUpgrades(steamId.value) } catch {}
+    try { skillTree.value = await getSkillTree(steamId.value) } catch {}
   }
 
   async function loadPrestigeMultiplier() {
@@ -136,8 +136,8 @@ export const usePlayerStore = defineStore('player', () => {
     steamId, displayName, avatarUrl, cookies, sugar, flour, eggs, butter, chocolate, milk,
     workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
-    upgrades, prestigeMultiplier, loadUpgrades, loadPrestigeMultiplier,
-    netWorth, nwCookies, nwResources, nwUpgrades, loading, error, recipes,
+    skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
+    netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, recipes,
     init, updateFromDto, loadBuildings, buyCitizenAction,
   }
 })

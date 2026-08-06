@@ -263,26 +263,74 @@ zeigt weiterhin `lager.svg`).
 
 ---
 
-## 9. Upgrade-System (Cookie-Sink)
+## 9. Skill-Baum (Cookie-Sink)
 
-Zwei verbliebene Typen (Automatisierung/Typ-B ist mit dem Bürger-System
-entfallen, Gebäude/Typ-D läuft jetzt über Abschnitt 4, nicht mehr hier):
+Ersetzt das alte Upgrade-System vollständig (2026-08-06) — Path-of-Exile-
+artiger Passiv-Baum: Spieler kaufen mit Cookies **Skill-Punkte**, die dann
+gegen einzelne **Knoten** im Baum eingetauscht werden (binäre Freischaltung,
+keine Stufen/Level). Ein Knoten ist nur wählbar, wenn er über eine Kante an
+einen bereits freigeschalteten Knoten angrenzt (PoE-Connectivity-Regel,
+Wurzel `root` ist implizit für jeden Spieler freigeschaltet).
 
-**A) Boosts** — permanente Stat-Multiplikatoren
-- *Schärferes Werkzeug*: +0.5 Ressourcen pro Ernte-Tick
-- *Turbopflücker*: −100 ms Ernte-Intervall pro Stufe (Basis 1000 ms, Min 200 ms, max Stufe 8)
-- *Große Schüssel*: +10 % Cookie-Ausbeute pro Backen-Batch
-
-Kapazität/Typ-C ("Zweiter Ofen") entfernt (2026-08-06) — nur 1 Bake-Job-Slot,
-bewusst kein Mehrfach-Slot-Upgrade mehr (siehe Abschnitt 7).
-
-**Kostenkurve** (alle Upgrades hier):
+**Skill-Punkt-Kosten** (unabhängig vom Knotenpreis, 1 Knoten = 1 Punkt):
 ```
-cost(level) = baseCost × 1.15^level
+cost(n) = skillPointBaseCost × skillPointCostGrowth^n   // n = totalSkillPointsBought
+        = 150 × 1.4^n                                     // Default-Werte
 ```
+Bewusst deutlich teurer und steiler als Bürger-/Gebäude-Wachstum (Basis 50,
+Wachstum 1.15) — der Skill-Baum ist der zentrale Cookie-Sink und soll sich
+von Anfang an nach einer echten Investition anfühlen, nicht nach einem
+Nebenbei-Kauf, und auch nach vielen Punkten noch ein spürbares, langfristiges
+Ziel bleiben. Die Kehrseite: die Pro-Knoten-Effekte sind bewusst klein
+gehalten (siehe unten) — der Baum lebt vom Sammeln vieler Punkte über
+längere Spielzeit, nicht von 2–3 Käufen mit riesigem Einzeleffekt.
 
-**Wert für Net Worth:** kumulierter Kaufpreis aller Upgrade-Stufen (siehe
-Lücke zu Gebäuden in Abschnitt 12).
+**Effekt-Typen** (`enums/EffectType`): `HARVEST_YIELD`, `BAKE_OUTPUT`,
+`MARKET_FEE_REDUCTION`. `HARVEST_YIELD`-Knoten haben ein optionales
+`targetResource` (z. B. `MILK`) — `null` heißt global (gilt für jede
+Ressource), gesetzt heißt nur für diese eine Ressource. Alle Effekte eines
+Typs (+ passender Ressource) addieren sich; zentral aufgelöst über
+`SkillTreeService#getEffectTotal(userId, type, targetResource)` statt
+verstreuter Einzel-Lookups wie im alten System.
+
+**V1-Baum:** 18 Knoten + Wurzel in 4 Zweigen (Seed in
+`SkillTreeService#buildNodes/buildEdges`, admin-editierbar zur Laufzeit):
+- **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
+  +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
+- **BAKING** (global): `bake_1`…`bake_4` linear (+0.02/+0.02/+0.03/+0.05) +
+  `bake_5` als Fork ab `bake_2` (+0.04), Keystone `bake_4`
+- **MARKET** (global, Gebühren-Reduktion): `market_1`…`market_4` linear
+  (−0.5%/−0.5%/−0.75%/−1%), Keystone `market_4`
+- **CORE** (generalistisch, günstige Früh-Picks): `core_1` (+0.04 Ernte,
+  global) → `core_2` (+0.015 Backen) **und** `core_3` (−0.5% Markt) →
+  `core_4` (+0.06 Ernte, global, konvergierender Fork mit 2 eingehenden
+  Kanten, testet Mehrfach-Eltern-Konnektivität)
+
+Effektwerte bewusst klein (siehe Kostenkurve oben) — aktuelle Zahlen per
+Admin-API live nachgezogen 2026-08-06, ursprüngliche Erstwerte lagen beim
+2–3-fachen.
+
+Kalibrierung ist Platzhalter (siehe `docs/ROADMAP.md` §4, Balancing ist ein
+separater späterer Pass).
+
+**Wert für Net Worth:** `totalSkillPointCookiesSpent` (kumulierte
+Cookie-Ausgaben für Skill-Punkte, serverseitig auf `UserEntity` geführt) —
+siehe Abschnitt 10.
+
+**Admin:** volles CRUD über `/api/v1/admin/skilltree/nodes[/{id}]`
+(Name/Effekt/Wert/Position live editierbar, Cache wird nach jedem Edit
+aktualisiert), plus `skillPointBaseCost`/`skillPointCostGrowth` in der
+Balance-Config.
+
+**Bewusst nicht gebaut (v1):**
+- Kein Respec/Un-Allocate-Endpoint (einfacher Folge-Ausbau).
+- Keine serverseitige Re-Verifikation der Allokations-Kette gegen
+  Manipulation (Anti-Cheat) — Client bekommt nur Server-berechnete
+  `allocated`/`allocatable`-Flags und tut selbst keine Konnektivitäts-Logik,
+  aber es gibt keinen periodischen Job, der bestehende Allokationen erneut
+  gegen die Kanten validiert. Folgearbeit, siehe `docs/ROADMAP.md`.
+- Prestige gibt noch keine Bonus-Punkte (ursprünglich mal angedachtes
+  "+3 Skill-Punkte pro Prestige") — separates Roadmap-Item.
 
 ---
 
@@ -291,7 +339,7 @@ Lücke zu Gebäuden in Abschnitt 12).
 ```
 netWorth = cookies
          + Σ (resourceAmount_i × currentMarketPrice_i)
-         + Σ (totalSpent_j)   // über alle gekauften Upgrade-Stufen
+         + totalSkillPointCookiesSpent   // kumulierte Skill-Punkt-Ausgaben
 ```
 
 On-demand berechnet (Leaderboard-/Profilabfrage). Snapshot-History wird
@@ -301,7 +349,8 @@ History-Graph im Net-Worth-Dialog.
 
 **Leaderboard:** sortiert nach aktueller Net Worth, mit Rang.
 **Profil:** Steam-ID, Rang, Net Worth (+ Aufschlüsselung), Prestige-Level,
-Lifetime gebackene Cookies, Upgrade-Liste, Season-Historie.
+Lifetime gebackene Cookies, Liste freigeschalteter Skill-Knoten,
+Season-Historie.
 
 ---
 
@@ -321,28 +370,31 @@ threshold(level)  = 100.000 × 1.5^level
 multiplier        = 1 + 0.1 × prestigeLevel
 ```
 Ab `netWorth ≥ threshold(level)` auslösbar. Reset: Cookies, alle Rohstoffe,
-alle Upgrades, alle Bake-Jobs, **alle Gebäude** (fallen auf "nicht gebaut"
-zurück, Backhaus/Rathaus/Markt/Lager werden beim nächsten Laden automatisch
-wieder auf Stufe 1 angelegt). Bleibt erhalten: Prestige-Level (+1),
-`totalPrestiges`, der permanente Multiplikator (wirkt auf Backen-Output und
-Ernte-Menge).
+der komplette Skill-Baum (`player_skill_nodes` geleert, `skillPoints` und
+`totalSkillPointsBought` auf 0 — die Skill-Punkt-Kostenkurve geht wieder auf
+billig, anders als `totalPrestiges`), alle Bake-Jobs, **alle Gebäude**
+(fallen auf "nicht gebaut" zurück, Backhaus/Rathaus/Markt/Lager werden beim
+nächsten Laden automatisch wieder auf Stufe 1 angelegt). Bleibt erhalten:
+Prestige-Level (+1), `totalPrestiges`, der permanente Multiplikator (wirkt
+auf Backen-Output und Ernte-Menge).
 
 **Season** — globaler Reset aller Spieler, manuell ausgelöst
 (`POST /api/v1/admin/season/start`):
 - Aktuelles Leaderboard wird pro Spieler als `SeasonResult` archiviert
   (Rang, Net Worth, Prestige-Level) — erscheint später in der Profil-Historie
-- Reset: Cookies, Rohstoffe, Upgrades, Bake-Jobs, Prestige-Level **aller**
-  Spieler
+- Reset: Cookies, Rohstoffe, kompletter Skill-Baum (inkl.
+  `totalSkillPointsBought`/`totalSkillPointCookiesSpent`), Bake-Jobs,
+  Prestige-Level **aller** Spieler
 
 ---
 
 ## 12. Bekannte Lücken / Diskrepanzen zum ursprünglichen Plan
 
-- **Gebäude fließen nicht in Net Worth ein** — nur `PlayerUpgradeEntity.totalSpent`
-  wird summiert, Gebäude-Kaufpreise (`PlayerBuildingEntity`) nicht. Ursprünglicher
-  Plan sah beides vor.
+- **Gebäude fließen nicht in Net Worth ein** — nur
+  `UserEntity.totalSkillPointCookiesSpent` wird addiert, Gebäude-Kaufpreise
+  (`PlayerBuildingEntity`) nicht. Ursprünglicher Plan sah beides vor.
 - **Season-Reset löscht keine Gebäude** (`player_buildings`) — nur Cookies,
-  Ressourcen, Upgrades, Bake-Jobs, Prestige-Level. Prestige-Reset macht es
+  Ressourcen, Skill-Baum, Bake-Jobs, Prestige-Level. Prestige-Reset macht es
   korrekt (siehe Abschnitt 11). Vermutlich ein Bug, nicht bewusst so designt.
 - **Legacy-Frontend-Dateien** aus der Vor-Hof-Grid-Ära sind noch im Repo,
   aber nicht mehr geroutet (siehe Abschnitt 2) — Aufräumen offen.
@@ -358,11 +410,16 @@ Ernte-Menge).
 ```
 UserEntity            steamId, token, cookies, sugar, flour, eggs, butter,
                        chocolate, milk, lifetimeCookiesBaked, prestigeLevel,
-                       totalPrestiges, workersIdle, ownedCitizens
+                       totalPrestiges, workersIdle, ownedCitizens,
+                       skillPoints, totalSkillPointsBought,
+                       totalSkillPointCookiesSpent
 PlayerBuildingEntity   userId, buildingId, level, workers
-PlayerUpgradeEntity    userId, upgradeId, level, totalSpent
-UpgradeEntity          id, name, description, type, targetResource,
-                       baseCost, effectPerLevel, maxLevel
+SkillNodeEntity        id, name, description, branch, effectType,
+                       targetResource, effectValue, isRoot, x, y
+SkillEdgeEntity        id, fromNode, toNode (eine gerichtete Zeile pro Paar,
+                       Konnektivitäts-Check behandelt sie als ungerichtet)
+PlayerSkillNodeEntity  id (userId+"#"+nodeId), userId, nodeId
+                       (binäre Freischaltung, Wurzel wird nicht gespeichert)
 RecipeEntity           id, name, sugar, flour, eggs, butter, chocolate, milk,
                        output, bakeDurationSeconds
 BakeJobEntity          id, userId, recipeId, batches, startedAt,
@@ -371,7 +428,7 @@ MarketEntity           id, date, sugarPrice…milkPrice (Zeitreihen-Eintrag)
 MarketSnapshotEntity   komprimierte Langzeit-Preishistorie
 MarketStockEntity      Singleton-Zeile, Lagerbestand pro Ressource (AMM-Pool)
 NetWorthHistoryEntity  userId, timestamp, netWorth, cookies, resourceValue,
-                       upgradeValue
+                       skillTreeValue
 SeasonEntity           id, name, startDate, endDate, active
 SeasonResultEntity     seasonId, userId, finalNetWorth, finalRank,
                        prestigeLevelAtEnd
@@ -398,8 +455,9 @@ SeasonResultEntity     seasonId, userId, finalNetWorth, finalRank,
 | POST | `/api/v1/farm/buildings/buy/{userId}` | Gebäude bauen/ausbauen |
 | POST | `/api/v1/farm/buildings/workers/{userId}` | Bürger zuweisen/entfernen |
 | POST | `/api/v1/farm/citizens/buy/{userId}` | Bürger anwerben |
-| GET | `/api/v1/upgrades?userId=` | Upgrade-Liste + Preise |
-| POST | `/api/v1/upgrades/buy/{userId}` | Upgrade kaufen |
+| GET | `/api/v1/skilltree?userId=` | Skill-Baum (Knoten+Kanten) + Spielerstatus |
+| POST | `/api/v1/skilltree/buy-point/{userId}` | 1 Skill-Punkt kaufen |
+| POST | `/api/v1/skilltree/allocate/{userId}` | Skill-Knoten freischalten |
 | GET | `/api/v1/market/get/{amount}` | Letzte N Marktpreise |
 | GET | `/api/v1/market/all` | Marktpreise (bis 500) |
 | GET | `/api/v1/market/history` | Aggregierte Preishistorie (Chart) |
@@ -413,6 +471,7 @@ SeasonResultEntity     seasonId, userId, finalNetWorth, finalRank,
 | POST | `/api/v1/admin/reset/{userId}` | Spieler zurücksetzen (dev/Token) |
 | POST | `/api/v1/admin/market/reset` | Markt zurücksetzen (dev/Token) |
 | POST | `/api/v1/admin/season/start` | Neue Season starten (Token) |
+| GET/PUT | `/api/v1/admin/skilltree/nodes[/{id}]` | Skill-Knoten live editieren (dev/Token) — kein Frontend-Zugang mehr (Admin-Dialog entfernt 2026-08-06, nur noch curl/Token) |
 
 ---
 

@@ -46,15 +46,22 @@
       </PixelInfoPopover>
 
       <div class="hud-actions">
-        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="devReset" :title="t('farmGridView.devResetTitle')">&#8635; {{ t('farmGridView.devResetLabel') }}</button>
-        <button v-if="isDev" class="px-btn hud-dev-btn hud-desktop-only" @click="dialog = 'admin'" :title="t('farmGridView.devAdminTitle')">&#9881; {{ t('farmGridView.devAdminLabel') }}</button>
-        <button class="px-btn px-btn-accent hud-desktop-only" @click="dialog = 'upgrades'">{{ t('farmGridView.upgradesLabel') }}</button>
-        <button class="px-btn hud-desktop-only" @click="dialog = 'leaderboard'">{{ t('farmGridView.leaderboardLabel') }}</button>
-        <button class="px-btn" @click="dialog = 'settings'" :title="t('farmGridView.settingsTitle')">&#9776;</button>
-        <button class="hud-avatar" @click="dialog = 'profile'" :title="t('farmGridView.profileTitle')">
-          <img v-if="hudAvatarSrc" :src="hudAvatarSrc" alt="" class="hud-avatar-img" @error="hudAvatarError = true" />
-          <PixelIcon v-else name="einw" :size="20" />
-        </button>
+        <div class="hud-menu-wrap" ref="hudMenuRef">
+          <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">&#9776;</button>
+          <div v-if="menuOpen" class="hud-menu">
+            <button class="hud-menu-item" @click="selectMenu('profile')">
+              <span class="hud-menu-avatar">
+                <img v-if="hudAvatarSrc" :src="hudAvatarSrc" alt="" @error="hudAvatarError = true" />
+                <PixelIcon v-else name="einw" :size="14" />
+              </span>
+              {{ t('farmGridView.profileTitle') }}
+            </button>
+            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}</button>
+            <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}</button>
+            <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}</button>
+            <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectDevReset">{{ t('farmGridView.devResetLabel') }}</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -121,7 +128,7 @@
     <MarketDialog       v-if="dialog === 'market'"      @close="dialog = null" />
     <BakeDialog         v-if="dialog === 'bake'"        @close="dialog = null" />
     <BuildingDetailDialog v-if="detailBuilding"         :building="detailBuilding" @close="detailBuilding = null" />
-    <UpgradeDialog      v-if="dialog === 'upgrades'"    @close="dialog = null" />
+    <SkillTreeDialog    v-if="dialog === 'skilltree'"    @close="dialog = null" />
     <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
     <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
     <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
@@ -131,7 +138,6 @@
     <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
-    <AdminDialog        v-if="dialog === 'admin'"       @close="dialog = null" />
   </div>
 </template>
 
@@ -212,7 +218,7 @@ import CowScene       from '../components/buildings/CowScene.vue'
 import MarketDialog from '../components/MarketDialog.vue'
 import BakeDialog from '../components/BakeDialog.vue'
 import BuildingDetailDialog from '../components/BuildingDetailDialog.vue'
-import UpgradeDialog from '../components/UpgradeDialog.vue'
+import SkillTreeDialog from '../components/SkillTreeDialog.vue'
 import LeaderboardDialog from '../components/LeaderboardDialog.vue'
 import SettingsDialog from '../components/SettingsDialog.vue'
 import PlayerProfileDialog from '../components/PlayerProfileDialog.vue'
@@ -222,7 +228,6 @@ import BuildShopDialog from '../components/BuildShopDialog.vue'
 import CitizenDialog from '../components/CitizenDialog.vue'
 import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
-import AdminDialog from '../components/AdminDialog.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
@@ -239,6 +244,23 @@ watch(() => playerStore.avatarUrl, () => { hudAvatarError.value = false })
 
 const dialog = ref(null)
 const detailBuilding = ref(null)
+const menuOpen = ref(false)
+const hudMenuRef = ref(null)
+
+function selectMenu(name) {
+  dialog.value = name
+  menuOpen.value = false
+}
+function selectDevReset() {
+  devReset()
+  menuOpen.value = false
+}
+function onDocumentClick(e) {
+  if (menuOpen.value && hudMenuRef.value && !hudMenuRef.value.contains(e.target)) menuOpen.value = false
+}
+onMounted(() => document.addEventListener('mousedown', onDocumentClick))
+onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
+
 const viewEl   = ref(null)
 const canvasEl = ref(null)
 
@@ -329,7 +351,7 @@ const mobileNavItems = [
   { labelKey: 'farmGridView.navHome',        icon: 'haus',  action: () => { dialog.value = null; resetView() } },
   { labelKey: 'farmGridView.navMarket',      icon: 'stand', action: () => { dialog.value = 'market' } },
   { labelKey: 'farmGridView.navBake',        icon: 'ofen',  action: () => { dialog.value = 'bake' } },
-  { labelKey: 'farmGridView.navShop',        icon: 'shop',  action: () => { dialog.value = 'upgrades' } },
+  { labelKey: 'farmGridView.navShop',        icon: 'shop',  action: () => { dialog.value = 'skilltree' } },
   { labelKey: 'farmGridView.navLeaderboard', icon: 'pokal', action: () => { dialog.value = 'leaderboard' } },
 ]
 
@@ -386,7 +408,7 @@ const citizenRows = computed(() => [
 const netWorthRows = computed(() => [
   { k: t('farmGridView.rowCookies'),   v: fmt2(playerStore.nwCookies) + ' C', color: 'w' },
   { k: t('farmGridView.rowResources'), v: fmt2(playerStore.nwResources) + ' C', color: 'w' },
-  { k: t('farmGridView.rowUpgrades'),  v: fmt2(playerStore.nwUpgrades) + ' C', color: 'w' },
+  { k: t('farmGridView.rowSkillTree'), v: fmt2(playerStore.nwSkillTreeValue) + ' C', color: 'w' },
   { k: t('farmGridView.rowTotal'),     v: fmtBig(playerStore.netWorth), color: 'g' },
 ])
 
@@ -561,15 +583,22 @@ const HARVEST_DELAY_MS = 300
 const HARVEST_MS = 900
 const HARVEST_SYNC_MS = 3000
 
-function boostHarvestLevel() {
-  return playerStore.upgrades.find(u => u.id === 'boost_harvest')?.currentLevel ?? 0
+// Sum of allocated HARVEST_YIELD skill nodes that apply to this resource --
+// mirrors SkillTreeService#getEffectTotal (a node with no targetResource is a
+// generalist pick and applies to every resource, one with a targetResource only
+// counts for that specific one).
+function harvestBonus(resourceName) {
+  return (playerStore.skillTree.nodes || [])
+    .filter(n => n.allocated && n.effectType === 'HARVEST_YIELD')
+    .filter(n => !n.targetResource || n.targetResource.toUpperCase() === resourceName.toUpperCase())
+    .reduce((s, n) => s + n.effectValue, 0)
 }
 
 // Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
 // formula (including the storage-full -> auto-sell-to-cookies overflow), just
 // scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
 function localHarvestTick(buildingId, name) {
-  const predicted = (1.0 + boostHarvestLevel() * 0.5) * playerStore.prestigeMultiplier
+  const predicted = (1.0 + harvestBonus(name)) * playerStore.prestigeMultiplier
   const key = name.toLowerCase()
   const cap = playerStore.totalResourceCap ?? Infinity
   const totalRes = RESOURCES.reduce((s, r) => s + (playerStore[r.key] ?? 0), 0)
@@ -720,15 +749,26 @@ onUnmounted(() => {
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
 .hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.hud-dev-btn { background: #3a1b40 !important; color: #fff1a9 !important; border-color: #6f6e72 !important; font-size: 9px !important; }
-.hud-avatar {
-  flex-shrink: 0;
-  width: 52px; height: 52px; background: var(--px-wood3); border: 3px solid var(--px-ink);
-  box-shadow: inset 2px 2px 0 #764032; display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
+
+.hud-menu-wrap { position: relative; }
+.hud-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 190px; background: var(--px-wood); border: 3px solid var(--px-ink);
+  box-shadow: 0 6px 0 rgba(0,0,0,.45);
+  display: flex; flex-direction: column; padding: 4px; z-index: 60;
 }
-.hud-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.hud-menu-item {
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-cream);
+  background: transparent; border: none; padding: 10px 10px; text-align: left; cursor: pointer;
+}
+.hud-menu-item:hover { background: var(--px-wood3); }
+.hud-menu-dev { color: #fff1a9; border-top: 2px solid var(--px-brown2); margin-top: 2px; padding-top: 12px; }
+.hud-menu-avatar {
+  flex-shrink: 0; width: 22px; height: 22px; background: var(--px-wood3);
+  border: 2px solid var(--px-ink); display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.hud-menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ── Idle wanderers ──────────────────────────────────── */
 .idle-wanderer { position: absolute; z-index: 12; }
@@ -797,7 +837,6 @@ onUnmounted(() => {
   .hof-canvas { transform: none !important; left: 0; top: 76px; margin: 0; width: 100%; height: calc(100% - 76px - 78px); overflow: auto; }
   .cam-controls, .zoom-readout, .ticker { display: none; }
   .hud { position: fixed; height: auto; flex-wrap: wrap; padding: 8px 10px; gap: 6px; z-index: 61; }
-  .hud-desktop-only { display: none; }
   .hud-chip-label { display: none; }
   .hud-chip { padding: 4px 6px; }
   .mobile-nav { display: flex; }

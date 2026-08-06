@@ -5,7 +5,7 @@ import cookie.server.dto.PrestigeStatusDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.BakeJobRepository;
 import cookie.server.repository.PlayerBuildingRepository;
-import cookie.server.repository.PlayerUpgradeRepository;
+import cookie.server.repository.PlayerSkillNodeRepository;
 import cookie.server.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -17,20 +17,20 @@ import java.util.NoSuchElementException;
 public class PrestigeService {
 
     private final UserRepository userRepository;
-    private final PlayerUpgradeRepository playerUpgradeRepository;
+    private final PlayerSkillNodeRepository playerSkillNodeRepository;
     private final BakeJobRepository bakeJobRepository;
     private final PlayerBuildingRepository playerBuildingRepository;
     private final NetWorthService netWorthService;
     private final GameBalanceConfig balance;
 
     public PrestigeService(UserRepository userRepository,
-                           PlayerUpgradeRepository playerUpgradeRepository,
+                           PlayerSkillNodeRepository playerSkillNodeRepository,
                            BakeJobRepository bakeJobRepository,
                            PlayerBuildingRepository playerBuildingRepository,
                            @Lazy NetWorthService netWorthService,
                            GameBalanceConfig balance) {
         this.userRepository = userRepository;
-        this.playerUpgradeRepository = playerUpgradeRepository;
+        this.playerSkillNodeRepository = playerSkillNodeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.playerBuildingRepository = playerBuildingRepository;
         this.netWorthService = netWorthService;
@@ -74,15 +74,20 @@ public class PrestigeService {
                 "Net Worth " + netWorth + " unter Schwelle " + threshold);
         }
 
-        // Reset: Cookies, Ressourcen, Upgrades, Bake-Jobs
+        // Reset: Cookies, Ressourcen, Skill Tree, Bake-Jobs
         user.setCookies(0);
         user.setSugar(0); user.setFlour(0); user.setEggs(0);
         user.setButter(0); user.setChocolate(0); user.setMilk(0);
         user.setPrestigeLevel(user.getPrestigeLevel() + 1);
         user.setTotalPrestiges(user.getTotalPrestiges() + 1);
+        // Skill-Punkt-Kostenkurve geht bei Prestige zurueck auf billig -- anders als
+        // totalPrestiges, das dauerhaft bleibt (siehe cookie-game-design.md §11).
+        user.setSkillPoints(0);
+        user.setTotalSkillPointsBought(0);
+        user.setTotalSkillPointCookiesSpent(0);
         userRepository.save(user);
 
-        playerUpgradeRepository.deleteAll(playerUpgradeRepository.findByUserId(userId));
+        playerSkillNodeRepository.deleteByUserId(userId);
         bakeJobRepository.deleteAll(bakeJobRepository.findAllByUserIdAndClaimedFalse(userId));
         playerBuildingRepository.deleteByUserId(userId);
 

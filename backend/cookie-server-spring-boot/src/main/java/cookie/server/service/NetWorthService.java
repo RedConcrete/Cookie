@@ -4,12 +4,11 @@ import cookie.server.dto.LeaderboardEntryDto;
 import cookie.server.dto.NetWorthHistoryDto;
 import cookie.server.dto.PlayerProfileDto;
 import cookie.server.dto.SeasonResultDto;
-import cookie.server.dto.UpgradeWithStatusDto;
+import cookie.server.dto.SkillNodeStatusDto;
 import cookie.server.entity.MarketEntity;
 import cookie.server.entity.NetWorthHistoryEntity;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.NetWorthHistoryRepository;
-import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,22 +28,19 @@ public class NetWorthService {
     private static final Logger log = LoggerFactory.getLogger(NetWorthService.class);
 
     private final UserRepository userRepository;
-    private final PlayerUpgradeRepository playerUpgradeRepository;
     private final MarketService marketService;
-    private final UpgradeService upgradeService;
+    private final SkillTreeService skillTreeService;
     private final NetWorthHistoryRepository historyRepository;
     private final SeasonService seasonService;
 
     public NetWorthService(UserRepository userRepository,
-                           PlayerUpgradeRepository playerUpgradeRepository,
                            MarketService marketService,
-                           @Lazy UpgradeService upgradeService,
+                           SkillTreeService skillTreeService,
                            NetWorthHistoryRepository historyRepository,
                            @Lazy SeasonService seasonService) {
         this.userRepository = userRepository;
-        this.playerUpgradeRepository = playerUpgradeRepository;
         this.marketService = marketService;
-        this.upgradeService = upgradeService;
+        this.skillTreeService = skillTreeService;
         this.historyRepository = historyRepository;
         this.seasonService = seasonService;
     }
@@ -58,16 +54,15 @@ public class NetWorthService {
             user.getChocolate() * market.getChocolatePrice() +
             user.getMilk()      * market.getMilkPrice();
 
-        double upgradeValue = playerUpgradeRepository.findByUserId(user.getSteamId())
-                .stream().mapToDouble(pu -> pu.getTotalSpent()).sum();
+        double skillTreeValue = user.getTotalSkillPointCookiesSpent();
 
         LeaderboardEntryDto dto = new LeaderboardEntryDto();
         dto.setSteamId(user.getSteamId());
         dto.setDisplayName(user.getDisplayName());
         dto.setCookies(user.getCookies());
         dto.setResourceValue(resourceValue);
-        dto.setUpgradeValue(upgradeValue);
-        dto.setNetWorth(user.getCookies() + resourceValue + upgradeValue);
+        dto.setSkillTreeValue(skillTreeValue);
+        dto.setNetWorth(user.getCookies() + resourceValue + skillTreeValue);
         return dto;
     }
 
@@ -89,7 +84,7 @@ public class NetWorthService {
                 e.setNetWorth(nw.getNetWorth());
                 e.setCookies(nw.getCookies());
                 e.setResourceValue(nw.getResourceValue());
-                e.setUpgradeValue(nw.getUpgradeValue());
+                e.setSkillTreeValue(nw.getSkillTreeValue());
                 return e;
             }).collect(Collectors.toList());
 
@@ -149,7 +144,7 @@ public class NetWorthService {
                     avg.setNetWorth(g.stream().mapToDouble(NetWorthHistoryEntity::getNetWorth).average().orElse(0));
                     avg.setCookies(g.stream().mapToDouble(NetWorthHistoryEntity::getCookies).average().orElse(0));
                     avg.setResourceValue(g.stream().mapToDouble(NetWorthHistoryEntity::getResourceValue).average().orElse(0));
-                    avg.setUpgradeValue(g.stream().mapToDouble(NetWorthHistoryEntity::getUpgradeValue).average().orElse(0));
+                    avg.setSkillTreeValue(g.stream().mapToDouble(NetWorthHistoryEntity::getSkillTreeValue).average().orElse(0));
                     return avg;
                 })
                 .collect(Collectors.toList());
@@ -187,7 +182,8 @@ public class NetWorthService {
         long rank = userRepository.findAll().stream()
                 .map(u -> calculateForUser(u, market).getNetWorth())
                 .filter(v -> v > nw.getNetWorth()).count() + 1;
-        List<UpgradeWithStatusDto> upgrades = upgradeService.getUpgradesForPlayer(userId);
+        List<SkillNodeStatusDto> skillNodes = skillTreeService.getTreeStatus(userId).getNodes()
+                .stream().filter(n -> n.isAllocated() && !n.isRoot()).collect(Collectors.toList());
         List<SeasonResultDto> seasonHistory = seasonService.getSeasonHistoryForUser(userId);
         PlayerProfileDto dto = new PlayerProfileDto();
         dto.setSteamId(user.getSteamId());
@@ -197,10 +193,10 @@ public class NetWorthService {
         dto.setNetWorth(nw.getNetWorth());
         dto.setCookies(nw.getCookies());
         dto.setResourceValue(nw.getResourceValue());
-        dto.setUpgradeValue(nw.getUpgradeValue());
+        dto.setSkillTreeValue(nw.getSkillTreeValue());
         dto.setPrestigeLevel(user.getPrestigeLevel());
         dto.setLifetimeCookiesBaked(user.getLifetimeCookiesBaked());
-        dto.setUpgrades(upgrades);
+        dto.setSkillNodes(skillNodes);
         dto.setSeasonHistory(seasonHistory);
         return dto;
     }

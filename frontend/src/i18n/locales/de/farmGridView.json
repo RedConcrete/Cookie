@@ -6,9 +6,8 @@
   "netWorthHint": "Net Worth Verlauf",
   "devResetTitle": "DEV: Reset",
   "devResetLabel": "DEV",
-  "devAdminTitle": "DEV: Admin-Panel",
-  "devAdminLabel": "ADMIN",
-  "upgradesLabel": "UPGRADES",
+  "menuTitle": "Menü",
+  "skillTreeLabel": "SKILL-BAUM",
   "leaderboardLabel": "RANGLISTE",
   "settingsTitle": "Einstellungen",
   "profileTitle": "Profil",
@@ -27,6 +26,6 @@
   "rowFree": "Frei",
   "rowCookies": "Cookies",
   "rowResources": "Ressourcen",
-  "rowUpgrades": "Upgrades",
+  "rowSkillTree": "Skill-Baum",
   "rowTotal": "Summe"
 }

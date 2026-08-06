@@ -4,9 +4,8 @@
   "badgesCount": "BADGES · {count}",
   "viewAll": "VIEW ALL →",
   "noBadges": "No badges yet",
-  "upgradesTitle": "UPGRADES",
-  "upgradeLevel": "Level {level}",
-  "noUpgrades": "No upgrades",
+  "skillTreeTitle": "SKILL TREE",
+  "noSkillNodes": "No nodes unlocked",
   "seasonHistoryTitle": "SEASON HISTORY",
   "seasonHeaderSeason": "SEASON",
   "seasonHeaderRank": "RANK",
@@ -14,6 +13,6 @@
   "seasonHeaderPrestige": "PRESTIGE",
   "statCookies": "COOKIES",
   "statResourceValue": "RESOURCE VALUE",
-  "statUpgradeValue": "UPGRADE VALUE",
+  "statSkillTreeValue": "SKILL TREE VALUE",
   "statLifetimeBaked": "BAKED (LIFETIME)"
 }

@@ -7,8 +7,8 @@ import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.BakeJobEntity;
 import cookie.server.entity.RecipeEntity;
 import cookie.server.entity.UserEntity;
+import cookie.server.enums.EffectType;
 import cookie.server.repository.BakeJobRepository;
-import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.RecipeRepository;
 import cookie.server.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
@@ -30,17 +30,17 @@ public class BakeService {
     private final RecipeRepository recipeRepository;
     private final BakeJobRepository bakeJobRepository;
     private final UserRepository userRepository;
-    private final PlayerUpgradeRepository playerUpgradeRepository;
+    private final SkillTreeService skillTreeService;
     private final AppConfig appConfig;
     private final PrestigeService prestigeService;
 
     public BakeService(RecipeRepository recipeRepository, BakeJobRepository bakeJobRepository,
-                       UserRepository userRepository, PlayerUpgradeRepository playerUpgradeRepository,
+                       UserRepository userRepository, SkillTreeService skillTreeService,
                        AppConfig appConfig, PrestigeService prestigeService) {
         this.recipeRepository = recipeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.userRepository = userRepository;
-        this.playerUpgradeRepository = playerUpgradeRepository;
+        this.skillTreeService = skillTreeService;
         this.appConfig = appConfig;
         this.prestigeService = prestigeService;
     }
@@ -82,7 +82,7 @@ public class BakeService {
     public BakeJobStatusDto startBake(String userId, String recipeId, int batches) {
         if (batches < 1) throw new IllegalArgumentException("Batches must be at least 1");
 
-        // Nur ein Ofen, bewusst kein Mehrfach-Slot-Upgrade (siehe UpgradeService) -- wird später
+        // Nur ein Ofen, bewusst kein Mehrfach-Slot-Ausbau -- wird später
         // stattdessen über Backgeschwindigkeit/Ressourcenverbrauch balanciert.
         if (bakeJobRepository.countByUserIdAndClaimedFalse(userId) >= 1) {
             throw new IllegalStateException("Ofen belegt. Erst einlösen.");
@@ -162,11 +162,8 @@ public class BakeService {
         RecipeEntity recipe = recipeRepository.findById(job.getRecipeId()).orElseThrow();
         UserEntity user = userRepository.findById(userId).orElseThrow();
 
-        int bakeBoost = playerUpgradeRepository
-                .findByUserIdAndUpgradeId(userId, "boost_bake")
-                .map(pu -> pu.getLevel())
-                .orElse(0);
-        double outputMultiplier = 1.0 + bakeBoost * 0.10;
+        double bakeBonus = skillTreeService.getEffectTotal(userId, EffectType.BAKE_OUTPUT, null);
+        double outputMultiplier = 1.0 + bakeBonus;
         double prestigeMultiplier = prestigeService.calcMultiplier(user.getPrestigeLevel());
         double cookiesEarned = recipe.getOutput() * job.getBatches() * outputMultiplier * prestigeMultiplier;
         user.setCookies(user.getCookies() + cookiesEarned);

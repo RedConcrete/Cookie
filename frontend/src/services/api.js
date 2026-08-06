@@ -29,14 +29,19 @@ export function getConfig() {
   return request('GET', '/api/v1/config')
 }
 
-// Fetch all upgrades with current player levels.
-export function getUpgrades(steamId) {
-  return request('GET', `/api/v1/upgrades?userId=${steamId}`)
+// Fetch full skill tree (nodes + edges + player status).
+export function getSkillTree(steamId) {
+  return request('GET', `/api/v1/skilltree?userId=${steamId}`)
 }
 
-// Buy next level of an upgrade. Returns updated upgrade list.
-export function buyUpgrade(steamId, upgradeId) {
-  return request('POST', `/api/v1/upgrades/buy/${steamId}`, { upgradeId })
+// Buy 1 skill point (spends cookies). Returns updated skill tree.
+export function buySkillPoint(steamId) {
+  return request('POST', `/api/v1/skilltree/buy-point/${steamId}`)
+}
+
+// Allocate a skill node (spends 1 skill point). Returns updated skill tree.
+export function allocateSkillNode(steamId, nodeId) {
+  return request('POST', `/api/v1/skilltree/allocate/${steamId}`, { nodeId })
 }
 
 // Fetch global leaderboard sorted by net worth.
@@ -49,7 +54,7 @@ export function getNetWorth(steamId) {
   return request('GET', `/api/v1/players/${steamId}/networth`)
 }
 
-// Fetch full player profile (net worth + lifetime stats + upgrades).
+// Fetch full player profile (net worth + lifetime stats + allocated skill nodes).
 export function getProfile(steamId) {
   return request('GET', `/api/v1/players/${steamId}/profile`)
 }
@@ -168,34 +173,3 @@ export function adminResetPlayer(steamId) {
   return request('POST', `/api/v1/admin/reset/${steamId}`)
 }
 
-// Reset market stock/prices to initial values (dev mode only).
-export function adminResetMarket() {
-  return request('POST', '/api/v1/admin/market/reset')
-}
-
-// Live-tunable balance config: { market: MarketConfig, balance: GameBalanceConfig }.
-export function getAdminConfig() {
-  return request('GET', '/api/v1/admin/config')
-}
-export function updateAdminMarketConfig(config) {
-  return request('PUT', '/api/v1/admin/config/market', config)
-}
-export function updateAdminBalanceConfig(config) {
-  return request('PUT', '/api/v1/admin/config/balance', config)
-}
-
-// Upgrade definitions (baseCost/effectPerLevel/maxLevel), editable live.
-export function getAdminUpgrades() {
-  return request('GET', '/api/v1/admin/upgrades')
-}
-export function updateAdminUpgrade(id, upgrade) {
-  return request('PUT', `/api/v1/admin/upgrades/${id}`, upgrade)
-}
-
-// Recipe definitions (ingredients/output/bake time), editable live.
-export function getAdminRecipes() {
-  return request('GET', '/api/v1/admin/recipes')
-}
-export function updateAdminRecipe(id, recipe) {
-  return request('PUT', `/api/v1/admin/recipes/${id}`, recipe)
-}

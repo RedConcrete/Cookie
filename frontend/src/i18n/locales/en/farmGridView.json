@@ -6,9 +6,8 @@
   "netWorthHint": "Net worth history",
   "devResetTitle": "DEV: Reset",
   "devResetLabel": "DEV",
-  "devAdminTitle": "DEV: Admin Panel",
-  "devAdminLabel": "ADMIN",
-  "upgradesLabel": "UPGRADES",
+  "menuTitle": "Menu",
+  "skillTreeLabel": "SKILL TREE",
   "leaderboardLabel": "LEADERBOARD",
   "settingsTitle": "Settings",
   "profileTitle": "Profile",
@@ -27,6 +26,6 @@
   "rowFree": "Free",
   "rowCookies": "Cookies",
   "rowResources": "Resources",
-  "rowUpgrades": "Upgrades",
+  "rowSkillTree": "Skill Tree",
   "rowTotal": "Total"
 }

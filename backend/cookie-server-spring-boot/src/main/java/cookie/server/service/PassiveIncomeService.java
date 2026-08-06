@@ -55,7 +55,7 @@ public class PassiveIncomeService {
         // Gesamtproduktion dieses Ticks aufgeteilt (statt Listenreihenfolge: erste Ressource frisst den
         // ganzen Platz, Rest faellt komplett in den Ueberlauf-Verkauf).
         double shareFactor = totalRequested <= available ? 1.0 : (totalRequested > 0 ? available / totalRequested : 0);
-        double feeRate = buildingService.getEffectiveSellFeeRate(owned, marketService.getSellFeeRate());
+        double feeRate = buildingService.getEffectiveSellFeeRate(userId, owned, marketService.getSellFeeRate());
 
         for (BuildingService.PassiveTick t : ticks) {
             double toAdd = t.amount() * shareFactor;

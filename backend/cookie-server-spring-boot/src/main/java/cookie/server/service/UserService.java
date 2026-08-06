@@ -4,8 +4,8 @@ import cookie.server.config.PlayerConfig;
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.UserEntity;
+import cookie.server.enums.EffectType;
 import cookie.server.enums.ResourceName;
-import cookie.server.repository.PlayerUpgradeRepository;
 import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,16 +32,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PlayerConfig playerConfig;
-    private final PlayerUpgradeRepository playerUpgradeRepository;
+    private final SkillTreeService skillTreeService;
     private final PrestigeService prestigeService;
     private final SteamAvatarService steamAvatarService;
 
     public UserService(UserRepository userRepository, PlayerConfig playerConfig,
-                       PlayerUpgradeRepository playerUpgradeRepository, PrestigeService prestigeService,
+                       SkillTreeService skillTreeService, PrestigeService prestigeService,
                        SteamAvatarService steamAvatarService) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
-        this.playerUpgradeRepository = playerUpgradeRepository;
+        this.skillTreeService = skillTreeService;
         this.steamAvatarService = steamAvatarService;
         this.prestigeService = prestigeService;
     }
@@ -180,10 +180,7 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
-        int boostLevel = playerUpgradeRepository
-                .findByUserIdAndUpgradeId(userId, "boost_harvest")
-                .map(pu -> pu.getLevel())
-                .orElse(0);
+        double harvestBonus = skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, resource.name());
         double prestigeMultiplier = prestigeService.calcMultiplier(user.getPrestigeLevel());
 
         // Ticks are derived purely from our own clock (now - lastHarvestAt), never from
@@ -196,7 +193,7 @@ public class UserService {
         double ticks = elapsedMs / (double) HARVEST_TICK_MS;
         user.setLastHarvestAt(now);
 
-        double amount = (1.0 + boostLevel * 0.5) * prestigeMultiplier * ticks;
+        double amount = (1.0 + harvestBonus) * prestigeMultiplier * ticks;
 
         double totalRes = user.getSugar() + user.getFlour() + user.getEggs()
                         + user.getButter() + user.getChocolate() + user.getMilk();

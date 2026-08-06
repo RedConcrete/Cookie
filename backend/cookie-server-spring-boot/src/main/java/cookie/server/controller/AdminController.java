@@ -6,7 +6,7 @@ import cookie.server.dto.SeasonDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.BakeJobRepository;
 import cookie.server.repository.PlayerBuildingRepository;
-import cookie.server.repository.PlayerUpgradeRepository;
+import cookie.server.repository.PlayerSkillNodeRepository;
 import cookie.server.repository.UserRepository;
 import cookie.server.service.MarketService;
 import cookie.server.service.SeasonService;
@@ -25,14 +25,14 @@ public class AdminController {
     private final PlayerConfig playerConfig;
     private final SeasonService seasonService;
     private final UserRepository userRepository;
-    private final PlayerUpgradeRepository upgradeRepository;
+    private final PlayerSkillNodeRepository skillNodeRepository;
     private final PlayerBuildingRepository buildingRepository;
     private final BakeJobRepository bakeJobRepository;
     private final MarketService marketService;
 
     public AdminController(AppConfig appConfig, PlayerConfig playerConfig,
                            SeasonService seasonService, UserRepository userRepository,
-                           PlayerUpgradeRepository upgradeRepository,
+                           PlayerSkillNodeRepository skillNodeRepository,
                            PlayerBuildingRepository buildingRepository,
                            BakeJobRepository bakeJobRepository,
                            MarketService marketService) {
@@ -40,7 +40,7 @@ public class AdminController {
         this.playerConfig = playerConfig;
         this.seasonService = seasonService;
         this.userRepository = userRepository;
-        this.upgradeRepository = upgradeRepository;
+        this.skillNodeRepository = skillNodeRepository;
         this.buildingRepository = buildingRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.marketService = marketService;
@@ -83,10 +83,13 @@ public class AdminController {
         user.setMilk(isDev ? 100 : playerConfig.getInitialMilk());
         user.setWorkersIdle(false);
         user.setOwnedCitizens(0);
+        user.setSkillPoints(0);
+        user.setTotalSkillPointsBought(0);
+        user.setTotalSkillPointCookiesSpent(0);
         userRepository.save(user);
 
-        // Clear upgrades, buildings, bake jobs
-        upgradeRepository.deleteAll(upgradeRepository.findByUserId(userId));
+        // Clear skill tree, buildings, bake jobs
+        skillNodeRepository.deleteByUserId(userId);
         buildingRepository.deleteByUserId(userId);
         bakeJobRepository.deleteAll(bakeJobRepository.findAllByUserIdAndClaimedFalse(userId));
 

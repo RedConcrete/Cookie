@@ -7,19 +7,19 @@ public class NetWorthHistoryDto {
     private double netWorth;
     private double cookies;
     private double resourceValue;
-    private double upgradeValue;
+    private double skillTreeValue;
 
     public NetWorthHistoryDto(NetWorthHistoryEntity e) {
         this.timestamp     = e.getTimestamp().toString();
         this.netWorth      = e.getNetWorth();
         this.cookies       = e.getCookies();
         this.resourceValue = e.getResourceValue();
-        this.upgradeValue  = e.getUpgradeValue();
+        this.skillTreeValue  = e.getSkillTreeValue();
     }
 
     public String getTimestamp()     { return timestamp; }
     public double getNetWorth()      { return netWorth; }
     public double getCookies()       { return cookies; }
     public double getResourceValue() { return resourceValue; }
-    public double getUpgradeValue()  { return upgradeValue; }
+    public double getSkillTreeValue()  { return skillTreeValue; }
 }

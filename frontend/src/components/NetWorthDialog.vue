@@ -35,11 +35,11 @@
 
             <div class="bk-row">
               <PixelIcon name="upgrade" :size="16" class="bk-icon" />
-              <span class="bk-label">{{ t('netWorthDialog.upgradesLabel') }}</span>
+              <span class="bk-label">{{ t('netWorthDialog.skillTreeLabel') }}</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#6f6e72' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.skillTreeValue) + '%', background: '#6f6e72' }"></div>
               </div>
-              <span class="bk-val">{{ fmtBig(nw.upgradeValue) }}</span>
+              <span class="bk-val">{{ fmtBig(nw.skillTreeValue) }}</span>
             </div>
           </div>
 
@@ -119,7 +119,7 @@ const DATASETS = [
   { key: 'netWorth',      labelKey: 'netWorthDialog.netWorthLabel', color: '#aea47e' },
   { key: 'cookies',       labelKey: 'netWorthDialog.cookiesLabel',  color: '#c78539' },
   { key: 'resourceValue', labelKey: 'netWorthDialog.resourcesLabel',color: '#349c58' },
-  { key: 'upgradeValue',  labelKey: 'netWorthDialog.upgradesLabel', color: '#6f6e72' },
+  { key: 'skillTreeValue', labelKey: 'netWorthDialog.skillTreeLabel', color: '#6f6e72' },
 ]
 
 const nw        = ref(null)
@@ -302,10 +302,10 @@ function initChart() {
 
 // Breakdown live aus playerStore
 watch(
-  () => [playerStore.netWorth, playerStore.nwCookies, playerStore.nwResources, playerStore.nwUpgrades],
-  ([netWorth, cookies, resourceValue, upgradeValue]) => {
+  () => [playerStore.netWorth, playerStore.nwCookies, playerStore.nwResources, playerStore.nwSkillTreeValue],
+  ([netWorth, cookies, resourceValue, skillTreeValue]) => {
     if (!nw.value) return
-    nw.value = { ...nw.value, netWorth, cookies, resourceValue, upgradeValue }
+    nw.value = { ...nw.value, netWorth, cookies, resourceValue, skillTreeValue }
   }
 )
 

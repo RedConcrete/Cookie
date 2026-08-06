@@ -4,6 +4,7 @@ import cookie.server.config.GameBalanceConfig;
 import cookie.server.dto.PlayerBuildingDto;
 import cookie.server.entity.PlayerBuildingEntity;
 import cookie.server.entity.UserEntity;
+import cookie.server.enums.EffectType;
 import cookie.server.enums.ResourceName;
 import cookie.server.repository.PlayerBuildingRepository;
 import cookie.server.repository.UserRepository;
@@ -48,11 +49,14 @@ public class BuildingService {
     private final PlayerBuildingRepository buildingRepo;
     private final UserRepository userRepo;
     private final GameBalanceConfig balance;
+    private final SkillTreeService skillTreeService;
 
-    public BuildingService(PlayerBuildingRepository buildingRepo, UserRepository userRepo, GameBalanceConfig balance) {
+    public BuildingService(PlayerBuildingRepository buildingRepo, UserRepository userRepo,
+                           GameBalanceConfig balance, SkillTreeService skillTreeService) {
         this.buildingRepo = buildingRepo;
         this.userRepo = userRepo;
         this.balance = balance;
+        this.skillTreeService = skillTreeService;
     }
 
     public static Map<String, BuildingDef> getDefMap() { return DEF_MAP; }
@@ -198,16 +202,17 @@ public class BuildingService {
                 .mapToInt(PlayerBuildingEntity::getWorkers).sum();
     }
 
-    /** Per-player sell fee rate accounting for Markt upgrade level. */
+    /** Per-player sell fee rate accounting for Markt building level + skill tree nodes. */
     public double getEffectiveSellFeeRate(String userId, double baseRate) {
-        return getEffectiveSellFeeRate(ownedMap(userId), baseRate);
+        return getEffectiveSellFeeRate(userId, ownedMap(userId), baseRate);
     }
 
     /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
-    public double getEffectiveSellFeeRate(Map<String, PlayerBuildingEntity> owned, double baseRate) {
+    public double getEffectiveSellFeeRate(String userId, Map<String, PlayerBuildingEntity> owned, double baseRate) {
         int marktLevel = owned.containsKey("markt") ? owned.get("markt").getLevel() : 0;
         double discount = Math.max(0, marktLevel - 1) * 0.02;
-        return Math.max(0.01, baseRate - discount);
+        double skillDiscount = skillTreeService.getEffectTotal(userId, EffectType.MARKET_FEE_REDUCTION, null);
+        return Math.max(0.01, baseRate - discount - skillDiscount);
     }
 
     public List<PassiveTick> computePassiveTicks(String userId, double tickSeconds) {

@@ -174,7 +174,7 @@ spezifiziert ist:
   mit `max-height` auf dem Container). Wichtige Falle dabei: `flex:1`
   (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
   `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
-  verwenden, siehe `SettingsDialog.vue`/`AdminDialog.vue` als Vorbild.
+  verwenden, siehe `SettingsDialog.vue` als Vorbild.
 - [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
   im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
   Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)
@@ -196,10 +196,10 @@ spezifiziert ist:
   Null anzufangen.
 - [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
   fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
-  Backzeit, Upgrade-Kostenkurven) sind nie in einer echten Testphase
-  durchgespielt worden. Nächster sinnvoller Schritt vor Early-Access:
-  ein bis zwei interne Testrunden, dann Werte in `MarketConfig`,
-  `RecipeEntity`-Seeds, `UpgradeEntity`-Seeds nachziehen
+  Backzeit, Skill-Baum-Effektwerte/Skill-Punkt-Kostenkurve) sind nie in
+  einer echten Testphase durchgespielt worden. Nächster sinnvoller Schritt
+  vor Early-Access: ein bis zwei interne Testrunden, dann Werte in
+  `MarketConfig`, `RecipeEntity`-Seeds, `SkillNodeEntity`-Seeds nachziehen
 - [ ] **Kosmetik-System** — Design-Doc Abschnitt 11 lässt bewusst offen,
   was "freigeschaltete Kosmetik" konkret bedeutet (Titel? Rahmen? Icons?).
   `PlayerCosmeticEntity` als Datenmodell vorgesehen, aber ohne konkrete
@@ -247,6 +247,84 @@ spezifiziert ist:
     Browsers reicht i.d.R., kein natives SDK nötig), neuer Composable
     (z.B. `useGamepadCursor.js`) analog zu `useHotkeys.js`.
   Zurückgestellt, User will das später angehen.
+- [x] **Passiver Skill-Baum ersetzt Upgrade-System (2026-08-06).** Das alte
+  3-Upgrade-Regal (`boost_harvest`, `boost_harvest_speed`, `boost_bake`) war
+  kaum ein Cookie-Sink und bot keine echte Wahl. Komplett ersetzt durch
+  einen Path-of-Exile-artigen Passiv-Baum (18 Knoten + Wurzel, 4 Zweige:
+  MILK/BAKING/MARKET/CORE) mit PoE-Konnektivitätsregel — Details:
+  `cookie-game-design.md` Abschnitt 9. Alte `UpgradeEntity`/
+  `PlayerUpgradeEntity`/`UpgradeService`/`UpgradeController` samt Frontend
+  (`UpgradeDialog.vue`/`UpgradeShopView.vue`) vollständig entfernt,
+  `upgradeValue` überall zu `skillTreeValue` umbenannt (Net Worth, DTOs,
+  `NetWorthHistoryEntity`). Zwei bewusst zurückgestellte Folgepunkte:
+  - [ ] **Anti-Cheat-Re-Verifikation für Skill-Allokationen.** Der
+    Allokations-Endpunkt prüft die Konnektivität nur beim Freischalten
+    selbst — es gibt keinen periodischen Job, der bestehende
+    `player_skill_nodes`-Zeilen im Nachhinein erneut gegen die Kanten
+    validiert (z. B. nach einem manuellen DB-Eingriff oder einem Bug in
+    einer früheren Version). Vor Public-Release nachholen, analog zu
+    anderen serverseitigen Integritätschecks.
+  - [ ] **Prestige-Bonuspunkte.** Ursprünglich angedacht: Prestige gibt
+    +3 Skill-Punkte on top des normalen Resets. Bewusst außerhalb des
+    Scopes beim Erstbau des Skill-Baums (Prestige-UI ist ohnehin gerade
+    aus dem Frontend entfernt, siehe Eintrag oben) — beim Prestige-Neubau
+    mit einplanen.
+- [x] **Skill-Baum-UI-Nachbesserungen nach erstem Live-Test (2026-08-06).**
+  Direktes Feedback beim ersten Ausprobieren im Browser:
+  - Tooltip-Popups öffneten sich immer oben rechts in der Ecke statt am
+    gehoverten Knoten. Ursache: `PixelInfoPopover` positioniert sich über
+    `getBoundingClientRect()` seines eigenen Wrapper-Divs (`pip-wrap`) — die
+    Knoten-Koordinaten wurden aber nur auf den inneren `<button>` gelegt,
+    nicht auf den Popover-Wrapper selbst. Da `pip-wrap` (kein eigenes Layout,
+    `width:100%`) dadurch für alle 19 Knoten am gleichen Fleck (oben,
+    volle Breite, Höhe 0) im Dokumentfluss landete, zeigte jedes Popup zur
+    selben Stelle. **Fix:** Positionierung (`position:absolute;left;top`)
+    jetzt direkt per `:style` auf `<PixelInfoPopover>` selbst statt auf den
+    Button (Vue reicht `style`/`class` an die Root-Node der Kind-Komponente
+    durch, inkl. Scoped-CSS-Attribut vom Elternteil).
+  - Skill-Punkte-Kauf-Leiste war eine volltransparente Kopfzeile über dem
+    Baum — jetzt ein schwebendes, zentriertes HUD-Element über der Canvas
+    (`.stv-buy-hud`), kein Platz mehr vom Canvas abgezogen.
+  - Zentrieren-Button war nur ein winziges, unbeschriftetes Icon in der Ecke
+    der alten Kopfzeile — jetzt wie in `FarmGridView.vue`s Kamerasteuerung
+    ein deutlich sichtbarer Button mit Text-Hinweis, unten links über der
+    Canvas.
+  - Skill-Punkt-Kosten deutlich angehoben (`skillPointBaseCost` 50→150,
+    `skillPointCostGrowth` 1.15→1.4, siehe Balancing-Punkt oben) — war zu
+    billig/flach für den Haupt-Cookie-Sink. Im Gegenzug alle Knoten-
+    Effektwerte auf ca. ein Drittel reduziert (z. B. `milk_4` +30%→+10%,
+    `bake_4` +12%→+5%) — der Baum soll vom Sammeln vieler Punkte über
+    längere Spielzeit leben, nicht von wenigen Käufen mit riesigem
+    Einzeleffekt. Beide Änderungen live per Admin-API auf den laufenden
+    Dev-Server angewendet (kein Neustart nötig, `GameBalanceConfig` +
+    `SkillNodeEntity` sind zur Laufzeit editierbar) und im Java-Seed-Code
+    nachgezogen, damit künftige Frisch-Installationen dieselben Werte
+    bekommen.
+  - Zusätzlich beim Nachbessern gefunden: `NetWorthHistoryEntity`-Umbenennung
+    (`upgradeValue`→`skillTreeValue`) ließ Hibernates `ddl-auto=update` an
+    einer bereits befüllten `networth_history`-Tabelle scheitern (`ALTER
+    TABLE ADD COLUMN ... NOT NULL` auf Zeilen mit Bestandsdaten schlägt
+    fehl) — der alle-30s-Snapshot-Job crashte seitdem endlos im Hintergrund.
+    Tabelle ist reine Verlaufshistorie (DB laut Vereinbarung disposable) →
+    einmalig per `DROP TABLE networth_history;` bereinigt, Hibernate legt
+    sie beim nächsten Start korrekt neu an. **Für künftige Spalten-
+    Umbenennungen an schon befüllten Tabellen:** entweder vorher
+    `DROP TABLE`/-Spalte, oder Feld erst mit `@Column(nullable=true)`
+    einführen und in einem zweiten Schritt auf `NOT NULL` umstellen, sonst
+    bricht `ddl-auto=update` an der Bestandsdaten-Migration ab.
+- [x] **HUD-Rechtsseite in Dropdown-Menü zusammengefasst + Admin-Dialog
+  entfernt (2026-08-06).** Die einzelnen HUD-Buttons (DEV-Reset, Admin,
+  Skill-Baum, Rangliste, Avatar/Profil) sind jetzt ein einziger
+  Hamburger-Button (`FarmGridView.vue`), der ein Pixel-Art-Dropdown öffnet:
+  Profil, Skill-Baum, Rangliste, Einstellungen, dazu DEV-Reset nur im
+  Dev-Modus. Schließt bei Klick außerhalb (`mousedown`-Listener auf
+  `document`) oder nach Auswahl eines Eintrags. `AdminDialog.vue` +
+  zugehörige Locale-Dateien (`adminDialog.json` de/en) komplett gelöscht —
+  der Spieler-seitige Zugriff auf Live-Balance-Config/Skill-Node-CRUD war
+  als versehentlich klickbarer Button zu riskant für die Beta.
+  **Bewusst nicht angetastet:** die Backend-Endpunkte selbst
+  (`AdminConfigController`, `AdminController`) bleiben bestehen und weiter
+  per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
   "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert

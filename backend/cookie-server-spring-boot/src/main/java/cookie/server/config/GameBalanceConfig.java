@@ -45,6 +45,21 @@ public class GameBalanceConfig {
     /** Bonus auf Backen-Output/Ernte-Menge pro Prestige-Stufe (0.1 = +10 % pro Stufe). */
     private double prestigeMultiplierPerLevel = 0.1;
 
+    /** Kosten für den ersten Skill-Punkt. Bewusst deutlich teurer als der
+     * erste Bürger (50) -- der Skill-Baum ist der Haupt-Cookie-Sink und soll
+     * sich von Anfang an nach einer echten Investition anfühlen, nicht nach
+     * einem Nebenbei-Kauf. */
+    private double skillPointBaseCost = 150;
+
+    /** Wachstumsfaktor der Skill-Punkt-Kosten pro bereits gekauftem Punkt.
+     * Bewusst deutlich steiler als Bürger/Gebäude (1.15) -- soll auch nach
+     * vielen Punkten noch ein spürbares Ziel bleiben, das langes Spielen
+     * belohnt statt sich schnell "flach" anzufühlen. Die pro-Knoten-Effekte
+     * sind bewusst klein gehalten (siehe buildNodes()) -- der Baum lebt vom
+     * Sammeln vieler Punkte über die Zeit, nicht von 2-3 Käufen mit riesigem
+     * Einzeleffekt. */
+    private double skillPointCostGrowth = 1.4;
+
     public double getBaseStorageCap() { return baseStorageCap; }
     public void setBaseStorageCap(double v) { this.baseStorageCap = v; }
 
@@ -77,4 +92,10 @@ public class GameBalanceConfig {
 
     public double getPrestigeMultiplierPerLevel() { return prestigeMultiplierPerLevel; }
     public void setPrestigeMultiplierPerLevel(double v) { this.prestigeMultiplierPerLevel = v; }
+
+    public double getSkillPointBaseCost() { return skillPointBaseCost; }
+    public void setSkillPointBaseCost(double v) { this.skillPointBaseCost = v; }
+
+    public double getSkillPointCostGrowth() { return skillPointCostGrowth; }
+    public void setSkillPointCostGrowth(double v) { this.skillPointCostGrowth = v; }
 }
