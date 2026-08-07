@@ -1,8 +1,8 @@
 <template>
   <div class="chart-root">
     <div class="chart-toolbar">
-      <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" :title="t('priceChart.pctChangeTitle')">%</button>
-      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" :title="t('priceChart.resetZoomTitle')">RESET</button>
+      <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" :title="t('priceChart.pctChangeTitle')"><ShortcutSlot />%</button>
+      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" :title="t('priceChart.resetZoomTitle')"><ShortcutSlot />RESET</button>
     </div>
     <div class="chart-wrap" @mouseleave="onChartLeave">
       <canvas ref="canvasRef"></canvas>
@@ -21,6 +21,7 @@ import 'chartjs-adapter-date-fns'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { useMarketStore } from '../stores/market.js'
 import { getFullMarketHistory } from '../services/api.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
@@ -46,7 +47,7 @@ const PRICE_KEY = {
 }
 const COLORS = {
   SUGAR: '#e67146', FLOUR: '#2a7d75', EGGS: '#349c58',
-  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#fff1a9',
+  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#6f6e72',
 }
 const LABEL_KEYS = {
   SUGAR: 'priceChart.sugar', FLOUR: 'priceChart.flour', EGGS: 'priceChart.eggs',
@@ -341,6 +342,7 @@ defineExpose({ toggle, visible })
 }
 
 .pct-btn {
+  position: relative;
   font-family: 'Silkscreen', monospace;
   padding: 5px 10px;
   border: 3px solid var(--px-ink);

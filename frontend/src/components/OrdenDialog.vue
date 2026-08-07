@@ -5,12 +5,12 @@
       <div class="orden-box px-panel">
         <div class="px-titlebar">
           <span>{{ t('ordenDialog.title') }} &middot; {{ steamId }}</span>
-          <button class="px-close" @click="emit('close')">&times;</button>
+          <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
         </div>
         <div class="orden-filters">
-          <button class="orden-filter" :class="{ active: filter === 'ALL' }" @click="filter = 'ALL'">{{ t('ordenDialog.filterAll', { count: badges.length }) }}</button>
-          <button class="orden-filter" :class="{ active: filter === 'EVENT' }" @click="filter = 'EVENT'">{{ t('ordenDialog.filterEvents', { count: countOf('EVENT') }) }}</button>
-          <button class="orden-filter" :class="{ active: filter === 'COMMUNITY' }" @click="filter = 'COMMUNITY'">{{ t('ordenDialog.filterCommunity', { count: countOf('COMMUNITY') }) }}</button>
+          <button class="orden-filter" :class="{ active: filter === 'ALL' }" @click="filter = 'ALL'"><ShortcutSlot />{{ t('ordenDialog.filterAll', { count: badges.length }) }}</button>
+          <button class="orden-filter" :class="{ active: filter === 'EVENT' }" @click="filter = 'EVENT'"><ShortcutSlot />{{ t('ordenDialog.filterEvents', { count: countOf('EVENT') }) }}</button>
+          <button class="orden-filter" :class="{ active: filter === 'COMMUNITY' }" @click="filter = 'COMMUNITY'"><ShortcutSlot />{{ t('ordenDialog.filterCommunity', { count: countOf('COMMUNITY') }) }}</button>
           <span class="orden-sort-hint">{{ t('ordenDialog.sortHint') }}</span>
         </div>
         <PixelScrollBox class="orden-list">
@@ -44,7 +44,7 @@
             <div class="orden-label">{{ t('ordenDialog.playerLabel') }}</div>
             <div class="orden-search">
               <input v-model="playerQuery" class="orden-search-input" :placeholder="t('ordenDialog.playerSearchPlaceholder')" />
-              <button class="px-btn px-btn-flat">{{ t('ordenDialog.searchBtn') }}</button>
+              <button class="px-btn px-btn-flat"><ShortcutSlot />{{ t('ordenDialog.searchBtn') }}</button>
             </div>
           </div>
 
@@ -73,8 +73,8 @@
           </div>
 
           <div class="orden-admin-actions">
-            <button class="px-btn px-btn-buy" :disabled="!selectedTemplate" @click="grantBadge">{{ t('ordenDialog.grantBtn') }}</button>
-            <button class="px-btn px-btn-flat">{{ t('ordenDialog.revokeBtn') }}</button>
+            <button class="px-btn px-btn-buy" :disabled="!selectedTemplate" @click="grantBadge"><ShortcutSlot />{{ t('ordenDialog.grantBtn') }}</button>
+            <button class="px-btn px-btn-flat"><ShortcutSlot />{{ t('ordenDialog.revokeBtn') }}</button>
           </div>
 
           <div class="orden-hint">{{ t('ordenDialog.adminHint') }}</div>
@@ -93,6 +93,7 @@ import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBadges } from '../composables/useBadges.js'
 import { useAudio } from '../composables/useAudio.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const props = defineProps({
   steamId: { type: String, default: 'DEV_PLAYER_001' },
@@ -133,7 +134,7 @@ function grantBadge() {
 .orden-box { width: 520px; max-height: 85vh; display: flex; flex-direction: column; }
 
 .orden-filters { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--px-cream3); border-bottom: 4px solid var(--px-ink); }
-.orden-filter { font-family: 'Silkscreen', monospace; font-size: 10px; padding: 5px 8px; background: var(--px-cream3); border: 3px solid var(--px-tan); color: var(--px-tan-ink); cursor: pointer; }
+.orden-filter { position: relative; font-family: 'Silkscreen', monospace; font-size: 10px; padding: 5px 8px; background: var(--px-cream3); border: 3px solid var(--px-tan); color: var(--px-tan-ink); cursor: pointer; }
 .orden-filter.active { background: var(--px-cream); border-color: var(--px-brown2); color: var(--px-ink-txt); }
 .orden-sort-hint { margin-left: auto; font-size: 13px; color: var(--px-tan-ink); }
 

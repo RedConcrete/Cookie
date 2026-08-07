@@ -3,7 +3,7 @@
     <div class="ld-box px-panel">
       <div class="px-titlebar">
         <span>{{ t('leaderboardDialog.title') }}</span>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
       <PixelScrollBox class="ld-scroll">
         <LeaderboardView @view-profile="openProfile" />
@@ -24,6 +24,7 @@ import { useI18n } from 'vue-i18n'
 import LeaderboardView    from './LeaderboardView.vue'
 import PlayerProfileDialog from './PlayerProfileDialog.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import { useAudio } from '../composables/useAudio.js'
 
 const emit = defineEmits(['close'])

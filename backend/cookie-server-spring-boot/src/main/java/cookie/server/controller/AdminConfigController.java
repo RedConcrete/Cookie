@@ -97,7 +97,6 @@ public class AdminConfigController {
         balanceConfig.setCitizenCostGrowth(update.getCitizenCostGrowth());
         balanceConfig.setWorkersPerLevel(update.getWorkersPerLevel());
         balanceConfig.setBuildingCostGrowth(update.getBuildingCostGrowth());
-        balanceConfig.setPassiveTickSeconds(update.getPassiveTickSeconds());
         balanceConfig.setPrestigeBaseThreshold(update.getPrestigeBaseThreshold());
         balanceConfig.setPrestigeThresholdGrowth(update.getPrestigeThresholdGrowth());
         balanceConfig.setPrestigeMultiplierPerLevel(update.getPrestigeMultiplierPerLevel());

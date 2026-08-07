@@ -3,9 +3,9 @@
     ref="viewEl"
     class="hof-root"
     @mousedown="panStart"
-    @mousemove="panMove"
+    @mousemove="onMouseMove"
     @mouseup="panEnd"
-    @mouseleave="panEnd"
+    @mouseleave="onMouseLeaveRoot"
   >
 
     <!-- ══ HUD (fixed overlay, outside canvas so it stays put while panning) ══ -->
@@ -15,6 +15,7 @@
           <div class="hud-chip hud-chip-cookie">
             <PixelIcon name="cookie" :size="24" />
             <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
+            <div class="hud-chip-label">{{ t('farmGridView.cookiesTitle') }}</div>
           </div>
         </PixelInfoPopover>
 
@@ -40,6 +41,7 @@
 
       <PixelInfoPopover :rows="netWorthRows" :title="t('farmGridView.netWorthTitle')" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
         <div class="hud-networth" @click="dialog = 'networth'" :title="t('farmGridView.netWorthHint')">
+          <ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.networth) : ''" />
           <div class="hud-networth-label">{{ t('farmGridView.netWorthTitle') }}</div>
           <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
         </div>
@@ -47,7 +49,10 @@
 
       <div class="hud-actions">
         <div class="hud-menu-wrap" ref="hudMenuRef">
-          <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">&#9776;</button>
+          <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">
+            &#9776;
+            <ShortcutSlot />
+          </button>
           <div v-if="menuOpen" class="hud-menu">
             <button class="hud-menu-item" @click="selectMenu('profile')">
               <span class="hud-menu-avatar">
@@ -55,10 +60,12 @@
                 <PixelIcon v-else name="einw" :size="14" />
               </span>
               {{ t('farmGridView.profileTitle') }}
+              <ShortcutSlot />
             </button>
-            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}</button>
-            <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}</button>
-            <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}</button>
+            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}<ShortcutSlot /></button>
+            <button class="hud-menu-item" @click="selectMenu('stats')">{{ t('farmGridView.statsLabel') }}<ShortcutSlot /></button>
+            <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}<ShortcutSlot /></button>
+            <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}<ShortcutSlot /></button>
             <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectDevReset">{{ t('farmGridView.devResetLabel') }}</button>
           </div>
         </div>
@@ -86,11 +93,15 @@
         :offset="buildingOffsets[b.id]"
         :ref="(el) => onBuildingFrameRef(b.id, el)"
         :harvest-blocked="isProductionBlocked(b)"
+        :pending-amount="livePending(b)"
+        :storage-capacity="b.storageCapacity"
+        :resource-icon="RESOURCE_ICON[b.resource]"
         :class="{ 'building-idle': (playerStore.workersIdle || isProductionBlocked(b)) && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
         @harvest-start="b.resource && !isStorageFull && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
         @moved="onBuildingMoved(b.id, $event)"
+        @collect="onCollectBuilding(b)"
       >
         <component
           :is="b.comp" :workers="b.workers" :idle="isProductionBlocked(b)"
@@ -110,19 +121,19 @@
 
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
-      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView"><PixelIcon name="zentrieren" :size="18" /></button>
-      <div class="cam-hint">{{ t('farmGridView.centerHint') }}</div>
+      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot key-label="␣" /></button>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
 
     <!-- Floating build button (bottom-right) -->
-    <button class="build-fab" :title="t('farmGridView.buildTitle')" @click="dialog = 'buildshop'">+</button>
+    <button class="build-fab" :title="t('farmGridView.buildTitle')" @click="dialog = 'buildshop'">+<ShortcutSlot /></button>
 
     <!-- Mobile bottom nav -->
     <div class="mobile-nav">
       <button v-for="n in mobileNavItems" :key="n.labelKey" class="mobile-nav-item" @click="n.action">
         <PixelIcon :name="n.icon" :size="20" />
         <span>{{ t(n.labelKey) }}</span>
+        <ShortcutSlot />
       </button>
     </div>
 
@@ -131,6 +142,7 @@
     <BakeDialog         v-if="dialog === 'bake'"        @close="dialog = null" />
     <BuildingDetailDialog v-if="detailBuilding"         :building="detailBuilding" @close="detailBuilding = null" />
     <SkillTreeDialog    v-if="dialog === 'skilltree'"    @close="dialog = null" />
+    <StatsDialog        v-if="dialog === 'stats'"        @close="dialog = null" />
     <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
     <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
     <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
@@ -149,12 +161,14 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, trade, adminResetPlayer, avatarSrc } from '../services/api.js'
+import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
+import { useActionHotkeys } from '../composables/useActionHotkeys.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
+import ShortcutSlot from '../components/pixel/ShortcutSlot.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
 import { BASE, HGT, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
@@ -221,6 +235,7 @@ import MarketDialog from '../components/MarketDialog.vue'
 import BakeDialog from '../components/BakeDialog.vue'
 import BuildingDetailDialog from '../components/BuildingDetailDialog.vue'
 import SkillTreeDialog from '../components/SkillTreeDialog.vue'
+import StatsDialog from '../components/StatsDialog.vue'
 import LeaderboardDialog from '../components/LeaderboardDialog.vue'
 import SettingsDialog from '../components/SettingsDialog.vue'
 import PlayerProfileDialog from '../components/PlayerProfileDialog.vue'
@@ -302,12 +317,55 @@ const buildings = computed(() =>
     .map(id => {
       const owned = playerStore.ownedBuildings.find(b => b.id === id)
       if (!owned || owned.level === 0) return null
-      return { id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], title: buildingTitle(id, t), workers: owned.workers ?? 0 }
+      return {
+        id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], title: buildingTitle(id, t), workers: owned.workers ?? 0,
+        pendingAmount: owned.pendingAmount ?? 0, storageCapacity: owned.storageCapacity ?? 0,
+        passiveRatePerSec: owned.passiveRatePerSec ?? 0, lastSettledAtEpochMs: owned.lastSettledAtEpochMs ?? 0,
+      }
     })
     .filter(Boolean)
 )
 
-function dropOk(id, pos) { return dropOkLayout(id, pos, buildingOffsets) }
+// Client-side ticker for the collect badge's fill bar -- purely local extrapolation from the
+// last server-settled snapshot (owned.pendingAmount/lastSettledAtEpochMs), no extra polling.
+const liveNow = ref(Date.now())
+let liveNowTimer = null
+
+function livePending(b) {
+  if (!b.storageCapacity) return 0
+  if (playerStore.workersIdle || isStorageFull.value) return b.pendingAmount
+  const elapsedSeconds = Math.max(0, (liveNow.value - (b.lastSettledAtEpochMs || liveNow.value)) / 1000)
+  return Math.min(b.storageCapacity, b.pendingAmount + b.passiveRatePerSec * elapsedSeconds)
+}
+
+async function onCollectBuilding(b) {
+  const key = b.resource?.toLowerCase()
+  const before = key ? (playerStore[key] ?? 0) : 0
+  try {
+    const updated = await collectBuilding(playerStore.steamId, b.id)
+    playerStore.updateFromDto(updated)
+    await playerStore.loadBuildings()
+    if (key) {
+      const gained = (playerStore[key] ?? 0) - before
+      if (gained > 0) {
+        const off = buildingOffsets[b.id] || { x: 0, y: 0 }
+        const base = BASE[b.id]
+        if (base) spawnFarmNumber(gained, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[b.resource] })
+      }
+    }
+  } catch {}
+}
+
+// Only owned/built buildings should block a placement -- buildingOffsets carries an entry
+// for all 10 building slots regardless of ownership (see its init above), so an unbuilt
+// building's default BASE position used to act as an invisible obstacle: nothing was
+// rendered there, but dropOk still rejected drops onto it.
+function dropOk(id, pos) {
+  const ownedOffsets = Object.fromEntries(
+    Object.entries(buildingOffsets).filter(([bid]) => isBuildingOwned(bid))
+  )
+  return dropOkLayout(id, pos, ownedOffsets)
+}
 
 async function devReset() {
   try {
@@ -430,6 +488,7 @@ const netWorthRows = computed(() => [
 const panX = ref(0)
 const panY = ref(0)
 const zoom = ref(0.85)
+const MIN_ZOOM = 0.4
 const MAX_ZOOM = 1.3
 
 const canvasStyle = computed(() => ({
@@ -466,6 +525,21 @@ function panMove(e) {
 }
 function panEnd() { dragging = false }
 
+// AoE-style edge scrolling: cursor parked near a viewport edge pans the camera
+// that way, same speed/feel as WASD (see camTick below). Tracked separately from
+// drag-panning above -- onMouseMove runs both every move, dragging wins while held.
+function onMouseMove(e) {
+  panMove(e)
+  edgePointer.x = e.clientX
+  edgePointer.y = e.clientY
+  edgePointer.active = true
+  if (camActiveEdge()) startCamLoop()
+}
+function onMouseLeaveRoot() {
+  panEnd()
+  edgePointer.active = false
+}
+
 // Centers the camera on the Rathaus (accounting for it having been dragged elsewhere)
 // instead of the world rect's geometric center, which sits in empty grass below the
 // building cluster (see WORLD's comment in farmLayout.js) and isn't where a player
@@ -498,18 +572,48 @@ function centerExactlyOnRathaus() {
 function onWheel(e) {
   e.preventDefault()
   const factor = e.deltaY < 0 ? 1.1 : 0.9
-  zoom.value = Math.min(MAX_ZOOM, Math.max(0.4, zoom.value * factor))
+  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value * factor))
   clampPan()
 }
 
 // ── Camera movement (continuous while held, same feel as mouse-drag) ──
 // Keybinds + speed are user-configurable in SettingsDialog, shared via useCameraControls.
 const { cameraKeys, cameraSpeed } = useCameraControls()
+const { actionKeys, actionGamepadButtons, enabled: actionHotkeysEnabled, keyLabel: actionKeyLabel } = useActionHotkeys()
 const camPressed = { up: false, down: false, left: false, right: false }
 let camFrame = null
 let lastFrameTime = 0
 
-function camActive() { return camPressed.up || camPressed.down || camPressed.left || camPressed.right }
+function camActive() { return camPressed.up || camPressed.down || camPressed.left || camPressed.right || camActiveEdge() }
+
+// ── Edge scrolling (Age of Empires-style): mouse parked at the viewport edge
+// pans the camera that direction. Suspended while drag-panning, and while a
+// dialog/detail panel is open (same guards as the gamepad stick below).
+const EDGE_MARGIN = 4
+const edgePointer = { x: -1, y: -1, active: false }
+
+function camActiveEdge() {
+  if (!edgePointer.active || dragging || dialog.value || detailBuilding.value) return false
+  const rect = viewEl.value?.getBoundingClientRect()
+  if (!rect) return false
+  const { x, y } = edgePointer
+  if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) return false
+  return x - rect.left < EDGE_MARGIN || rect.right - x < EDGE_MARGIN ||
+         y - rect.top < EDGE_MARGIN || rect.bottom - y < EDGE_MARGIN
+}
+
+function readEdgePan() {
+  if (!camActiveEdge()) return { dx: 0, dy: 0 }
+  const rect = viewEl.value.getBoundingClientRect()
+  const { x, y } = edgePointer
+  let dx = 0, dy = 0
+  // Same sign convention as camPressed.left/up above (dx/dy += 1).
+  if (x - rect.left < EDGE_MARGIN) dx = 1
+  else if (rect.right - x < EDGE_MARGIN) dx = -1
+  if (y - rect.top < EDGE_MARGIN) dy = 1
+  else if (rect.bottom - y < EDGE_MARGIN) dy = -1
+  return { dx, dy }
+}
 
 // ── Steam Deck / gamepad: left stick pans the camera, same as WASD ──
 // (part of the Steam Deck controller roadmap item — see docs/ROADMAP.md §4).
@@ -535,6 +639,42 @@ function readGamepadPan() {
   return { dx: -ax * scale, dy: -ay * scale }
 }
 
+// D-pad up/down zooms the camera (Steam Deck has no scroll wheel) -- standard
+// mapping puts the D-pad at buttons 12-15, same indices SettingsDialog shows
+// as '↑'/'↓' via GAMEPAD_BUTTON_LABELS, but hardcoded here (not user-rebindable)
+// since it mirrors the mouse wheel rather than being a discrete UI action.
+const DPAD_UP = 12, DPAD_DOWN = 13
+const ZOOM_SPEED = 0.8 // multiplicative rate per second, same feel as onWheel's 1.1/0.9 step
+
+function readGamepadZoom() {
+  if (gamepadIndex.value === null || dialog.value || detailBuilding.value) return 0
+  const pad = navigator.getGamepads?.()[gamepadIndex.value]
+  if (!pad) return 0
+  if (pad.buttons[DPAD_UP]?.pressed) return -1   // up = zoom out
+  if (pad.buttons[DPAD_DOWN]?.pressed) return 1  // down = zoom in
+  return 0
+}
+
+// ── Gamepad button shortcuts (rebindable in Settings, e.g. open Net Worth) ──
+// Tracks each action's previous pressed-state so a held button only fires once.
+const gamepadActionPressed = {}
+function triggerAction(action) {
+  if (!actionHotkeysEnabled.value) return
+  if (dialog.value || detailBuilding.value) return
+  if (action === 'networth') dialog.value = 'networth'
+}
+function readGamepadActions() {
+  if (gamepadIndex.value === null) return
+  const pad = navigator.getGamepads?.()[gamepadIndex.value]
+  if (!pad) return
+  for (const action of Object.keys(actionGamepadButtons)) {
+    const btnIndex = actionGamepadButtons[action]
+    const pressed = btnIndex != null && !!pad.buttons[btnIndex]?.pressed
+    if (pressed && !gamepadActionPressed[action]) triggerAction(action)
+    gamepadActionPressed[action] = pressed
+  }
+}
+
 function camTick(now) {
   const dt = Math.min(0.05, (now - lastFrameTime) / 1000)
   lastFrameTime = now
@@ -543,15 +683,28 @@ function camTick(now) {
   if (camPressed.right) dx -= 1
   if (camPressed.up)    dy += 1
   if (camPressed.down)  dy -= 1
+
+  const edge = readEdgePan()
+  dx += edge.dx
+  dy += edge.dy
+
   if (dx !== 0 && dy !== 0) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2 }
 
   const stick = readGamepadPan()
   dx += stick.dx
   dy += stick.dy
 
+  readGamepadActions()
+
   if (dx !== 0 || dy !== 0) {
     panX.value += dx * cameraSpeed.value * dt
     panY.value += dy * cameraSpeed.value * dt
+    clampPan()
+  }
+
+  const zoomDir = readGamepadZoom()
+  if (zoomDir !== 0) {
+    zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value * (1 + zoomDir * ZOOM_SPEED * dt)))
     clampPan()
   }
   if (camActive() || gamepadIndex.value !== null) camFrame = requestAnimationFrame(camTick)
@@ -564,6 +717,7 @@ function startCamLoop() {
 }
 function stopCamKeys() {
   camPressed.up = camPressed.down = camPressed.left = camPressed.right = false
+  edgePointer.active = false
 }
 // Release held keys if a dialog opens or the window loses focus, so keys
 // stuck "down" (e.g. Alt-Tab while holding a movement key) don't pan forever.
@@ -596,6 +750,12 @@ function onKeydown(e) {
   }
   if (dialog.value || detailBuilding.value) return
   const k = e.key.toLowerCase()
+  const action = Object.keys(actionKeys).find(a => actionKeys[a] === k)
+  if (action) {
+    e.preventDefault()
+    triggerAction(action)
+    return
+  }
   const dir = Object.keys(cameraKeys).find(d => cameraKeys[d] === k)
   if (dir) {
     camPressed[dir] = true
@@ -681,27 +841,12 @@ function stopHarvest(name) {
   }
 }
 
-let passiveTimer  = null
-
-function spawnPassiveNumbers() {
-  for (const b of playerStore.ownedBuildings) {
-    if (!b.passiveRatePerTick || b.passiveRatePerTick <= 0) continue
-    const resource = BUILDING_INFO[b.id]?.resource
-    // Purely cosmetic ticker -- PassiveIncomeService actually credits nothing once the
-    // shared warehouse is full (no auto-sell, see isStorageFull), so don't show a number
-    // that implies otherwise.
-    if (resource && isStorageFull.value) continue
-    const off = buildingOffsets[b.id] || { x: 0, y: 0 }
-    const base = BASE[b.id]
-    if (!base) continue
-    spawnFarmNumber(b.passiveRatePerTick, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[resource] })
-  }
-}
-
 onMounted(() => {
   bakeStore.start(playerStore.steamId)
   resetView()
-  passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
+  // Drives livePending()'s local fill-bar extrapolation only -- no network call, just
+  // re-renders the badge from the last server-settled snapshot (see buildings computed).
+  liveNowTimer = setInterval(() => { liveNow.value = Date.now() }, 500)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('keyup', onKeyup)
@@ -710,7 +855,7 @@ onMounted(() => {
   window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
 })
 onUnmounted(() => {
-  clearInterval(passiveTimer)
+  clearInterval(liveNowTimer)
   Object.values(harvestDelays).forEach(clearTimeout)
   Object.values(harvestIntervals).forEach(clearInterval)
   Object.values(harvestSyncTimers).forEach(clearInterval)
@@ -776,13 +921,14 @@ onUnmounted(() => {
   box-shadow: inset 2px 2px 0 #402e2b;
 }
 .hud-chip-clickable { cursor: pointer; }
-.hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset 2px 2px 0 #764032; }
+.hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset -2px -2px 0 var(--px-wood2), inset 2px 2px 0 var(--px-wood3); }
 .hud-chip-val   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 .hud-chip-cookie .hud-chip-val { font-size: 13px; color: var(--px-gold-txt); }
 .hud-chip-label { font-size: 11px; color: #aea47e; line-height: 1; }
 
 .hud-networth-wrap { flex: 0 0 auto; margin-left: 16px; max-width: 160px; }
 .hud-networth {
+  position: relative;
   display: flex; flex-direction: column; padding: 5px 12px; cursor: pointer;
   background: var(--px-green-panel); border: 3px solid var(--px-ink);
   box-shadow: inset 2px 2px 0 var(--px-green-panel2);
@@ -800,6 +946,7 @@ onUnmounted(() => {
   display: flex; flex-direction: column; padding: 4px; z-index: 60;
 }
 .hud-menu-item {
+  position: relative;
   display: flex; align-items: center; gap: 9px;
   font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-cream);
   background: transparent; border: none; padding: 10px 10px; text-align: left; cursor: pointer;
@@ -833,11 +980,11 @@ onUnmounted(() => {
 /* ── Camera / ticker (outside canvas, fixed overlays) ── */
 .cam-controls { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
 .cam-center {
+  position: relative;
   width: 48px; height: 48px; background: var(--px-cream2); border: 4px solid var(--px-ink);
   box-shadow: inset -2px -2px 0 #aea47e; display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); cursor: pointer;
 }
-.cam-hint { font-family: 'Silkscreen', monospace; font-size: 8px; padding: 3px 5px; background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink); }
 .zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff1a9; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
 
 .build-fab {
@@ -870,6 +1017,7 @@ onUnmounted(() => {
   background: var(--px-wood); border-top: 4px solid var(--px-ink);
 }
 .mobile-nav-item {
+  position: relative;
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; border: none; border-right: 2px solid var(--px-ink); background: none; cursor: pointer;
 }

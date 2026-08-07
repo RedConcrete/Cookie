@@ -234,6 +234,7 @@ public class MarketService {
             }
             user.setCookies(user.getCookies() - cost);
             addResourceToUser(user, resource, amount);
+            user.setLifetimeCookiesSpentOnMarket(user.getLifetimeCookiesSpentOnMarket() + cost);
         } else if (action == MarketAction.SELL) {
             double userAmount = getResourceFromUser(user, resource);
             if (userAmount < amount) {
@@ -243,6 +244,7 @@ public class MarketService {
             double feeRate = buildingService.getEffectiveSellFeeRate(request.getUserId(), marketConfig.getSellFeeRate());
             double payout = sellPayout(marketStock, resource, amount) * (1.0 - feeRate);
             user.setCookies(user.getCookies() + payout);
+            user.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket() + payout);
         }
 
         userRepository.save(user);
@@ -743,6 +745,7 @@ public class MarketService {
         dto.setButter(entity.getButter());
         dto.setChocolate(entity.getChocolate());
         dto.setMilk(entity.getMilk());
+        dto.setTotalResourceCap(buildingService.getTotalCap(entity.getSteamId()));
         return dto;
     }
 }

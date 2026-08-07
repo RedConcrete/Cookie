@@ -33,9 +33,6 @@ public class GameBalanceConfig {
     /** Wachstumsfaktor der Gebäude-Bau-/Ausbaukosten pro Stufe (cost = baseCost × growth^level). */
     private double buildingCostGrowth = 2.0;
 
-    /** Tick-Länge (Sekunden) für passive Gebäude-Produktion. */
-    private double passiveTickSeconds = 5.0;
-
     /** Prestige-Schwelle bei Stufe 0 (Net Worth, ab der Prestige Stufe 1 möglich ist). */
     private double prestigeBaseThreshold = 100_000;
 
@@ -80,9 +77,6 @@ public class GameBalanceConfig {
 
     public double getBuildingCostGrowth() { return buildingCostGrowth; }
     public void setBuildingCostGrowth(double v) { this.buildingCostGrowth = v; }
-
-    public double getPassiveTickSeconds() { return passiveTickSeconds; }
-    public void setPassiveTickSeconds(double v) { this.passiveTickSeconds = v; }
 
     public double getPrestigeBaseThreshold() { return prestigeBaseThreshold; }
     public void setPrestigeBaseThreshold(double v) { this.prestigeBaseThreshold = v; }

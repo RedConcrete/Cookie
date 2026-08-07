@@ -91,6 +91,7 @@
   color: var(--px-cream);
 }
 .px-close {
+  position: relative;
   font-family: 'Silkscreen', monospace;
   padding: 4px 8px;
   border: 3px solid var(--px-ink);
@@ -101,6 +102,7 @@
 .px-close:hover { background: var(--px-red-dk); }
 
 .px-btn {
+  position: relative;
   font-family: 'Silkscreen', monospace;
   font-size: 12px;
   padding: 11px 14px;
@@ -112,6 +114,29 @@
 }
 .px-btn:hover { filter: brightness(1.08); }
 .px-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+/* Shortcut slot: top-right corner badge reserved for a future keybinding
+   letter. Empty for now — no keybinding system exists yet. Any button that
+   should carry one needs `position: relative` (`.px-btn` has it already). */
+.px-shortcut-slot {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Silkscreen', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--px-gold-txt);
+  background: var(--px-bg);
+  border: 2px solid var(--px-ink);
+  pointer-events: none;
+}
 .px-btn-accent {
   background: var(--px-orange);
   box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt);

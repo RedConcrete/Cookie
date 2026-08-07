@@ -1,5 +1,6 @@
 package cookie.server.entity;
 
+import cookie.server.enums.ResourceName;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -78,6 +79,26 @@ public class UserEntity {
 
     @Column(name = "total_skill_point_cookies_spent", columnDefinition = "double precision default 0")
     private double totalSkillPointCookiesSpent = 0;
+
+    // Lifetime-Zaehler fuers Statistik-Dialog (2026-08-07) -- nie verringert, nur fuer Anzeige,
+    // fliessen nicht in Net Worth/Spiellogik ein. columnDefinition mit Default noetig, sonst
+    // scheitert ddl-auto=update mit NOT NULL an bereits befuellten Zeilen (siehe ROADMAP.md).
+    @Column(name = "lifetime_sugar_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeSugarHarvested = 0;
+    @Column(name = "lifetime_flour_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeFlourHarvested = 0;
+    @Column(name = "lifetime_eggs_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeEggsHarvested = 0;
+    @Column(name = "lifetime_butter_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeButterHarvested = 0;
+    @Column(name = "lifetime_chocolate_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeChocolateHarvested = 0;
+    @Column(name = "lifetime_milk_harvested", columnDefinition = "double precision default 0")
+    private double lifetimeMilkHarvested = 0;
+    @Column(name = "lifetime_cookies_spent_on_market", columnDefinition = "double precision default 0")
+    private double lifetimeCookiesSpentOnMarket = 0;
+    @Column(name = "lifetime_cookies_earned_from_market", columnDefinition = "double precision default 0")
+    private double lifetimeCookiesEarnedFromMarket = 0;
 
     public String getSteamId() {
         return steamId;
@@ -230,6 +251,43 @@ public class UserEntity {
 
     public double getTotalSkillPointCookiesSpent() { return totalSkillPointCookiesSpent; }
     public void setTotalSkillPointCookiesSpent(double totalSkillPointCookiesSpent) { this.totalSkillPointCookiesSpent = totalSkillPointCookiesSpent; }
+
+    public double getLifetimeSugarHarvested() { return lifetimeSugarHarvested; }
+    public void setLifetimeSugarHarvested(double v) { this.lifetimeSugarHarvested = v; }
+
+    public double getLifetimeFlourHarvested() { return lifetimeFlourHarvested; }
+    public void setLifetimeFlourHarvested(double v) { this.lifetimeFlourHarvested = v; }
+
+    public double getLifetimeEggsHarvested() { return lifetimeEggsHarvested; }
+    public void setLifetimeEggsHarvested(double v) { this.lifetimeEggsHarvested = v; }
+
+    public double getLifetimeButterHarvested() { return lifetimeButterHarvested; }
+    public void setLifetimeButterHarvested(double v) { this.lifetimeButterHarvested = v; }
+
+    public double getLifetimeChocolateHarvested() { return lifetimeChocolateHarvested; }
+    public void setLifetimeChocolateHarvested(double v) { this.lifetimeChocolateHarvested = v; }
+
+    public double getLifetimeMilkHarvested() { return lifetimeMilkHarvested; }
+    public void setLifetimeMilkHarvested(double v) { this.lifetimeMilkHarvested = v; }
+
+    public double getLifetimeCookiesSpentOnMarket() { return lifetimeCookiesSpentOnMarket; }
+    public void setLifetimeCookiesSpentOnMarket(double v) { this.lifetimeCookiesSpentOnMarket = v; }
+
+    public double getLifetimeCookiesEarnedFromMarket() { return lifetimeCookiesEarnedFromMarket; }
+    public void setLifetimeCookiesEarnedFromMarket(double v) { this.lifetimeCookiesEarnedFromMarket = v; }
+
+    /** Bucht `amount` auf den passenden Lifetime-Zaehler -- gemeinsame Stelle fuer Hover-Ernte
+     *  (UserService#harvest) und passive Produktion (PassiveIncomeService#creditUser). */
+    public void addLifetimeHarvested(ResourceName resource, double amount) {
+        switch (resource) {
+            case SUGAR     -> lifetimeSugarHarvested     += amount;
+            case FLOUR     -> lifetimeFlourHarvested     += amount;
+            case EGGS      -> lifetimeEggsHarvested      += amount;
+            case BUTTER    -> lifetimeButterHarvested    += amount;
+            case CHOCOLATE -> lifetimeChocolateHarvested += amount;
+            case MILK      -> lifetimeMilkHarvested      += amount;
+        }
+    }
     public int getOwnedCitizens() { return ownedCitizens; }
     public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
 }

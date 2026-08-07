@@ -28,7 +28,7 @@
       <div class="pp-section">
         <div class="pp-section-head">
           <span class="pp-label">{{ t('playerProfileView.badgesCount', { count: badges.length }) }}</span>
-          <button class="pp-link" @click="ordenOpen = true">{{ t('playerProfileView.viewAll') }}</button>
+          <button class="pp-link" @click="ordenOpen = true"><ShortcutSlot />{{ t('playerProfileView.viewAll') }}</button>
         </div>
         <div class="pp-badges">
           <div v-for="m in badges.slice(0, 6)" :key="m.id" class="pp-badge-chip" :style="{ background: m.color }" :title="m.name">
@@ -69,6 +69,7 @@ import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import OrdenDialog from './OrdenDialog.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const props = defineProps({ steamId: { type: String, required: true } })
 
@@ -128,7 +129,7 @@ onMounted(load)
 
 .pp-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .pp-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; }
-.pp-link { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 7px; background: var(--px-cream3); border: 3px solid var(--px-brown2); color: var(--px-tan-hd); cursor: pointer; }
+.pp-link { position: relative; font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 7px; background: var(--px-cream3); border: 3px solid var(--px-brown2); color: var(--px-tan-hd); cursor: pointer; }
 .pp-link:hover { background: #fff1a9; }
 
 .pp-badges { display: flex; gap: 8px; flex-wrap: wrap; }

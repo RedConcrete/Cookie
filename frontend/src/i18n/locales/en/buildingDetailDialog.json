@@ -20,6 +20,9 @@
   "upgradeCost": "+1 resident slot · {cost}",
   "upgrade": "EXPAND",
   "storageLevel": "STORAGE LEVEL {resource}",
+  "collect": "COLLECT",
+  "collectHint": "Like rent — stops working once full until collected.",
   "errorChangingWorkers": "Error changing residents.",
+  "errorCollecting": "Error collecting.",
   "notEnoughCookies": "Not enough cookies."
 }

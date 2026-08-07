@@ -3,11 +3,13 @@ package cookie.server.service;
 import cookie.server.dto.LeaderboardEntryDto;
 import cookie.server.dto.NetWorthHistoryDto;
 import cookie.server.dto.PlayerProfileDto;
+import cookie.server.dto.PlayerStatsDto;
 import cookie.server.dto.SeasonResultDto;
 import cookie.server.dto.SkillNodeStatusDto;
 import cookie.server.entity.MarketEntity;
 import cookie.server.entity.NetWorthHistoryEntity;
 import cookie.server.entity.UserEntity;
+import cookie.server.enums.EffectType;
 import cookie.server.repository.NetWorthHistoryRepository;
 import cookie.server.repository.UserRepository;
 import org.slf4j.Logger;
@@ -32,17 +34,20 @@ public class NetWorthService {
     private final SkillTreeService skillTreeService;
     private final NetWorthHistoryRepository historyRepository;
     private final SeasonService seasonService;
+    private final BuildingService buildingService;
 
     public NetWorthService(UserRepository userRepository,
                            MarketService marketService,
                            SkillTreeService skillTreeService,
                            NetWorthHistoryRepository historyRepository,
-                           @Lazy SeasonService seasonService) {
+                           @Lazy SeasonService seasonService,
+                           BuildingService buildingService) {
         this.userRepository = userRepository;
         this.marketService = marketService;
         this.skillTreeService = skillTreeService;
         this.historyRepository = historyRepository;
         this.seasonService = seasonService;
+        this.buildingService = buildingService;
     }
 
     public LeaderboardEntryDto calculateForUser(UserEntity user, MarketEntity market) {
@@ -198,6 +203,34 @@ public class NetWorthService {
         dto.setLifetimeCookiesBaked(user.getLifetimeCookiesBaked());
         dto.setSkillNodes(skillNodes);
         dto.setSeasonHistory(seasonHistory);
+        return dto;
+    }
+
+    /** Lifetime-Zaehler + aktuell aktive Boni fuer den Statistik-Dialog (nur eigener Account). */
+    public PlayerStatsDto getStats(String userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+
+        PlayerStatsDto dto = new PlayerStatsDto();
+        dto.setLifetimeSugarHarvested(user.getLifetimeSugarHarvested());
+        dto.setLifetimeFlourHarvested(user.getLifetimeFlourHarvested());
+        dto.setLifetimeEggsHarvested(user.getLifetimeEggsHarvested());
+        dto.setLifetimeButterHarvested(user.getLifetimeButterHarvested());
+        dto.setLifetimeChocolateHarvested(user.getLifetimeChocolateHarvested());
+        dto.setLifetimeMilkHarvested(user.getLifetimeMilkHarvested());
+        dto.setLifetimeCookiesBaked(user.getLifetimeCookiesBaked());
+        dto.setLifetimeCookiesSpentOnMarket(user.getLifetimeCookiesSpentOnMarket());
+        dto.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket());
+        dto.setTotalPrestiges(user.getTotalPrestiges());
+
+        dto.setHarvestYieldSugarBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "SUGAR"));
+        dto.setHarvestYieldFlourBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "FLOUR"));
+        dto.setHarvestYieldEggsBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "EGGS"));
+        dto.setHarvestYieldButterBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "BUTTER"));
+        dto.setHarvestYieldChocolateBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "CHOCOLATE"));
+        dto.setHarvestYieldMilkBonus(skillTreeService.getEffectTotal(userId, EffectType.HARVEST_YIELD, "MILK"));
+        dto.setBakeOutputBonus(skillTreeService.getEffectTotal(userId, EffectType.BAKE_OUTPUT, null));
+        dto.setEffectiveMarketFeeRate(buildingService.getEffectiveSellFeeRate(userId, marketService.getSellFeeRate()));
         return dto;
     }
 }

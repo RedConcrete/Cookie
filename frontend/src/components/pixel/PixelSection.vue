@@ -1,6 +1,7 @@
 <template>
   <div class="ps-section">
     <button class="ps-head" @click="open = !open">
+      <ShortcutSlot />
       <span class="ps-label">{{ title }}</span>
       <span class="ps-arrow">{{ open ? '▾' : '▸' }}</span>
     </button>
@@ -12,6 +13,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import ShortcutSlot from './ShortcutSlot.vue'
 
 const props = defineProps({
   title:       { type: String, required: true },
@@ -27,6 +29,7 @@ const open = ref(props.defaultOpen)
    included), not just the text glyphs -- was a <button> with zero padding
    before, so only the thin text baseline actually registered clicks. */
 .ps-head {
+  position: relative;
   width: 100%; display: flex; align-items: center; justify-content: space-between;
   background: none; border: none; padding: 10px; margin: 0; font: inherit; cursor: pointer;
 }

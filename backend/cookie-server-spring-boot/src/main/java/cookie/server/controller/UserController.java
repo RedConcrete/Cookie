@@ -2,6 +2,7 @@ package cookie.server.controller;
 
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
+import cookie.server.service.BuildingService;
 import cookie.server.service.UserService;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import org.springframework.http.CacheControl;
@@ -16,9 +17,11 @@ import java.time.Duration;
 @RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
+    private final BuildingService buildingService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, BuildingService buildingService) {
         this.userService = userService;
+        this.buildingService = buildingService;
     }
 
     @PostMapping("/{userId}")
@@ -26,14 +29,16 @@ public class UserController {
             @PathVariable String userId,
             @RequestBody UserDto userDto) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                userService.createUser(userId, userDto)
-        );
+        UserInformationDto dto = userService.createUser(userId, userDto);
+        dto.setTotalResourceCap(buildingService.getTotalCap(userId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserInformationDto> getUser(@PathVariable String userId) {
-        return ResponseEntity.ok(userService.getUser(userId));
+        UserInformationDto dto = userService.getUser(userId);
+        dto.setTotalResourceCap(buildingService.getTotalCap(userId));
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{userId}")

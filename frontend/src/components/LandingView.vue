@@ -27,6 +27,7 @@
         <div class="landing-body">
           <p class="landing-text">{{ t('landingView.description') }}</p>
           <button class="px-btn landing-login-btn" disabled>
+            <ShortcutSlot />
             <PixelIcon name="steam" :size="14" style="vertical-align:-2px;margin-right:6px" />{{ t('landingView.loginButton') }}
           </button>
           <div class="landing-soon">{{ t('landingView.browserLoginSoon') }}</div>
@@ -40,6 +41,7 @@
 import { useI18n } from 'vue-i18n'
 import TravelingWorker from './buildings/TravelingWorker.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
 

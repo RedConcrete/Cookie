@@ -29,21 +29,31 @@ public class WageService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
+        boolean wasIdle = user.isWorkersIdle();
         double wage = buildingService.getTotalWage(userId);
+        boolean nowIdle;
+        boolean cookiesChanged = false;
         if (wage <= 0) {
-            if (user.isWorkersIdle()) {
-                user.setWorkersIdle(false);
-                userRepository.save(user);
-            }
-            return;
+            nowIdle = false;
+        } else if (user.getCookies() >= wage) {
+            user.setCookies(user.getCookies() - wage);
+            cookiesChanged = true;
+            nowIdle = false;
+        } else {
+            nowIdle = true;
         }
 
-        if (user.getCookies() >= wage) {
-            user.setCookies(user.getCookies() - wage);
-            user.setWorkersIdle(false);
-        } else {
-            user.setWorkersIdle(true);
+        if (nowIdle == wasIdle && !cookiesChanged) return;
+
+        // Passive Gebäude-Produktion settlen, bevor der Idle-Status wechselt -- sonst würde
+        // die Zeitspanne VOR dem Wechsel fälschlich mit dem NEUEN Status bewertet (siehe
+        // BuildingService#settleAllForIdleTransition). Kein eigener Scheduler dafür nötig,
+        // läuft im ohnehin vorhandenen 60s-Lohnlauf mit.
+        if (nowIdle != wasIdle) {
+            buildingService.settleAllForIdleTransition(userId, wasIdle);
         }
+
+        user.setWorkersIdle(nowIdle);
         userRepository.save(user);
     }
 }

@@ -20,6 +20,9 @@
   "upgradeCost": "+1 Einwohner-Slot · {cost}",
   "upgrade": "AUSBAUEN",
   "storageLevel": "LAGERSTAND {resource}",
+  "collect": "EINSAMMELN",
+  "collectHint": "Wie Miete — steht still, wenn voll, bis eingesammelt wird.",
   "errorChangingWorkers": "Fehler beim Ändern der Einwohner.",
+  "errorCollecting": "Fehler beim Einsammeln.",
   "notEnoughCookies": "Nicht genug Cookies."
 }

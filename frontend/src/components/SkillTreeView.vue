@@ -44,7 +44,7 @@
 
         <!-- ── Kamera zentrieren ──────────────────────────────── -->
         <div class="stv-cam-controls">
-          <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><PixelIcon name="zentrieren" :size="18" /></button>
+          <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
 
@@ -56,7 +56,7 @@
         <div class="stv-buy-panel px-panel">
           <div class="px-titlebar">
             <span>{{ t('skillTreeView.skillPointsLabel') }}</span>
-            <button class="px-close" @click="buyDialogOpen = false">&times;</button>
+            <button class="px-close" @click="buyDialogOpen = false"><ShortcutSlot />&times;</button>
           </div>
           <div class="stv-buy-panel-body">
             <div class="stv-hud-points">
@@ -69,7 +69,7 @@
               :disabled="!canAfford || buying"
               @click="buyPoint"
             >
-              {{ t('skillTreeView.buyPointLabel') }} &middot; {{ fmt(tree.nextPointCost) }}
+              <ShortcutSlot />{{ t('skillTreeView.buyPointLabel') }} &middot; {{ fmt(tree.nextPointCost) }}
               <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
             </button>
           </div>
@@ -87,6 +87,7 @@ import { buySkillPoint, allocateSkillNode, getPlayer } from '../services/api.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
@@ -293,6 +294,7 @@ onMounted(async () => {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 .stv-cam-btn {
+  position: relative;
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   background: var(--px-wood3); border: 3px solid var(--px-ink); color: var(--px-cream);

@@ -50,7 +50,9 @@ public class GameController {
     public ResponseEntity<UserInformationDto> produce(
             @PathVariable String userId,
             @RequestBody ProduceRequestDto request) {
-        return ResponseEntity.ok(userService.produce(userId, request.getAmount()));
+        UserInformationDto dto = userService.produce(userId, request.getAmount());
+        dto.setTotalResourceCap(buildingService.getTotalCap(userId));
+        return ResponseEntity.ok(dto);
     }
 
     @PostMapping("/harvest/{userId}")

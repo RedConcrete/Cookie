@@ -30,15 +30,21 @@ export const BASE = {
   kuh:     { x: 1010,y: 484, w: 250 },
 }
 
-export const HGT = {
-  pond: 128, ofen: 92, rathaus: 126, markt: 124, lager: 128,
-  hof: 158, huhn: 128, butter: 124, kakao: 138, kuh: 138,
-}
-
 export const SCENE_H = {
   pond: 120, ofen: 84, rathaus: 118, markt: 116, lager: 120,
   hof: 150, huhn: 120, butter: 116, kakao: 130, kuh: 130,
 }
+
+// BuildingFrame's .bf-overlay label bar (icon + title + worker count) adds this much on
+// top of the scene itself. Used to be a hardcoded +8 per building here, drifted from the
+// real rendered height (measured via getBoundingClientRect: consistently +20, not +8) --
+// caused false drop-collision rejections (dropOk below) against empty-looking tiles next
+// to a building, since its true footprint was taller than this table claimed. Derived from
+// SCENE_H now instead of a second hand-maintained table so the two can't drift apart again.
+const OVERLAY_BAR_HEIGHT = 20
+export const HGT = Object.fromEntries(
+  Object.entries(SCENE_H).map(([id, h]) => [id, h + OVERLAY_BAR_HEIGHT])
+)
 
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h

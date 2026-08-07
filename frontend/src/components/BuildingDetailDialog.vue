@@ -9,7 +9,7 @@
           <div class="bd-head-name">{{ building.title }}</div>
           <div class="bd-head-sub">{{ t('buildingDetailDialog.subtitle', { level, resource: resourceLabelText }) }}</div>
         </div>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="bd-body">
@@ -34,7 +34,7 @@
               class="bd-crew-add"
               @click="adjustWorkers(1)"
               :title="t('buildingDetailDialog.assign')"
-            >+</button>
+            ><ShortcutSlot />+</button>
             <!-- Locked slot hint -->
             <div v-else-if="workerCount < maxWorkers" class="bd-crew-locked">
               {{ playerStore.ownedCitizens === 0 ? t('buildingDetailDialog.noResidents') : t('buildingDetailDialog.allAssigned') }}
@@ -79,7 +79,7 @@
               <div class="bd-buildup-note">{{ t('buildingDetailDialog.upgradeCost', { cost: upgradeCost.toFixed(0) }) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
             </div>
             <button class="px-btn px-btn-accent" :disabled="upgrading || playerStore.cookies < upgradeCost" @click="upgradeBuilding">
-              {{ t('buildingDetailDialog.upgrade') }}
+              <ShortcutSlot />{{ t('buildingDetailDialog.upgrade') }}
             </button>
           </div>
           <div v-if="notice" class="bd-notice">{{ notice }}</div>
@@ -88,6 +88,10 @@
             <div class="bd-label" style="margin-bottom:8px">{{ t('buildingDetailDialog.storageLevel', { resource: resourceLabelText.toUpperCase() }) }}</div>
             <div class="bd-storage-bar"><div class="bd-storage-fill" :style="{ width: storagePct + '%' }"></div></div>
             <div class="bd-storage-text">{{ storageText }}</div>
+            <button class="px-btn px-btn-accent bd-collect-btn" :disabled="collecting || pendingAmount <= 0" @click="collectBuildingAction">
+              <ShortcutSlot />{{ t('buildingDetailDialog.collect') }}
+            </button>
+            <div class="bd-collect-hint">{{ t('buildingDetailDialog.collectHint') }}</div>
           </div>
         </div>
       </div>
@@ -96,21 +100,30 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
-import { changeWorkers, buyBuilding } from '../services/api.js'
+import { changeWorkers, buyBuilding, collectBuilding } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 import { resourceLabel } from './buildings/buildingInfo.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
 
-onMounted(() => audio.playBookOpen())
+// Light local ticker for the pending-amount preview -- purely visual extrapolation between
+// building-list refreshes (see pendingAmount below), no extra polling.
+const nowTick = ref(Date.now())
+let tickTimer = null
+onMounted(() => {
+  audio.playBookOpen()
+  tickTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
+})
+onUnmounted(() => clearInterval(tickTimer))
 
 const playerStore = usePlayerStore()
 
@@ -133,9 +146,18 @@ const crewNames = ['ANNA', 'BEN', 'CLARA', 'DIRK', 'EVA', 'FRANK', 'GRETA', 'HAN
 const wageRow  = computed(() => props.building.rows.find(r => r.k === 'Lohn'))
 const yieldRow = computed(() => props.building.rows.find(r => /Passiv/.test(r.k)))
 
-const stock = computed(() => (props.building.resource ? playerStore[props.building.resource.toLowerCase()] ?? 0 : 0))
-const storageCap = computed(() => playerStore.totalResourceCap)
-const storagePct = computed(() => Math.min(100, (stock.value / storageCap.value) * 100))
+// This building's own accrued-and-not-yet-collected amount (like a rent bucket), extrapolated
+// locally between building-list refreshes off the last server-settled snapshot -- mirrors
+// FarmGridView's livePending().
+const storageCapacity = computed(() => ownedData.value?.storageCapacity ?? 0)
+const pendingAmount = computed(() => {
+  const d = ownedData.value
+  if (!d || !storageCapacity.value) return 0
+  if (playerStore.workersIdle || isStorageFull.value) return d.pendingAmount ?? 0
+  const elapsedSeconds = Math.max(0, (nowTick.value - (d.lastSettledAtEpochMs || nowTick.value)) / 1000)
+  return Math.min(storageCapacity.value, (d.pendingAmount ?? 0) + (d.passiveRatePerSec ?? 0) * elapsedSeconds)
+})
+const storagePct = computed(() => storageCapacity.value > 0 ? Math.min(100, (pendingAmount.value / storageCapacity.value) * 100) : 0)
 
 // Shared warehouse cap across all 6 resources -- mirrors FarmGridView's isStorageFull.
 // A production building's worker still counts as "assigned" (workerCount/adjustWorkers
@@ -150,8 +172,8 @@ const isBuildingIdle = computed(() =>
   playerStore.workersIdle || (Boolean(props.building.resource) && isStorageFull.value)
 )
 const storageText = computed(() => {
-  const cap = storageCap.value
-  return `${stock.value.toFixed(1)} / ${cap >= 1000 ? (cap / 1000).toFixed(1) + 'K' : cap}`
+  const cap = storageCapacity.value
+  return `${pendingAmount.value.toFixed(1)} / ${cap >= 1000 ? (cap / 1000).toFixed(1) + 'K' : cap.toFixed(0)}`
 })
 
 const notice = ref('')
@@ -162,6 +184,22 @@ async function adjustWorkers(delta) {
   } catch (e) {
     notice.value = t('buildingDetailDialog.errorChangingWorkers')
     setTimeout(() => { notice.value = '' }, 2000)
+  }
+}
+
+const collecting = ref(false)
+async function collectBuildingAction() {
+  if (collecting.value || pendingAmount.value <= 0) return
+  collecting.value = true
+  try {
+    const updated = await collectBuilding(playerStore.steamId, props.building.id)
+    playerStore.updateFromDto(updated)
+    await playerStore.loadBuildings()
+  } catch (e) {
+    notice.value = t('buildingDetailDialog.errorCollecting')
+    setTimeout(() => { notice.value = '' }, 2000)
+  } finally {
+    collecting.value = false
   }
 }
 
@@ -223,6 +261,7 @@ async function upgradeBuilding() {
 }
 .bd-crew-x:hover { background: #b74132; }
 .bd-crew-add {
+  position: relative;
   width: 64px; height: 74px; border: 3px dashed var(--px-green); background: rgba(60,100,40,.12);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 24px; color: var(--px-green); cursor: pointer;
@@ -252,4 +291,6 @@ async function upgradeBuilding() {
 .bd-storage-bar { height: 16px; background: var(--px-ink); border: 3px solid var(--px-ink); }
 .bd-storage-fill { height: 100%; background: var(--px-gold); }
 .bd-storage-text { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood-lt); margin-top: 6px; }
+.bd-collect-btn { width: 100%; margin-top: 10px; }
+.bd-collect-hint { font-size: 11px; color: var(--px-tan-ink); font-style: italic; margin-top: 6px; }
 </style>

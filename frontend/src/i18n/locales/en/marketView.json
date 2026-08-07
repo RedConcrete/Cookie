@@ -9,6 +9,8 @@
   "costSuffix": "COST",
   "buyButton": "BUY",
   "sellButton": "SELL",
+  "maxBuyTitle": "Max buyable",
+  "maxSellTitle": "Max sellable",
   "okButton": "OK",
   "resourceSugar": "Sugar",
   "resourceFlour": "Flour",

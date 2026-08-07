@@ -4,7 +4,7 @@
       <div class="rh-head">
         <PixelIcon name="haus" :size="28" />
         <div class="rh-head-title">{{ t('rathausDialog.title', { level: rathausLevel }) }}</div>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="rh-body">
@@ -60,7 +60,7 @@
             class="px-btn px-btn-accent"
             :disabled="upgrading || playerStore.cookies < upgradeCost"
             @click="upgradeRathaus"
-          >{{ t('rathausDialog.upgradeBtn') }}</button>
+          ><ShortcutSlot />{{ t('rathausDialog.upgradeBtn') }}</button>
         </div>
         <div v-if="notice" class="rh-notice" :class="{ error: noticeError }">{{ notice }}</div>
       </div>
@@ -77,6 +77,7 @@ import { BUILDING_INFO, buildingTitle } from './buildings/buildingInfo.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()

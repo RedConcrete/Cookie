@@ -3,6 +3,7 @@ package cookie.server.controller;
 import cookie.server.dto.LeaderboardEntryDto;
 import cookie.server.dto.NetWorthHistoryDto;
 import cookie.server.dto.PlayerProfileDto;
+import cookie.server.dto.PlayerStatsDto;
 import cookie.server.service.NetWorthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,5 +38,14 @@ public class LeaderboardController {
     @GetMapping("/players/{steamId}/networth/history")
     public ResponseEntity<List<NetWorthHistoryDto>> getNetWorthHistory(@PathVariable String steamId) {
         return ResponseEntity.ok(netWorthService.getHistory(steamId));
+    }
+
+    // Persoenliche Statistik-Uebersicht (Lifetime-Zaehler + aktive Boni) -- nur fuers eigene
+    // Konto gedacht, siehe PlayerStatsDto. Keine serverseitige Durchsetzung "nur eigener
+    // Account" (kein echtes Auth-System, siehe ROADMAP.md Abschnitt 0), das Frontend fragt
+    // nur die eigene steamId ab.
+    @GetMapping("/players/{steamId}/stats")
+    public ResponseEntity<PlayerStatsDto> getStats(@PathVariable String steamId) {
+        return ResponseEntity.ok(netWorthService.getStats(steamId));
     }
 }

@@ -18,7 +18,7 @@
         <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
       </div>
 
-      <button class="px-btn px-btn-flat lv-refresh" @click="load">&#8635; {{ t('leaderboardView.refresh') }}</button>
+      <button class="px-btn px-btn-flat lv-refresh" @click="load"><ShortcutSlot />&#8635; {{ t('leaderboardView.refresh') }}</button>
     </template>
   </div>
 </template>
@@ -29,6 +29,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getLeaderboard } from '../services/api.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()

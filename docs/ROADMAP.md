@@ -194,6 +194,15 @@ spezifiziert ist:
   Prestige-Systems: diese Altlasten (Backend-Endpoints, Admin-Felder,
   `prestigeMultiplier`-Anbindung) sind noch da und wiederverwendbar, statt von
   Null anzufangen.
+  **Konkretisierte Neubau-Richtung (2026-08-07):** kein flacher Multiplikator
+  mehr auf alles (aktuelles `prestigeMultiplierPerLevel`-Modell), sondern
+  gezielt auf einzelne Ressourcen wirkend, um unterschiedliche Spielweisen zu
+  unterstützen (ähnliches Prinzip wie `targetResource` im Skill-Baum, siehe
+  Abschnitt 9 im Design-Doc). Deshalb auch die `PRESTIGE ×1.00`-Kachel wieder
+  aus dem neuen Statistik-Dialog entfernt (`StatsView.vue`,
+  `PlayerStatsDto#prestigeMultiplier` samt Backend-Berechnung in
+  `NetWorthService#getStats()` raus) — hätte ein Modell gezeigt, das eh bald
+  nicht mehr stimmt. Kommt neu rein, sobald das tatsächliche System steht.
 - [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
   fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
   Backzeit, Skill-Baum-Effektwerte/Skill-Punkt-Kostenkurve) sind nie in
@@ -327,7 +336,8 @@ spezifiziert ist:
   per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
 - [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
   Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
-  Produktion (`PassiveIncomeService#creditUser`) automatisch zum aktuellen
+  Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`
+  vor dem Ansammeln-Redesign weiter unten) automatisch zum aktuellen
   Marktpreis in Cookies umgewandelt, sobald das Lager voll war — fühlte sich
   wie ein unsichtbarer Dauer-Verkauf an, nicht wie eine bewusste
   Spielerentscheidung. Jetzt wird Überschuss schlicht nicht mehr
@@ -359,6 +369,45 @@ spezifiziert ist:
   jemals per Admin-API auf einen abweichenden Wert gesetzt wurde, überschreibt
   das die neuen `application.properties`-Defaults erst nach einem Neustart
   des Backends (der Wert liegt nur im Speicher, nicht in der DB).
+- [x] **Statistik-Dialog (2026-08-07).** Neuer Vollbild-Dialog (Hauptmenü →
+  "Statistiken", `StatsDialog.vue`/`StatsView.vue`) mit Wirtschafts-Übersicht,
+  Produktions-Tabelle + aktiven Skill-Baum-Boni und Lifetime-Zählern
+  (geerntete Menge pro Ressource, Markt-Umsatz gekauft/verkauft). Neue
+  `UserEntity`-Felder + `GET /api/v1/players/{steamId}/stats`. Details:
+  `cookie-game-design.md` Abschnitt 10.
+  **Zurückgestellte Idee aus derselben Session:** Crit-Chance beim Ernten/
+  Backen (Chance auf überproportionalen Bonus-Ertrag) — vom Spieler explizit
+  auf "später" verschoben, noch keine Spezifikation (Chance-Wert, Multiplikator,
+  eigener Skill-Baum-Zweig?). Aufgreifen, wenn die Statistik-Basis (Lifetime-
+  Zähler) schon steht, um Crit-Ausbeute dort mitzuzählen.
+- [x] **Passive Produktion: Ansammeln + manuell einsammeln statt 5s-Server-
+  Tick (2026-08-07).** Bug: `PassiveIncomeScheduler` schrieb alle 5s im
+  Hintergrund direkt in `UserEntity`-Ressourcen, für JEDEN je registrierten
+  Spieler, unabhängig von Aktivität — das Frontend erfuhr davon nichts, bis
+  irgendein anderer API-Call (meist die Hover-Ernte-Sync alle 3s) zufällig
+  einen vollen `UserInformationDto`-Snapshot zurückgab und alle 6 Ressourcen
+  auf einmal überschrieb. Sah für Spieler wie ein Ressourcen-Sprung beim
+  Hovern aus, war aber angesammeltes, unsichtbares Hintergrund-Einkommen.
+  **Fix:** jedes Produktionsgebäude sammelt jetzt selbst an
+  (`PlayerBuildingEntity#pendingAmount`/`lastSettledAt`), gedeckelt durch
+  eine neue gebäudeeigene `storageCapacity` (`BuildingService#BuildingDef`)
+  — bei voller Lagerung stoppt die Produktion, bis eingesammelt wird (wie
+  eine Miete). `PassiveIncomeScheduler` komplett entfernt; Fortschritt wird
+  lazy über `BuildingService#settle()` berechnet, ausgelöst nur bei
+  tatsächlichen Ereignissen (Lesen fürs Anzeigen — ohne Persistieren,
+  Einsammeln, Arbeiter-/Stufen-Änderung, Lohn-Idle-Wechsel im ohnehin
+  laufenden 60s-`WageScheduler`). Einsammeln über neuen Endpoint
+  `POST /api/v1/farm/buildings/collect/{userId}/{buildingId}`
+  (`PassiveIncomeService#collectBuilding`, ersetzt das alte `creditUser`),
+  erreichbar per Klick-Badge direkt auf der Hofkarte (kein Dialog nötig,
+  `BuildingFrame.vue`) oder über einen Button im Gebäude-Dialog
+  (`BuildingDetailDialog.vue`). `GameBalanceConfig#passiveTickSeconds`
+  entfernt (kein fester Tick mehr). Details: `cookie-game-design.md`
+  Abschnitt 5.
+  **Zurückgestellte Idee aus derselben Session:** ein "Alles einsammeln"-
+  Sammel-Button — vom Spieler explizit auf später verschoben, könnte im
+  Rathaus-Dialog (und ggf. anderswo) landen, sobald der Bedarf (viele
+  Gebäude gleichzeitig voll) tatsächlich auftritt.
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
   "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert

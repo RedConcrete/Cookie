@@ -64,6 +64,11 @@ export function getNetWorthHistory(steamId) {
   return request('GET', `/api/v1/players/${steamId}/networth/history`)
 }
 
+// Fetch personal stats (lifetime counters + currently active bonuses). Own account only.
+export function getPlayerStats(steamId) {
+  return request('GET', `/api/v1/players/${steamId}/stats`)
+}
+
 // Fetch prestige status (level, multiplier, threshold, canPrestige).
 export function getPrestigeStatus(steamId) {
   return request('GET', `/api/v1/game/prestige/status/${steamId}`)
@@ -161,6 +166,11 @@ export function buyBuilding(steamId, buildingId) {
 // Change worker count for a building (+1 or -1). Returns full updated building list.
 export function changeWorkers(steamId, buildingId, delta) {
   return request('POST', `/api/v1/farm/buildings/workers/${steamId}`, { buildingId, delta })
+}
+
+// Collect a building's accumulated passive resource (like collecting rent). Returns updated UserInformationDto.
+export function collectBuilding(steamId, buildingId) {
+  return request('POST', `/api/v1/farm/buildings/collect/${steamId}/${buildingId}`)
 }
 
 // Buy N citizens (requires Rathaus). Returns updated UserInformationDto.

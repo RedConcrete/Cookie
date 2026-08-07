@@ -33,16 +33,18 @@ public class BakeService {
     private final SkillTreeService skillTreeService;
     private final AppConfig appConfig;
     private final PrestigeService prestigeService;
+    private final BuildingService buildingService;
 
     public BakeService(RecipeRepository recipeRepository, BakeJobRepository bakeJobRepository,
                        UserRepository userRepository, SkillTreeService skillTreeService,
-                       AppConfig appConfig, PrestigeService prestigeService) {
+                       AppConfig appConfig, PrestigeService prestigeService, BuildingService buildingService) {
         this.recipeRepository = recipeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.userRepository = userRepository;
         this.skillTreeService = skillTreeService;
         this.appConfig = appConfig;
         this.prestigeService = prestigeService;
+        this.buildingService = buildingService;
     }
 
     @PostConstruct
@@ -182,6 +184,7 @@ public class BakeService {
         dto.setButter(user.getButter());
         dto.setChocolate(user.getChocolate());
         dto.setMilk(user.getMilk());
+        dto.setTotalResourceCap(buildingService.getTotalCap(user.getSteamId()));
         return dto;
     }
 

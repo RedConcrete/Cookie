@@ -4,12 +4,14 @@ import cookie.server.dto.PlayerBuildingDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.service.BuildingService;
+import cookie.server.service.PassiveIncomeService;
 import cookie.server.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/v1/farm")
@@ -17,10 +19,13 @@ public class BuildingController {
 
     private final BuildingService buildingService;
     private final UserService userService;
+    private final PassiveIncomeService passiveIncomeService;
 
-    public BuildingController(BuildingService buildingService, UserService userService) {
+    public BuildingController(BuildingService buildingService, UserService userService,
+                              PassiveIncomeService passiveIncomeService) {
         this.buildingService = buildingService;
         this.userService = userService;
+        this.passiveIncomeService = passiveIncomeService;
     }
 
     @GetMapping("/buildings/{userId}")
@@ -66,6 +71,22 @@ public class BuildingController {
         try {
             return ResponseEntity.ok(buildingService.changeWorkers(userId, buildingId, delta));
         } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Sammelt die im Gebäude angesammelte passive Produktion ein -- wie eine Miete, die
+    // manuell abgeholt werden muss (siehe PassiveIncomeService#collectBuilding). Aufrufbar
+    // sowohl über den Badge auf der Karte als auch über den Button im Gebäude-Dialog.
+    @PostMapping("/buildings/collect/{userId}/{buildingId}")
+    public ResponseEntity<UserInformationDto> collectBuilding(
+            @PathVariable String userId,
+            @PathVariable String buildingId) {
+        try {
+            return ResponseEntity.ok(passiveIncomeService.collectBuilding(userId, buildingId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().build();
         }
     }

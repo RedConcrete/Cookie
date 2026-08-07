@@ -3,7 +3,7 @@
     <div class="nw-box px-panel">
       <div class="px-titlebar">
         <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="nw-layout">
@@ -74,10 +74,11 @@
                 :style="{ '--dot': ds.color }"
                 @click="toggleDataset(ds.key)"
               >
+                <ShortcutSlot />
                 <span class="dot"></span>{{ t(ds.labelKey) }}
               </button>
             </div>
-            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')"><PixelIcon name="zentrieren" :size="14" /></button>
+            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
           </div>
 
           <div class="chart-wrap">
@@ -105,6 +106,7 @@ import { getNetWorth, getNetWorthHistory } from '../services/api.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
@@ -400,6 +402,7 @@ onUnmounted(() => {
 }
 
 .toggle-btn {
+  position: relative;
   display: flex; align-items: center; gap: 5px;
   padding: 4px 9px; border: 2px solid var(--px-brown2);
   background: var(--px-cream2);
@@ -415,6 +418,7 @@ onUnmounted(() => {
 }
 
 .pct-btn {
+  position: relative;
   padding: 4px 10px; border: 2px solid var(--px-brown2);
   background: var(--px-cream2);
   display: flex; align-items: center; justify-content: center;

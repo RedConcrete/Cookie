@@ -11,6 +11,9 @@ import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -19,24 +22,28 @@ public class BuildingService {
     record BuildingDef(
         String id, String name, int baseCost, double wagePerMin,
         boolean upgradeable, boolean preBuilt, int maxWorkers,
-        double passiveRatePerSecPerWorker, ResourceName passiveResource
+        double passiveRatePerSecPerWorker, ResourceName passiveResource,
+        double storageCapacity
     ) {}
 
     // Pre-built (ofen, rathaus, lager, markt) start at level 1 for every player.
     // Alle Produktionsgebäude sind jetzt upgradeable -- höhere Stufe = mehr Arbeiter-Slots,
     // Kosten steigen exponentiell (computeCost: baseCost × 2^level). maxWorkers hier ist die
     // Basis-Kapazität bei Stufe 1, siehe effectiveMaxWorkers().
+    // storageCapacity: Gebäude sammelt passiv bis zu diesem Wert an, danach steht die
+    // Produktion still bis eingesammelt wird (siehe settle()) -- ca. 10 Minuten Produktion
+    // bei Stufe-1-Basisbesatzung (rate * maxWorkers * 600s), tunbar.
     private static final List<BuildingDef> BUILDINGS = List.of(
-        new BuildingDef("pond",    "Zuckerteich", 500, 4.0, true, false, 2, 0.7,  ResourceName.SUGAR),
-        new BuildingDef("hof",     "Bauernhof",   300, 6.0, true, false, 3, 0.7,  ResourceName.FLOUR),
-        new BuildingDef("huhn",    "Hühnerhof",   350, 4.0, true, false, 2, 0.4,  ResourceName.EGGS),
-        new BuildingDef("butter",  "Butterei",    280, 2.0, true, false, 1, 0.6,  ResourceName.BUTTER),
-        new BuildingDef("kakao",   "Plantage",    380, 4.0, true, false, 2, 0.6,  ResourceName.CHOCOLATE),
-        new BuildingDef("kuh",     "Kuhstall",    600, 8.0, true, false, 4, 1.2,  ResourceName.MILK),
-        new BuildingDef("ofen",    "Backhaus",    0,   0.0, false, true,  0, 0.0,  null),
-        new BuildingDef("rathaus", "Rathaus",     400, 0.0, true,  true,  0, 0.0,  null),
-        new BuildingDef("markt",   "Markt",       400, 0.0, true,  true,  0, 0.0,  null),
-        new BuildingDef("lager",   "Lager",       400, 3.0, true,  true,  0, 0.0,  null)
+        new BuildingDef("pond",    "Zuckerteich", 500, 4.0, true, false, 2, 0.7,  ResourceName.SUGAR,     840),
+        new BuildingDef("hof",     "Bauernhof",   300, 6.0, true, false, 3, 0.7,  ResourceName.FLOUR,    1260),
+        new BuildingDef("huhn",    "Hühnerhof",   350, 4.0, true, false, 2, 0.4,  ResourceName.EGGS,      480),
+        new BuildingDef("butter",  "Butterei",    280, 2.0, true, false, 1, 0.6,  ResourceName.BUTTER,    360),
+        new BuildingDef("kakao",   "Plantage",    380, 4.0, true, false, 2, 0.6,  ResourceName.CHOCOLATE, 720),
+        new BuildingDef("kuh",     "Kuhstall",    600, 8.0, true, false, 4, 1.2,  ResourceName.MILK,     2880),
+        new BuildingDef("ofen",    "Backhaus",    0,   0.0, false, true,  0, 0.0,  null,                    0),
+        new BuildingDef("rathaus", "Rathaus",     400, 0.0, true,  true,  0, 0.0,  null,                    0),
+        new BuildingDef("markt",   "Markt",       400, 0.0, true,  true,  0, 0.0,  null,                    0),
+        new BuildingDef("lager",   "Lager",       400, 3.0, true,  true,  0, 0.0,  null,                    0)
     );
 
     private static final Map<String, BuildingDef> DEF_MAP;
@@ -79,7 +86,17 @@ public class BuildingService {
 
     public List<PlayerBuildingDto> getBuildings(String userId) {
         Map<String, PlayerBuildingEntity> owned = ownedMap(userId);
-        return BUILDINGS.stream().map(def -> toDto(def, owned.get(def.id()))).toList();
+        boolean idle = userRepo.findById(userId).map(UserEntity::isWorkersIdle).orElse(false);
+        LocalDateTime now = LocalDateTime.now();
+        // Settle-Preview je Gebäude fürs Anzeigen -- NICHT persistiert (owned-Entities sind nach
+        // dem Repo-Call bereits detached), damit reine Reads (Dialog öffnen, Polling) keine
+        // DB-Schreibzugriffe auslösen. Persistiert wird nur bei collectBuilding/changeWorkers/
+        // buyOrUpgrade/Idle-Wechsel (siehe settle()).
+        return BUILDINGS.stream().map(def -> {
+            PlayerBuildingEntity ent = owned.get(def.id());
+            if (ent != null) settle(ent, def, idle, now);
+            return toDto(def, ent);
+        }).toList();
     }
 
     public int getBuildingLevel(String userId, String buildingId) {
@@ -113,6 +130,11 @@ public class BuildingService {
             ent.setUserId(userId);
             ent.setBuildingId(buildingId);
             ent.setWorkers(0);
+            ent.setPendingAmount(0);
+            ent.setLastSettledAt(LocalDateTime.now());
+        } else {
+            // Vor der Stufenänderung settlen, damit die bis hierhin angesammelte Menge nicht verloren geht.
+            settle(ent, def, user.isWorkersIdle(), LocalDateTime.now());
         }
         ent.setLevel(currentLevel + 1);
         buildingRepo.save(ent);
@@ -124,11 +146,13 @@ public class BuildingService {
         BuildingDef def = requireDef(buildingId);
         PlayerBuildingEntity ent = buildingRepo.findByUserIdAndBuildingId(userId, buildingId)
                 .orElseThrow(() -> new IllegalStateException("Building not owned"));
+        UserEntity user = requireUser(userId);
         if (delta > 0) {
-            UserEntity user = requireUser(userId);
             int available = user.getOwnedCitizens() - getAssignedCitizens(userId);
             if (available <= 0) throw new IllegalStateException("No available citizens");
         }
+        // Vor der Arbeiter-Änderung settlen (alte Arbeiterzahl gilt noch für die vergangene Zeit).
+        settle(ent, def, user.isWorkersIdle(), LocalDateTime.now());
         int newCount = Math.max(0, Math.min(effectiveMaxWorkers(def, ent.getLevel()), ent.getWorkers() + delta));
         ent.setWorkers(newCount);
         buildingRepo.save(ent);
@@ -172,7 +196,7 @@ public class BuildingService {
         return getTotalCap(ownedMap(userId));
     }
 
-    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben (z.B. pro Tick im Scheduler). */
+    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
     public double getTotalCap(Map<String, PlayerBuildingEntity> owned) {
         int lagerLevel = owned.containsKey("lager") ? owned.get("lager").getLevel() : 0;
         return balance.getBaseStorageCap() + lagerLevel * balance.getStoragePerLevel();
@@ -215,24 +239,42 @@ public class BuildingService {
         return Math.max(0.01, baseRate - discount - skillDiscount);
     }
 
-    public List<PassiveTick> computePassiveTicks(String userId, double tickSeconds) {
-        return computePassiveTicks(ownedMap(userId), tickSeconds);
-    }
-
-    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
-    public List<PassiveTick> computePassiveTicks(Map<String, PlayerBuildingEntity> owned, double tickSeconds) {
-        List<PassiveTick> result = new ArrayList<>();
-        for (BuildingDef def : BUILDINGS) {
-            if (def.passiveResource() == null || def.passiveRatePerSecPerWorker() <= 0) continue;
-            PlayerBuildingEntity ent = owned.get(def.id());
-            if (ent == null || ent.getWorkers() <= 0) continue;
-            double amount = def.passiveRatePerSecPerWorker() * ent.getWorkers() * tickSeconds;
-            result.add(new PassiveTick(def.passiveResource(), amount));
+    /**
+     * Rechnet die passive Produktion eines Gebäudes seit dem letzten Settle-Zeitpunkt lokal
+     * hoch, gedeckelt auf storageCapacity -- Kernstück des "wie Miete einsammeln"-Modells:
+     * kein globaler Scheduler mehr, Fortschritt wird lazy bei Bedarf berechnet (Read, Collect,
+     * Arbeiter-/Stufen-Änderung, Idle-Wechsel). Persistiert NICHT selbst, das entscheidet der
+     * Aufrufer (buildingRepo.save oder gar nicht bei reinen Preview-Reads).
+     */
+    // Package-private (statt private) -- PassiveIncomeService (collectBuilding) und WageService
+    // (Idle-Übergänge) rufen das direkt auf, beide im selben Package.
+    void settle(PlayerBuildingEntity ent, BuildingDef def, boolean idle, LocalDateTime now) {
+        LocalDateTime last = ent.getLastSettledAt() != null ? ent.getLastSettledAt() : now;
+        if (!idle && ent.getWorkers() > 0 && def.passiveResource() != null && def.storageCapacity() > 0
+                && now.isAfter(last)) {
+            double elapsedSeconds = ChronoUnit.MILLIS.between(last, now) / 1000.0;
+            double produced = def.passiveRatePerSecPerWorker() * ent.getWorkers() * elapsedSeconds;
+            ent.setPendingAmount(Math.min(def.storageCapacity(), ent.getPendingAmount() + produced));
         }
-        return result;
+        ent.setLastSettledAt(now);
     }
 
-    public record PassiveTick(ResourceName resource, double amount) {}
+    /**
+     * Settled + persistiert alle Produktions-Gebäude eines Spielers mit dem übergebenen
+     * (alten) Idle-Status -- aufgerufen wenn workersIdle tatsächlich wechselt, bevor der neue
+     * Wert gesetzt wird, damit die Zeitspanne davor nicht fälschlich mit dem neuen Status
+     * bewertet wird. Kein eigener Scheduler nötig, läuft im ohnehin vorhandenen 60s-Lohnlauf mit.
+     */
+    @Transactional
+    public void settleAllForIdleTransition(String userId, boolean oldIdle) {
+        LocalDateTime now = LocalDateTime.now();
+        for (PlayerBuildingEntity ent : buildingRepo.findByUserId(userId)) {
+            BuildingDef def = DEF_MAP.get(ent.getBuildingId());
+            if (def == null || def.passiveResource() == null) continue;
+            settle(ent, def, oldIdle, now);
+            buildingRepo.save(ent);
+        }
+    }
 
     private double computeCost(BuildingDef def, int currentLevel) {
         if (def.baseCost() == 0) return 0;
@@ -242,7 +284,7 @@ public class BuildingService {
     private PlayerBuildingDto toDto(BuildingDef def, PlayerBuildingEntity ent) {
         int level   = ent != null ? ent.getLevel() : 0;
         int workers = ent != null ? ent.getWorkers() : 0;
-        double rate = def.passiveRatePerSecPerWorker() * workers * balance.getPassiveTickSeconds();
+        double ratePerSec = def.passiveRatePerSecPerWorker() * workers;
 
         PlayerBuildingDto dto = new PlayerBuildingDto();
         dto.setId(def.id());
@@ -254,7 +296,11 @@ public class BuildingService {
         dto.setNextLevelCost(def.upgradeable() || level == 0 ? computeCost(def, level) : 0);
         dto.setWorkers(workers);
         dto.setMaxWorkers(effectiveMaxWorkers(def, level));
-        dto.setPassiveRatePerTick(rate);
+        dto.setPassiveRatePerSec(ratePerSec);
+        dto.setPendingAmount(ent != null ? ent.getPendingAmount() : 0);
+        dto.setStorageCapacity(def.storageCapacity());
+        dto.setLastSettledAtEpochMs(ent != null && ent.getLastSettledAt() != null
+                ? ent.getLastSettledAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() : 0);
         dto.setPreBuilt(def.preBuilt());
         return dto;
     }

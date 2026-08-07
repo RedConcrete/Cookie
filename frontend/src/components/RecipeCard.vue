@@ -21,7 +21,7 @@
 
     <!-- ── Right: selected recipe ─────────────────────── -->
     <div class="rc-right">
-      <button class="px-close rc-close" @click="emit('close')">&times;</button>
+      <button class="px-close rc-close" @click="emit('close')"><ShortcutSlot />&times;</button>
 
       <PixelScrollBox class="rc-scroll">
       <div class="rc-scroll-inner">
@@ -60,9 +60,9 @@
           <div class="rc-batches">
             <span>{{ t('recipeCard.batches') }}</span>
             <div class="rc-stepper">
-              <button @click="batches = Math.max(1, batches - 1)">&minus;</button>
+              <button @click="batches = Math.max(1, batches - 1)"><ShortcutSlot />&minus;</button>
               <span class="rc-stepper-val">{{ batches }}</span>
-              <button @click="batches++">+</button>
+              <button @click="batches++"><ShortcutSlot />+</button>
             </div>
             <span class="rc-stock-hint">{{ t('recipeCard.stockHint', { stockBatches }) }}</span>
           </div>
@@ -79,7 +79,7 @@
             <span>{{ formatDuration(selected.bakeDurationSeconds * batches) }}</span>
           </div>
           <button class="px-btn px-btn-accent rc-bake-btn" :disabled="!canBake || busy" @click="startBake">
-            {{ busy ? t('recipeCard.starting') : t('recipeCard.startBaking') }}
+            <ShortcutSlot />{{ busy ? t('recipeCard.starting') : t('recipeCard.startBaking') }}
           </button>
         </template>
 
@@ -92,7 +92,7 @@
           </div>
           <div class="rc-progress-track"><div class="rc-progress-bar" :style="{ width: progressPct + '%' }"></div></div>
           <button class="px-btn px-btn-buy rc-bake-btn" :disabled="!activeJob.done || busy" @click="claim">
-            {{ busy ? '…' : t('recipeCard.claimCookies', { count: activeJob.totalCookies }) }}
+            <ShortcutSlot />{{ busy ? '…' : t('recipeCard.claimCookies', { count: activeJob.totalCookies }) }}
           </button>
         </div>
 
@@ -115,6 +115,7 @@ import { useBakeStore }   from '../stores/bake.js'
 import { bakeStart, bakeClaim } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 
@@ -276,7 +277,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 
 .rc-batches { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--px-tan-ink); }
 .rc-stepper { display: flex; align-items: center; border: 3px solid var(--px-ink); }
-.rc-stepper button { padding: 8px 12px; background: var(--px-cream3); font-family: 'Silkscreen', monospace; font-size: 13px; border: none; cursor: pointer; color: var(--px-ink-txt); }
+.rc-stepper button { position: relative; padding: 8px 12px; background: var(--px-cream3); font-family: 'Silkscreen', monospace; font-size: 13px; border: none; cursor: pointer; color: var(--px-ink-txt); }
 .rc-stepper-val { padding: 8px 18px; background: var(--px-cream); font-family: 'Silkscreen', monospace; font-size: 13px; }
 .rc-stock-hint { margin-left: auto; font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
 

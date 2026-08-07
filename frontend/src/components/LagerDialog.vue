@@ -4,7 +4,7 @@
       <div class="ld-head">
         <PixelIcon name="lager" :size="28" />
         <div class="ld-head-title">{{ t('lagerDialog.title', { level: lagerLevel }) }}</div>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="ld-body">
@@ -50,7 +50,7 @@
             class="px-btn px-btn-accent"
             :disabled="upgrading || playerStore.cookies < upgradeCost"
             @click="upgradeLager"
-          >{{ t('lagerDialog.upgradeBtn') }}</button>
+          ><ShortcutSlot />{{ t('lagerDialog.upgradeBtn') }}</button>
         </div>
         <div v-if="notice" class="ld-notice" :class="{ error: noticeError }">{{ notice }}</div>
       </div>
@@ -66,6 +66,7 @@ import { useMarketStore } from '../stores/market.js'
 import { buyBuilding } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()

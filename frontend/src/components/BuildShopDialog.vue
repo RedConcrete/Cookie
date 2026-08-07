@@ -4,7 +4,7 @@
       <div class="bs-head">
         <PixelIcon name="lager" :size="28" />
         <div class="bs-head-title">{{ t('buildShopDialog.title') }}</div>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="bs-notice" v-if="notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -61,6 +61,7 @@ import { BUILDING_INFO } from './buildings/buildingInfo.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()

@@ -1,0 +1,22 @@
+{
+  "economyTitle": "WIRTSCHAFT",
+  "cookies": "Cookies",
+  "resourceValue": "Ressourcenwert",
+  "skillTreeValue": "Skill-Baum-Wert",
+  "netWorth": "Gesamtwert",
+  "marketBought": "Am Markt gekauft (Cookies)",
+  "marketSold": "Am Markt verkauft (Cookies)",
+  "productionTitle": "PRODUKTION IM ÜBERBLICK",
+  "colBuilding": "Gebäude",
+  "colLevel": "Stufe",
+  "colWorkers": "Arbeiter",
+  "colPassive": "Passiv/s",
+  "colWage": "Lohn",
+  "noBuildings": "Noch keine Produktionsgebäude gebaut.",
+  "activeBonusesTitle": "AKTIVE BONI",
+  "bakeOutput": "Back-Ausbeute",
+  "marketFee": "Markt-Gebühr",
+  "lifetimeTitle": "LIFETIME-ZÄHLER",
+  "cookiesBaked": "Insgesamt gebacken",
+  "prestigeCount": "Prestige-Anzahl"
+}

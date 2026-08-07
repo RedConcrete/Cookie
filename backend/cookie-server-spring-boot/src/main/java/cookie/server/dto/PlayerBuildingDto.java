@@ -30,9 +30,23 @@ public class PlayerBuildingDto {
     public int getMaxWorkers() { return maxWorkers; }
     public void setMaxWorkers(int maxWorkers) { this.maxWorkers = maxWorkers; }
 
-    private double passiveRatePerTick; // amount produced per 5-second scheduler tick
-    public double getPassiveRatePerTick() { return passiveRatePerTick; }
-    public void setPassiveRatePerTick(double passiveRatePerTick) { this.passiveRatePerTick = passiveRatePerTick; }
+    private double passiveRatePerSec;
+    public double getPassiveRatePerSec() { return passiveRatePerSec; }
+    public void setPassiveRatePerSec(double passiveRatePerSec) { this.passiveRatePerSec = passiveRatePerSec; }
+
+    // Aktuell im Gebäude angesammelte, noch nicht eingesammelte Menge (settled preview, siehe BuildingService#settle).
+    private double pendingAmount;
+    public double getPendingAmount() { return pendingAmount; }
+    public void setPendingAmount(double pendingAmount) { this.pendingAmount = pendingAmount; }
+
+    private double storageCapacity;
+    public double getStorageCapacity() { return storageCapacity; }
+    public void setStorageCapacity(double storageCapacity) { this.storageCapacity = storageCapacity; }
+
+    // Für Client-seitige Hochrechnung der Füllstandsanzeige zwischen Requests (wie completesAt beim Backen).
+    private long lastSettledAtEpochMs;
+    public long getLastSettledAtEpochMs() { return lastSettledAtEpochMs; }
+    public void setLastSettledAtEpochMs(long lastSettledAtEpochMs) { this.lastSettledAtEpochMs = lastSettledAtEpochMs; }
 
     private boolean preBuilt;
     public boolean isPreBuilt() { return preBuilt; }

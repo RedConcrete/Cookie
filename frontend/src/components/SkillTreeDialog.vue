@@ -1,6 +1,6 @@
 <template>
   <div class="std-root" @wheel.stop @mousedown.stop @mousemove.stop>
-    <button class="std-close" @click="emit('close')" :title="t('skillTreeDialog.title')">&times;</button>
+    <button class="std-close" @click="emit('close')" :title="t('skillTreeDialog.title')"><ShortcutSlot />&times;</button>
     <SkillTreeView class="std-body" />
   </div>
 </template>
@@ -10,6 +10,7 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SkillTreeView from './SkillTreeView.vue'
 import { useAudio } from '../composables/useAudio.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()

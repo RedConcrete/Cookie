@@ -35,15 +35,17 @@ public class UserService {
     private final SkillTreeService skillTreeService;
     private final PrestigeService prestigeService;
     private final SteamAvatarService steamAvatarService;
+    private final BuildingService buildingService;
 
     public UserService(UserRepository userRepository, PlayerConfig playerConfig,
                        SkillTreeService skillTreeService, PrestigeService prestigeService,
-                       SteamAvatarService steamAvatarService) {
+                       SteamAvatarService steamAvatarService, BuildingService buildingService) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
         this.skillTreeService = skillTreeService;
         this.steamAvatarService = steamAvatarService;
         this.prestigeService = prestigeService;
+        this.buildingService = buildingService;
     }
 
     public UserInformationDto createUser(String userId, UserDto dto) {
@@ -212,6 +214,7 @@ public class UserService {
             case CHOCOLATE -> user.setChocolate(user.getChocolate() + toAdd);
             case MILK      -> user.setMilk(user.getMilk()           + toAdd);
         }
+        user.addLifetimeHarvested(resource, toAdd);
         userRepository.save(user);
         return toDto(user);
     }
@@ -244,6 +247,7 @@ public class UserService {
         dto.setMilk(entity.getMilk());
         dto.setWorkersIdle(entity.isWorkersIdle());
         dto.setOwnedCitizens(entity.getOwnedCitizens());
+        dto.setTotalResourceCap(buildingService.getTotalCap(entity.getSteamId()));
         return dto;
     }
 }

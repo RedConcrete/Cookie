@@ -121,7 +121,7 @@ ist entfernt).
 **Lager voll (2026-08-07):** kein Auto-Verkauf von Überschuss mehr — weder
 bei Hover-Ernte noch bei passiver Produktion. Was über die Gesamtkapazität
 hinausgeht, wird schlicht nicht gutgeschrieben (`UserService#harvest`,
-`PassiveIncomeService#creditUser`), keine automatische Umwandlung in Cookies.
+`PassiveIncomeService#collectBuilding`), keine automatische Umwandlung in Cookies.
 Visuelles Feedback im Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`):
 Hover-Ring wird rot statt grün, ein kurzes Popover erklärt "Lager voll",
 Gebäude werden wie bei nicht bezahlbarem Lohn optisch gedimmt
@@ -163,8 +163,22 @@ Fassung) vollständig.
 - **Zuweisen:** Bürger werden Produktionsgebäuden zugewiesen (bis zum
   Gebäude-Slot-Limit, Abschnitt 4). Nicht zugewiesene Bürger laufen als Idle-
   Wanderer vor dem Rathaus umher.
-- **Produktion:** jeder zugewiesene Bürger erzeugt passiv Ressourcen
-  (`passiveRatePerSecPerWorker` je Gebäude), alle 5 Sekunden gutgeschrieben.
+- **Produktion (2026-08-07 neu: Ansammeln + manuell einsammeln statt
+  Server-Tick):** jeder zugewiesene Bürger erzeugt passiv Ressourcen
+  (`passiveRatePerSecPerWorker` je Gebäude). Die Menge sammelt sich lokal
+  **im Gebäude** an (`PlayerBuildingEntity#pendingAmount`), gedeckelt durch
+  eine gebäudeeigene Lagerkapazität (`BuildingService#BuildingDef
+  storageCapacity`, ca. 10 Minuten Produktion bei Basisbesatzung) — ist das
+  Gebäude voll, produziert es nichts mehr, bis eingesammelt wird (wie eine
+  Miete). Kein Server-Tick mehr, der ständig alle Spieler durchläuft:
+  Fortschritt wird lazy anhand der verstrichenen Zeit berechnet, sobald
+  irgendetwas das Gebäude anfasst (Lesen, Einsammeln, Arbeiter-/Stufen-
+  Änderung, Lohn-Idle-Wechsel — `BuildingService#settle()`). Einsammeln geht
+  sowohl über einen Klick-Badge direkt auf der Hofkarte (kein Dialog nötig)
+  als auch über einen Button im Gebäude-Dialog
+  (`POST /api/v1/farm/buildings/collect/{userId}/{buildingId}`,
+  `PassiveIncomeService#collectBuilding`). Was wegen vollem gemeinsamem Lager
+  nicht reinpasst, bleibt im Gebäude liegen statt verworfen zu werden.
 - **Lohn:** jede Minute wird die Summe aller Gebäude-Löhne (`wagePerMin`)
   vom Cookie-Konto abgebucht. Reicht das Guthaben nicht, werden **alle**
   Bürger auf `idle` gesetzt — passive Produktion pausiert komplett, bis
@@ -371,10 +385,31 @@ separater späterer Pass).
 Cookie-Ausgaben für Skill-Punkte, serverseitig auf `UserEntity` geführt) —
 siehe Abschnitt 10.
 
-**Admin:** volles CRUD über `/api/v1/admin/skilltree/nodes[/{id}]`
-(Name/Effekt/Wert/Position live editierbar, Cache wird nach jedem Edit
-aktualisiert), plus `skillPointBaseCost`/`skillPointCostGrowth` in der
-Balance-Config.
+**Anpassen bestehender Werte (live, ohne Neustart):** `GET
+/api/v1/admin/skilltree/nodes` (Liste) + `PUT
+/api/v1/admin/skilltree/nodes/{id}` (Name/Beschreibung/Branch/Effekt-Typ/
+Zielressource/Effektwert/Position editierbar, Cache wird nach jedem Edit
+aktualisiert), plus `skillPointBaseCost`/`skillPointCostGrowth` über `PUT
+/api/v1/admin/config/balance`. **Kein volles CRUD** (2026-08-07 korrigiert) —
+es gibt kein `POST` (neuer Knoten) und kein `DELETE`, Kanten (`SkillEdgeEntity`)
+sind über die Admin-API überhaupt nicht editierbar.
+
+**Erweitern (neue Knoten/Branches/Kanten) — nur im Code:**
+- Knoten: `SkillTreeService#buildNodes()` — Liste von
+  `node(id, name, beschreibung, branch, effectType, targetResource,
+  effectValue, x, y, isRoot)`
+- Kanten: `SkillTreeService#buildEdges()` — welcher Knoten an welchen
+  angrenzt (PoE-Konnektivitätsregel)
+- Danach `skill_nodes`/`skill_edges`-Tabellen leeren (DB ist disposable) —
+  `seedTree()` (`@PostConstruct`) seeded nur `if (count == 0)`, sonst wird
+  die Code-Änderung beim nächsten Start ignoriert
+- Neuer Knoten mit **bestehendem** Effekt-Typ: reicht der Eintrag oben. Ein
+  komplett **neuer** Effekt-Typ braucht zusätzlich einen neuen
+  `EffectType`-Enum-Wert plus Code an der Auswertungsstelle
+  (`SkillTreeService#getEffectTotal()`, aufgerufen aus `UserService#harvest`,
+  der Backen-Logik und `MarketService`)
+- Frontend (`SkillTreeDialog.vue`/`SkillTreeView.vue`) zeichnet den Baum
+  automatisch aus den Backend-Daten, braucht für neue Knoten keine Änderung.
 
 **Bewusst nicht gebaut (v1):**
 - Kein Respec/Un-Allocate-Endpoint (einfacher Folge-Ausbau).
@@ -405,6 +440,29 @@ History-Graph im Net-Worth-Dialog.
 **Profil:** Steam-ID, Rang, Net Worth (+ Aufschlüsselung), Prestige-Level,
 Lifetime gebackene Cookies, Liste freigeschalteter Skill-Knoten,
 Season-Historie.
+
+**Statistik-Dialog (2026-08-07):** eigener Vollbild-Dialog (`StatsDialog.vue`
++ `StatsView.vue`, gleiches Vollbild-Muster wie der Skill-Baum), erreichbar
+über das Hauptmenü. **Rein privat** — anders als das Profil (über die
+Rangliste auch für andere Spieler abrufbar) gibt es dafür keinen
+Fremdaufruf-Pfad im Frontend; serverseitig aber nicht durchgesetzt, da es
+noch kein echtes Auth-System gibt (`docs/ROADMAP.md` Abschnitt 0). Neuer
+Endpoint `GET /api/v1/players/{steamId}/stats` (`PlayerStatsDto`,
+`NetWorthService#getStats()`), drei Bereiche:
+- **Wirtschaft:** Cookies/Ressourcenwert/Skill-Baum-Wert/Net Worth (aus dem
+  bereits geladenen `playerStore`, kein Extra-Request), plus Lifetime
+  Markt-Umsatz (gekauft/verkauft in Cookies).
+- **Produktion im Überblick:** Tabelle aller Produktionsgebäude (Stufe,
+  Arbeiter, passive Rate, Lohn) + "Aktive Boni"-Übersicht — aktueller
+  Ernte-Ertrags-Bonus pro Ressource, Back-Ausbeute-Bonus,
+  effektive Markt-Gebühr (Gebäude+Skill-Baum kombiniert,
+  `BuildingService#getEffectiveSellFeeRate`), Prestige-Multiplikator.
+- **Lifetime-Zähler:** insgesamt geerntete Menge pro Ressource (neue
+  `UserEntity`-Felder `lifetime{Sugar,Flour,Eggs,Butter,Chocolate,Milk}
+  Harvested`, hochgezählt in `UserService#harvest()` und
+  `PassiveIncomeService#collectBuilding()` mit dem tatsächlich gutgeschriebenen
+  Betrag, nicht dem nominellen vor Lager-Deckel), insgesamt gebackene
+  Cookies, Anzahl Prestiges.
 
 ---
 

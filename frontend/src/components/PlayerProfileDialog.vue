@@ -3,7 +3,7 @@
     <div class="ppd-box px-panel">
       <div class="px-titlebar">
         <span>{{ t('playerProfileDialog.title') }}</span>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
       <PixelScrollBox class="ppd-scroll">
         <PlayerProfileView :steamId="steamId" />
@@ -18,6 +18,7 @@ import { useI18n } from 'vue-i18n'
 import PlayerProfileView from './PlayerProfileView.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useAudio } from '../composables/useAudio.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 defineProps({ steamId: { type: String, required: true } })
 const emit = defineEmits(['close'])

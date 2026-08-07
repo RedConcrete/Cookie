@@ -29,7 +29,7 @@
         <div class="mv-col-cost">{{ t('marketView.colCost') }} &darr;</div>
       </div>
 
-      <div v-for="res in resources" :key="res.name" class="mv-row" :class="{ highlight: hoveredResource === res.name, success: flashSuccess[res.name] }">
+      <div v-for="res in resources" :key="res.name" class="mv-row" :class="{ success: flashSuccess[res.name] }" :style="rowBorderStyle(res)">
         <div class="mv-icon"><PixelIcon :name="res.icon" :size="20" /></div>
         <div class="mv-name">{{ t(res.labelKey) }}</div>
         <div class="mv-price">{{ fmt(marketStore.priceOf(res.name)) }}</div>
@@ -48,6 +48,20 @@
             @blur="onQtyBlur(res)"
           />
           <button class="mv-qty-btn" @mousedown="startHold(res.name, 1)" @mouseup="stopHold" @mouseleave="stopHold">+</button>
+          <div class="mv-qty-max">
+            <button
+              class="mv-max-btn mv-max-buy" :disabled="maxBuyQty(res) <= 0"
+              @click="setMax(res, 'BUY')"
+              @mouseenter="hoverMaxKey = res.name + ':BUY'" @mouseleave="hoverMaxKey = null"
+            >&#9650;</button>
+            <div v-if="hoverMaxKey === res.name + ':BUY'" class="mv-max-notice mv-max-notice-buy">{{ t('marketView.maxBuyTitle') }}</div>
+            <button
+              class="mv-max-btn mv-max-sell" :disabled="maxSellQty(res) <= 0"
+              @click="setMax(res, 'SELL')"
+              @mouseenter="hoverMaxKey = res.name + ':SELL'" @mouseleave="hoverMaxKey = null"
+            >&#9660;</button>
+            <div v-if="hoverMaxKey === res.name + ':SELL'" class="mv-max-notice mv-max-notice-sell">{{ t('marketView.maxSellTitle') }}</div>
+          </div>
         </div>
 
         <div class="mv-actions">
@@ -69,7 +83,7 @@
       <div class="err-dialog">
         <div class="err-title">{{ t('common.error') }}</div>
         <div class="err-body">{{ errorMsg }}</div>
-        <button class="px-btn px-btn-accent" style="margin-top:12px" @click="errorMsg = null">{{ t('marketView.okButton') }}</button>
+        <button class="px-btn px-btn-accent" style="margin-top:12px" @click="errorMsg = null"><ShortcutSlot />{{ t('marketView.okButton') }}</button>
       </div>
     </div>
   </div>
@@ -86,6 +100,7 @@ import PriceChart from '../components/PriceChart.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import PixelScrollBox from '../components/pixel/PixelScrollBox.vue'
+import ShortcutSlot from '../components/pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
@@ -96,7 +111,7 @@ const chartRef     = ref(null)
 // soll der jeweiligen Chart-Linie entsprechen.
 const COLORS = {
   SUGAR: '#e67146', FLOUR: '#2a7d75', EGGS: '#349c58',
-  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#fff1a9',
+  BUTTER: '#c9c03d', CHOCOLATE: '#e67a84', MILK: '#6f6e72',
 }
 
 const { playCoins } = useAudio()
@@ -106,6 +121,7 @@ const hoveredPoint    = ref(null)
 const chartPctMode    = ref(false)
 const chartBases      = ref({})
 const errorMsg        = ref(null)
+const hoverMaxKey     = ref(null)
 
 const flashSuccess = reactive(Object.fromEntries(
   ['SUGAR','FLOUR','EGGS','BUTTER','CHOCOLATE','MILK'].map(n => [n, false])
@@ -114,6 +130,15 @@ const flashSuccess = reactive(Object.fromEntries(
 function onPctModeChange({ active, bases }) {
   chartPctMode.value = active
   chartBases.value   = bases
+}
+
+function isResourceSelected(res) {
+  return !chartRef.value || chartRef.value.visible[res.name] !== false
+}
+function rowBorderStyle(res) {
+  const selected = isResourceSelected(res)
+  const hovered  = hoveredResource.value === res.name
+  return (selected || hovered) ? { borderColor: COLORS[res.name] } : {}
 }
 
 function legendValue(res) {
@@ -182,6 +207,14 @@ function canSell(res)   { return amounts[res.name] > 0 && playerStore[res.key] >
 function buyCost(res)   { return marketStore.priceOf(res.name) * (amounts[res.name] || 0) }
 function netPayout(res) { return buyCost(res) * (1 - sellFeeRate.value) }
 
+function maxBuyQty(res) {
+  const price = marketStore.priceOf(res.name)
+  if (!price) return 0
+  return Math.max(0, Math.min(Math.floor(playerStore.cookies / price), Math.floor(freeStorage.value)))
+}
+function maxSellQty(res) { return Math.max(0, Math.floor(playerStore[res.key] ?? 0)) }
+function setMax(res, action) { amounts[res.name] = action === 'BUY' ? maxBuyQty(res) : maxSellQty(res) }
+
 function costRows(res) {
   return [
     { k: t('marketView.costRowQtyPrice'), v: `${amounts[res.name]} × ${fmt(marketStore.priceOf(res.name))} C`, color: 'w' },
@@ -228,13 +261,12 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 .mv-table { flex: 1 1 auto; min-height: 0; background: var(--px-cream2); }
 .mv-table-inner { padding: 10px 16px; display: flex; flex-direction: column; gap: 3px; }
 .mv-row {
-  display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 130px 190px 200px;
-  gap: 10px; align-items: center; padding: 7px 10px; min-width: 900px;
+  display: grid; grid-template-columns: 34px 1fr 90px 84px 100px 156px 190px 200px;
+  gap: 10px; align-items: center; padding: 7px 10px; min-width: 930px;
 }
 .mv-head { background: var(--px-wood); border: 3px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
 .mv-col-cost { text-align: right; }
 .mv-row:not(.mv-head) { background: var(--px-cream); border: 2px solid #fff1a9; position: relative; }
-.mv-row.highlight { border-color: var(--px-orange); }
 .mv-row.success { background: #fff1a9; }
 
 .mv-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
@@ -247,6 +279,34 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 .mv-qty-btn:hover { background: #fff1a9; }
 .mv-qty-val { padding: 5px 10px; font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; border-left: 3px solid var(--px-ink); border-right: 3px solid var(--px-ink); color: var(--px-ink-txt); }
 .mv-qty-input { width: 38px; text-align: center; background: none; outline: none; box-sizing: content-box; }
+
+.mv-qty-max { position: relative; display: flex; flex-direction: column; border-left: 3px solid var(--px-ink); }
+.mv-max-btn { font-family: 'Silkscreen', monospace; font-size: 8px; line-height: 1; padding: 2px 6px; background: none; border: none; cursor: pointer; }
+.mv-max-buy { color: var(--px-green); border-bottom: 2px solid var(--px-ink); }
+.mv-max-sell { color: var(--px-red); }
+.mv-max-btn:hover:not(:disabled) { background: #fff1a9; }
+.mv-max-btn:disabled { opacity: 0.3; cursor: default; }
+
+.mv-max-notice {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 150px;
+  background: var(--px-wood);
+  border: 3px solid var(--px-green);
+  box-shadow: inset 2px 2px 0 #402e2b, 0 4px 0 rgba(0,0,0,.4);
+  padding: 5px 8px;
+  font-family: 'Silkscreen', monospace;
+  font-size: 9px;
+  line-height: 1.4;
+  color: #fff1a9;
+  text-align: center;
+  pointer-events: none;
+  z-index: 20;
+}
+.mv-max-notice-sell { border-color: var(--px-red); }
 
 .mv-actions { display: flex; gap: 6px; }
 .mv-action-btn { flex: 1; padding: 6px 0; text-align: center; font-size: 10px; }

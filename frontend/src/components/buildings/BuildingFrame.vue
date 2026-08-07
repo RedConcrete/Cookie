@@ -25,6 +25,20 @@
          persistent badge, per design: "kurz" (Lager-voll popover). -->
     <div v-if="harvestBlocked && hovering" class="bf-blocked-notice">{{ t('buildingFrame.storageFullNotice') }}</div>
 
+    <!-- Collect badge -- shown whenever the building has accrued anything, so it can be
+         collected straight from the map without opening the detail dialog (like collecting
+         rent). Stops pointerdown/click from reaching useHoldDrag's drag/open handling. -->
+    <button
+      v-if="pendingAmount > 0"
+      class="bf-collect-badge"
+      :class="{ full: pendingAmount >= storageCapacity }"
+      @pointerdown.stop
+      @click.stop="emit('collect')"
+    >
+      <PixelIcon v-if="resourceIcon" :name="resourceIcon" :size="14" />
+      <span class="bf-collect-amount">{{ pendingAmount.toFixed(1) }}</span>
+    </button>
+
     <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
     <div class="bf-overlay">
       <div class="bf-overlay-left">
@@ -79,8 +93,12 @@ const props = defineProps({
   // pre-existing local `blocked` computed below (invalid-drag-drop-position), which
   // a same-named prop would silently shadow in the template.
   harvestBlocked: { type: Boolean, default: false },
+  // Collect-badge (accrued passive resource, collectible without opening the dialog).
+  pendingAmount:   { type: Number, default: 0 },
+  storageCapacity: { type: Number, default: 0 },
+  resourceIcon:    { type: String, default: '' },
 })
-const emit = defineEmits(['open', 'harvest-start', 'harvest-stop', 'moved'])
+const emit = defineEmits(['open', 'harvest-start', 'harvest-stop', 'moved', 'collect'])
 
 const { state, onPointerDown } = useHoldDrag(
   (pos) => props.dropOk(pos),
@@ -158,6 +176,29 @@ const rootStyle = computed(() => ({
 }
 .bf-hover-ring.visible { opacity: 1; }
 .bf-hover-ring.blocked { border-color: var(--px-red); }
+
+.bf-collect-badge {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 6px;
+  background: var(--px-wood);
+  border: 3px solid var(--px-gold);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.15), 0 3px 0 rgba(0,0,0,.4);
+  cursor: pointer;
+  z-index: 30;
+  animation: bf-collect-bob 1.1s ease-in-out infinite;
+}
+.bf-collect-badge:hover { filter: brightness(1.15); }
+.bf-collect-badge.full { border-color: var(--px-red); }
+.bf-collect-amount { font-family: 'Silkscreen', monospace; font-size: 10px; color: #fff1a9; white-space: nowrap; }
+.bf-collect-badge.full .bf-collect-amount { color: #e67a84; }
+@keyframes bf-collect-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-3px); }
+}
 
 .bf-blocked-notice {
   position: absolute;

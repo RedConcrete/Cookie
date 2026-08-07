@@ -4,7 +4,7 @@
       <div class="cd-head">
         <PixelIcon name="einw" :size="28" />
         <div class="cd-head-title">{{ t('citizenDialog.title') }}</div>
-        <button class="px-close" @click="emit('close')">&times;</button>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="cd-body">
@@ -42,15 +42,15 @@
         <div class="cd-buy" v-if="playerStore.maxCitizens > 0">
           <div class="cd-buy-label">{{ t('citizenDialog.buyLabel') }}</div>
           <div class="cd-buy-row">
-            <button class="px-btn" :disabled="buyCount <= 1" @click="buyCount = Math.max(1, buyCount - 1)">−</button>
+            <button class="px-btn" :disabled="buyCount <= 1" @click="buyCount = Math.max(1, buyCount - 1)"><ShortcutSlot />−</button>
             <div class="cd-buy-count">{{ buyCount }}x</div>
-            <button class="px-btn" :disabled="buyCount >= canBuyMore" @click="buyCount = Math.min(canBuyMore, buyCount + 1)">+</button>
+            <button class="px-btn" :disabled="buyCount >= canBuyMore" @click="buyCount = Math.min(canBuyMore, buyCount + 1)"><ShortcutSlot />+</button>
             <button
               class="px-btn px-btn-accent cd-buy-btn"
               :disabled="buying || canBuyMore <= 0 || playerStore.cookies < buyCost"
               @click="buy"
             >
-              {{ t('citizenDialog.buyButton', { cost: buyCost.toFixed(0) }) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" />
+              <ShortcutSlot />{{ t('citizenDialog.buyButton', { cost: buyCost.toFixed(0) }) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" />
             </button>
           </div>
           <div v-if="notice" class="cd-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -78,6 +78,7 @@ import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 const playerStore = usePlayerStore()
