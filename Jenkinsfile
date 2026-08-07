@@ -22,6 +22,23 @@ pipeline {
             }
         }
 
+        stage('Prepare Secrets') {
+            steps {
+                // .env liegt dauerhaft außerhalb des Workspaces auf dem Server (nicht im
+                // Repo, siehe .env.example) -- Checkout kann das Verzeichnis neu anlegen,
+                // deshalb hier bei jedem Build frisch reinkopieren statt auf einen
+                // einmalig gesetzten Symlink im Workspace zu vertrauen.
+                sh '''
+                    ENV_SRC="/home/dockerserver/docker/cookie/repo/deploy/.env"
+                    if [ ! -f "$ENV_SRC" ]; then
+                        echo "Fehlt: $ENV_SRC -- DB_PASS/ADMIN_TOKEN/STEAM_WEB_API_KEY sind dort zu setzen (siehe deploy/.env.example)"
+                        exit 1
+                    fi
+                    cp "$ENV_SRC" "${COMPOSE_DIR}/.env"
+                '''
+            }
+        }
+
         stage('Build Images') {
             steps {
                 dir(env.COMPOSE_DIR) {
