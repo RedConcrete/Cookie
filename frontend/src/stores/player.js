@@ -32,6 +32,7 @@ export const usePlayerStore = defineStore('player', () => {
   // stayed permanently null for the whole session -- no bake status ever polled.
   const loading       = ref(true)
   const error         = ref(null)
+  const serverUnavailable = ref(false)
   const recipes       = ref([])
   const ownedBuildings = ref([])  // PlayerBuildingDto[], all buildings (level 0 = not owned)
 
@@ -72,6 +73,7 @@ export const usePlayerStore = defineStore('player', () => {
     steamId.value = id
     loading.value = true
     error.value = null
+    serverUnavailable.value = false
     try {
       const data = await initGame(id, 20, name)
       updateFromDto(data.user)
@@ -85,7 +87,11 @@ export const usePlayerStore = defineStore('player', () => {
 
       await Promise.all([loadSkillTree(), loadPrestigeMultiplier()])
     } catch (e) {
-      error.value = e.message
+      if (e.serverUnavailable) {
+        serverUnavailable.value = true
+      } else {
+        error.value = e.message
+      }
       console.error('[Player] Init failed', e)
     } finally {
       loading.value = false
@@ -137,7 +143,7 @@ export const usePlayerStore = defineStore('player', () => {
     workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
-    netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, recipes,
+    netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, serverUnavailable, recipes,
     init, updateFromDto, loadBuildings, buyCitizenAction,
   }
 })

@@ -108,6 +108,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getPlayerStats } from '../services/api.js'
+import { fmtBig } from '../utils/formatNumber.js'
 import { buildingTitle, resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -135,12 +136,6 @@ const productionBuildings = computed(() =>
   playerStore.ownedBuildings.filter(b => PRODUCTION_IDS.includes(b.id) && b.level > 0)
 )
 
-function fmtBig(v) {
-  if (!v) return '0'
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v).toFixed(1)
-}
 function pct(v) { return (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%' }
 
 onMounted(async () => {

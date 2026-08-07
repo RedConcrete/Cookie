@@ -1,6 +1,8 @@
 <template>
   <div class="app" @mousedown="onMouseDown" @mouseover="onMouseOver">
-    <LandingView v-if="blocked" />
+    <ServerUnavailableView v-if="showServerUnavailable" @retry="retry" />
+    <LandingView v-else-if="blocked" />
+    <MainMenuView v-else-if="mainMenuReady && !started" @start="startGame" />
 
     <template v-else>
       <div v-if="playerStore.loading" class="status-overlay">
@@ -15,18 +17,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from './stores/player.js'
 import { useAudio } from './composables/useAudio.js'
 import LoadingIndicator from './components/pixel/LoadingIndicator.vue'
 import LandingView from './components/LandingView.vue'
+import MainMenuView from './components/MainMenuView.vue'
+import ServerUnavailableView from './components/ServerUnavailableView.vue'
 
 const playerStore = usePlayerStore()
 const audio       = useAudio()
 const { t } = useI18n()
 
 const blocked = ref(false)
+const mainMenuReady   = ref(false)
+const started         = ref(false)
+const configUnreachable = ref(false)
+const authInfo = ref({ steamId: null, name: null })
+
+const showServerUnavailable = computed(() => configUnreachable.value || playerStore.serverUnavailable)
+
+async function startGame() {
+  started.value = true
+  await playerStore.init(authInfo.value.steamId, authInfo.value.name)
+}
+
+function retry() {
+  location.reload()
+}
 
 // ── Audio-Events ─────────────────────────────────────────
 const INTERACTIVE = new Set(['BUTTON', 'A', 'INPUT', 'SELECT', 'LABEL'])
@@ -50,15 +69,23 @@ function onMouseOver(e) {
 }
 
 onMounted(async () => {
+  const params = new URLSearchParams(location.search)
   // Dev-Bypass zum Angucken der Landing-Page: http://localhost:5173/?landing
   // (normal ueberspringt dev-mode=true auf dem Backend sie immer)
-  if (new URLSearchParams(location.search).has('landing')) {
+  if (params.has('landing')) {
     blocked.value = true
     return
   }
+  // Dev-Bypass zum Angucken des Main-Menus: http://localhost:5173/?menu
+  if (params.has('menu')) {
+    authInfo.value = { steamId: 'DEV_PLAYER_001', name: null }
+    mainMenuReady.value = true
+    return
+  }
   if (window.electronAPI) {
-    window.electronAPI.onSteamAuth(async ({ steamId, name }) => {
-      await playerStore.init(steamId, name)
+    window.electronAPI.onSteamAuth(({ steamId, name }) => {
+      authInfo.value = { steamId, name }
+      mainMenuReady.value = true
     })
     return
   }
@@ -66,12 +93,13 @@ onMounted(async () => {
     const res = await fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876') + '/api/v1/config')
     const cfg = await res.json()
     if (cfg.devMode) {
-      await playerStore.init('DEV_PLAYER_001')
+      authInfo.value = { steamId: 'DEV_PLAYER_001', name: null }
+      mainMenuReady.value = true
     } else {
       blocked.value = true
     }
   } catch {
-    blocked.value = true
+    configUnreachable.value = true
   }
 })
 </script>

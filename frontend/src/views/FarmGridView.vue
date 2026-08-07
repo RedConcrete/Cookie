@@ -48,6 +48,11 @@
       </PixelInfoPopover>
 
       <div class="hud-actions">
+        <button
+          v-if="playerStore.skillTree.skillPoints > 0"
+          class="px-btn hud-skillpoint-star"
+          @click="dialog = 'skilltree'"
+        ><PixelIcon name="stern" :size="16" /></button>
         <div class="hud-menu-wrap" ref="hudMenuRef">
           <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">
             &#9776;
@@ -162,6 +167,7 @@ import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
 import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding } from '../services/api.js'
+import { fmt, fmt2, fmtBig } from '../utils/formatNumber.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import { useActionHotkeys } from '../composables/useActionHotkeys.js'
@@ -338,7 +344,14 @@ function livePending(b) {
   return Math.min(b.storageCapacity, b.pendingAmount + b.passiveRatePerSec * elapsedSeconds)
 }
 
+// Verhindert ueberlappende Collect-Requests auf dasselbe Gebaeude (schnelles Mehrfachklicken) --
+// ohne das laesst sich der serverseitige Lost-Update/Cooldown-Fix (siehe docs/ROADMAP.md)
+// clientseitig durch parallele Requests umgehen bzw. fuehrt zu verwirrenden 409/400-Antworten.
+const collectingBuildingIds = reactive(new Set())
+
 async function onCollectBuilding(b) {
+  if (collectingBuildingIds.has(b.id)) return
+  collectingBuildingIds.add(b.id)
   const key = b.resource?.toLowerCase()
   const before = key ? (playerStore[key] ?? 0) : 0
   try {
@@ -353,7 +366,12 @@ async function onCollectBuilding(b) {
         if (base) spawnFarmNumber(gained, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[b.resource] })
       }
     }
-  } catch {}
+  } catch {
+    // Cooldown-Ablehnung (400) oder Optimistic-Lock-Konflikt (409) -- einfach ignorieren,
+    // naechster Klick nach Ablauf des Cooldowns geht wieder durch.
+  } finally {
+    collectingBuildingIds.delete(b.id)
+  }
 }
 
 // Only owned/built buildings should block a placement -- buildingOffsets carries an entry
@@ -436,14 +454,6 @@ function onOpenBuilding(b) {
 }
 
 // ── HUD data ─────────────────────────────────────────────
-function fmt(v)  { return Number(v ?? 0).toFixed(1) }
-function fmt2(v) { return Number(v ?? 0).toFixed(2) }
-function fmtBig(v) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v ?? 0).toFixed(1)
-}
-
 const cookieRows = computed(() => [
   { k: t('farmGridView.rowStock'), v: fmt(playerStore.cookies) + ' C', color: 'w' },
 ])
@@ -466,7 +476,7 @@ const hudResources = computed(() => RESOURCES.map(r => {
     val: fmt(amount),
     rows: [
       { k: t('farmGridView.rowStock'), v: fmt(amount), color: 'w' },
-      { k: t('farmGridView.rowMarketPrice'), v: price.toFixed(4) + ' C', color: 'y' },
+      { k: t('farmGridView.rowMarketPrice'), v: fmt2(price) + ' C', color: 'y' },
       { k: t('farmGridView.rowSellValue'), v: fmt2(sellVal) + ' C', color: 'g' },
     ],
   }
@@ -809,7 +819,11 @@ function localHarvestTick(buildingId, name) {
   if (toAdd <= 0) return
   playerStore[key] = (playerStore[key] ?? 0) + toAdd
   const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
-  spawnFarmNumber(toAdd, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
+  // Hover-Ernte-Zahl bewusst immer im selben, NICHT-gelben Ton -- Gold/Gelb (#ebb85b/#fff1a9/
+  // #c9c03d in der Pflicht-Palette) bleibt fuer kuenftige kritische Treffer reserviert, damit
+  // der Unterschied klar erkennbar bleibt (siehe docs/ROADMAP.md). Echtes Weiss gibt es in der
+  // Fruitpunch24-Palette nicht -- #aea47e ist der hellste neutrale, nicht-goldene Ton.
+  spawnFarmNumber(toAdd, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name], color: '#aea47e' })
 }
 
 // The actual, authoritative call -- backend computes the real amount from elapsed
@@ -937,6 +951,19 @@ onUnmounted(() => {
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
 .hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Zeigt an, dass noch Skill-Punkte zu vergeben sind (Playtest-Feedback) -- verweist per
+   Klick direkt in den Skill-Baum, statt dass Spieler das Menue durchsuchen muessen. */
+.hud-skillpoint-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hud-star-pulse 1.4s ease-in-out infinite;
+}
+@keyframes hud-star-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
 
 .hud-menu-wrap { position: relative; }
 .hud-menu {

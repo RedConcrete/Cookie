@@ -1,18 +1,6 @@
 <template>
   <div class="landing-root">
-    <div class="landing-bg"></div>
-
-    <div
-      v-for="(w, i) in wanderers" :key="i"
-      class="landing-wanderer" :style="w.outerStyle"
-    >
-      <div :style="w.scaleStyle">
-        <TravelingWorker
-          :travel-anim="w.anim" :travel-dur="w.dur" :travel-delay="w.delay"
-          :leg-dur="w.legDur" :hat="w.hat" :skin="w.skin" :torso="w.torso"
-        />
-      </div>
-    </div>
+    <MenuBackground />
 
     <header class="landing-header">
       <PixelIcon name="cookie" :size="26" />
@@ -39,38 +27,11 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import TravelingWorker from './buildings/TravelingWorker.vue'
+import MenuBackground from './MenuBackground.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
-
-const ANIMS = ['patrol', 'trek', 'wander', 'wander2', 'wander3', 'rowwalk', 'commute']
-const HATS   = ['#c78539', '#e67146', '#349c58', '#764032']
-const SKINS  = ['#fff1a9', '#ebb85b']
-const TORSOS = ['#a15c34', '#6f6e72', '#349c58']
-
-function pick(arr, i) { return arr[i % arr.length] }
-
-const wanderers = Array.from({ length: 7 }, (_, i) => {
-  const scale = 2.4 + (i % 3) * 0.5
-  return {
-    anim: pick(ANIMS, i),
-    dur: 6 + (i % 4) * 2,
-    delay: i * 0.7,
-    legDur: 0.45 + (i % 3) * 0.1,
-    hat: pick(HATS, i),
-    skin: pick(SKINS, i),
-    torso: pick(TORSOS, i + 1),
-    outerStyle: {
-      position: 'absolute',
-      left: `${8 + (i * 13) % 84}%`,
-      top: `${20 + (i * 17) % 65}%`,
-      zIndex: 1,
-    },
-    scaleStyle: { transform: `scale(${scale})`, transformOrigin: 'bottom center' },
-  }
-})
 </script>
 
 <style scoped>
@@ -80,16 +41,6 @@ const wanderers = Array.from({ length: 7 }, (_, i) => {
   overflow: hidden;
   display: flex; flex-direction: column;
 }
-
-.landing-bg {
-  position: absolute; inset: 0;
-  background-color: #7e9432;
-  background-image: url('../assets/tiles/grass.png');
-  background-size: 100px 100px;
-  image-rendering: pixelated;
-}
-
-.landing-wanderer { pointer-events: none; opacity: 0.9; }
 
 .landing-header {
   position: relative; z-index: 5;

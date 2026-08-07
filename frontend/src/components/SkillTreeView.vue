@@ -42,6 +42,14 @@
           </PixelInfoPopover>
         </div>
 
+        <!-- ── Verfuegbare Skill-Punkte: immer sichtbar, nicht erst im Kauf-Popup
+             (Playtest-Feedback) ──────────────────────────────── -->
+        <div v-if="tree.skillPoints > 0" class="stv-points-badge" @click="buyDialogOpen = true">
+          <PixelIcon name="upgrade" :size="16" />
+          <span class="stv-hud-val">{{ tree.skillPoints }}</span>
+          <span class="stv-hud-label">{{ t('skillTreeView.skillPointsLabel') }}</span>
+        </div>
+
         <!-- ── Kamera zentrieren ──────────────────────────────── -->
         <div class="stv-cam-controls">
           <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
@@ -84,6 +92,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buySkillPoint, allocateSkillNode, getPlayer } from '../services/api.js'
+import { fmt2 as fmt } from '../utils/formatNumber.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -111,7 +120,6 @@ const canAfford = computed(() => playerStore.cookies >= tree.value.nextPointCost
 const BRANCH_ICON = { MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw' }
 function branchIcon(n) { return n.root ? 'stern' : (BRANCH_ICON[n.branch] || 'einw') }
 
-function fmt(v) { return Number(v ?? 0).toFixed(2) }
 
 function nodeState(n) {
   if (n.allocated) return 'allocated'
@@ -271,6 +279,27 @@ onMounted(async () => {
   background: var(--px-bg); cursor: grab;
 }
 .stv-viewport:active { cursor: grabbing; }
+
+/* Zentrierter, immer sichtbarer Hinweis auf verbleibende Skill-Punkte -- der Kauf-Dialog
+   selbst (unten) bleibt weiterhin ein Popup (root-Klick oder Klick hier), damit der Baum
+   sonst den vollen Viewport behaelt. */
+.stv-points-badge {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: var(--px-wood); border: 3px solid var(--px-gold);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.15), 0 4px 0 rgba(0,0,0,.4);
+  cursor: pointer;
+  animation: stv-points-bob 1.4s ease-in-out infinite;
+}
+@keyframes stv-points-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-3px); }
+}
+/* Helle Textfarben statt der Standard-.stv-hud-*-Werte (fuer den hellen Buy-Panel-Hintergrund
+   gedacht) -- dieses Badge sitzt direkt auf dunklem --px-wood. */
+.stv-points-badge .stv-hud-val   { color: #fff1a9; }
+.stv-points-badge .stv-hud-label { color: #aea47e; }
 
 /* Buy-point popup, opened by clicking the root node -- no permanent HUD
    bar sitting over the canvas, so the tree gets the full viewport. */

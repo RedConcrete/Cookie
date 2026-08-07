@@ -34,17 +34,21 @@ import music   from '../../assets/icons/music.svg'
 import sound   from '../../assets/icons/sound.svg'
 import mute    from '../../assets/icons/mute.svg'
 import steam   from '../../assets/icons/steam.svg'
+import flagDe  from '../../assets/icons/flag-de.svg'
+import flagEn  from '../../assets/icons/flag-en.svg'
+import discord from '../../assets/icons/discord.svg'
 
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
   upgrade, zentrieren, check, music, sound, mute, steam,
+  'flag-de': flagDe, 'flag-en': flagEn, discord,
 }
 
 // Echte Marken-Logos (unveraendertes Original-SVG, kein 8x8-Pixel-Raster) --
 // bei denen soll image-rendering:pixelated NICHT greifen, sonst wird die
 // Kurvenfuehrung beim Skalieren hart/klobig statt sauber.
-const SMOOTH = new Set(['steam'])
+const SMOOTH = new Set(['steam', 'flag-de', 'flag-en', 'discord'])
 
 defineProps({
   name: { type: String, required: true }, // key into ICONS, e.g. 'zucker', 'cookie', 'einw'

@@ -58,6 +58,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buyBuilding } from '../services/api.js'
 import { BUILDING_INFO } from './buildings/buildingInfo.js'
+import { fmt } from '../utils/formatNumber.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
@@ -75,7 +76,6 @@ const noticeError = ref(false)
 // Always reflects live store data (reactive)
 const buildings = computed(() => playerStore.ownedBuildings)
 
-function fmt(v) { return Number(v ?? 0).toFixed(1) }
 function fmtK(v) {
   if (v >= 1000) return (v / 1000).toFixed(1) + 'K'
   return String(Math.round(v))

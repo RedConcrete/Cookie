@@ -30,6 +30,7 @@ import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PixelIcon from './PixelIcon.vue'
 import { useHoverReveal } from '../../composables/useHoverReveal.js'
+import { useClickOutside } from '../../composables/useClickOutside.js'
 
 const { t } = useI18n()
 
@@ -48,7 +49,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['enter', 'leave'])
-const { state, onEnter, onLeave, pinned } = useHoverReveal()
+const { state, onEnter, onLeave, pinned, forceClose } = useHoverReveal()
 
 function handleEnter() { onEnter(); emit('enter') }
 function handleLeave() { onLeave(); emit('leave') }
@@ -59,6 +60,11 @@ function colorFor(c) { return COLORS[c] || COLORS.w }
 const panelRef = ref(null)
 const wrapRef  = ref(null)
 const posStyle = ref({})
+
+// Klick irgendwo weg schliesst das Popover sofort, statt auf den Auto-Drain zu warten
+// (Playtest-Feedback: "Popups mit Klick weg machen koennen"). Ein Klick auf den Trigger
+// selbst oder das teleportierte Panel zaehlt nicht als "aussen".
+useClickOutside([wrapRef, panelRef], forceClose, () => state.visible)
 
 // Panel wird per Teleport nach <body> gehaengt (sonst schneidet ein Dialog mit
 // overflow:auto/hidden das Panel ab) -- Position daher ueber getBoundingClientRect

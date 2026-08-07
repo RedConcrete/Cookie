@@ -203,8 +203,6 @@ public class MarketService {
         UserEntity user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + request.getUserId()));
 
-        MarketEntity currentMarket = getOrCreateCurrentMarket();
-        MarketStockEntity stock = getOrCreateMarketStock();
         ResourceName resource = request.getResource().getName();
         double amount = request.getResource().getAmount();
         MarketAction action = request.getAction();
@@ -216,41 +214,55 @@ public class MarketService {
             throw new IllegalArgumentException("Amount must be positive: " + amount);
         }
 
-        double marketStock = getStock(stock, resource);
+        // Kompletter Trade (Stock lesen, Kosten berechnen, Stock/Preis schreiben) laeuft unter
+        // demselben marketLock wie createNewMarketEntryAfterTrade/applyRandomPriceFluctuation --
+        // vorher wurde der Stock VOR dem Lock gelesen, wodurch zwei schnell aufeinanderfolgende
+        // Trades denselben veralteten Stand als Rechengrundlage nahmen und der spaeter
+        // committende Trade den Stock-Fortschritt des anderen ueberschrieb (Lost Update, siehe
+        // docs/ROADMAP.md). ReentrantLock ist reentrant, der verschachtelte lock() in
+        // createNewMarketEntryAfterTrade blockiert hier also nicht.
+        marketLock.lock();
+        try {
+            MarketEntity currentMarket = getOrCreateCurrentMarket();
+            MarketStockEntity stock = getOrCreateMarketStock();
+            double marketStock = getStock(stock, resource);
 
-        if (action == MarketAction.BUY) {
-            // Ein Kauf kann den Pool nie ganz leerkaufen -- die Kosten explodieren vorher.
-            if (amount >= marketStock) {
-                throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
+            if (action == MarketAction.BUY) {
+                // Ein Kauf kann den Pool nie ganz leerkaufen -- die Kosten explodieren vorher.
+                if (amount >= marketStock) {
+                    throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
+                }
+                double cap = buildingService.getTotalCap(request.getUserId());
+                double freeSpace = cap - totalUserResources(user);
+                if (amount > freeSpace) {
+                    throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
+                }
+                double cost = buyCost(marketStock, resource, amount);
+                if (user.getCookies() < cost) {
+                    throw new IllegalArgumentException("Not enough cookies. Need: " + cost + ", Have: " + user.getCookies());
+                }
+                user.setCookies(user.getCookies() - cost);
+                addResourceToUser(user, resource, amount);
+                user.setLifetimeCookiesSpentOnMarket(user.getLifetimeCookiesSpentOnMarket() + cost);
+            } else if (action == MarketAction.SELL) {
+                double userAmount = getResourceFromUser(user, resource);
+                if (userAmount < amount) {
+                    throw new IllegalArgumentException("Not enough " + resource + ". Need: " + amount + ", Have: " + userAmount);
+                }
+                addResourceToUser(user, resource, -amount);
+                double feeRate = buildingService.getEffectiveSellFeeRate(request.getUserId(), marketConfig.getSellFeeRate());
+                double payout = sellPayout(marketStock, resource, amount) * (1.0 - feeRate);
+                user.setCookies(user.getCookies() + payout);
+                user.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket() + payout);
             }
-            double cap = buildingService.getTotalCap(request.getUserId());
-            double freeSpace = cap - totalUserResources(user);
-            if (amount > freeSpace) {
-                throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
-            }
-            double cost = buyCost(marketStock, resource, amount);
-            if (user.getCookies() < cost) {
-                throw new IllegalArgumentException("Not enough cookies. Need: " + cost + ", Have: " + user.getCookies());
-            }
-            user.setCookies(user.getCookies() - cost);
-            addResourceToUser(user, resource, amount);
-            user.setLifetimeCookiesSpentOnMarket(user.getLifetimeCookiesSpentOnMarket() + cost);
-        } else if (action == MarketAction.SELL) {
-            double userAmount = getResourceFromUser(user, resource);
-            if (userAmount < amount) {
-                throw new IllegalArgumentException("Not enough " + resource + ". Need: " + amount + ", Have: " + userAmount);
-            }
-            addResourceToUser(user, resource, -amount);
-            double feeRate = buildingService.getEffectiveSellFeeRate(request.getUserId(), marketConfig.getSellFeeRate());
-            double payout = sellPayout(marketStock, resource, amount) * (1.0 - feeRate);
-            user.setCookies(user.getCookies() + payout);
-            user.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket() + payout);
+
+            userRepository.save(user);
+
+            // Preis nach dem Trade anpassen und Stock aktualisieren
+            createNewMarketEntryAfterTrade(currentMarket, stock, resource, amount, action);
+        } finally {
+            marketLock.unlock();
         }
-
-        userRepository.save(user);
-
-        // Preis nach dem Trade anpassen und Stock aktualisieren
-        createNewMarketEntryAfterTrade(currentMarket, stock, resource, amount, action);
 
         return toDto(user);
     }
@@ -738,6 +750,8 @@ public class MarketService {
     private UserInformationDto toDto(UserEntity entity) {
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(entity.getSteamId());
+        dto.setDisplayName(entity.getDisplayName());
+        dto.setAvatarUrl(UserService.avatarEndpointFor(entity));
         dto.setCookies(entity.getCookies());
         dto.setSugar(entity.getSugar());
         dto.setFlour(entity.getFlour());
@@ -745,6 +759,8 @@ public class MarketService {
         dto.setButter(entity.getButter());
         dto.setChocolate(entity.getChocolate());
         dto.setMilk(entity.getMilk());
+        dto.setWorkersIdle(entity.isWorkersIdle());
+        dto.setOwnedCitizens(entity.getOwnedCitizens());
         dto.setTotalResourceCap(buildingService.getTotalCap(entity.getSteamId()));
         return dto;
     }

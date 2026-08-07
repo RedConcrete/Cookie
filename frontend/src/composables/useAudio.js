@@ -52,7 +52,12 @@ function nextTrack() {
   musicEl = new Audio(shuffled[trackIdx++])
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
   musicEl.onended = nextTrack
-  musicEl.play().catch(() => {})
+  // Browser-Autoplay-Policy kann den allerersten play() ohne User-Geste
+  // ablehnen (z.B. Musikstart schon beim Main-Menu-Mount) -- musicStarted
+  // zuruecksetzen, damit der naechste startMusic()-Aufruf (z.B. der erste
+  // Klick irgendwo in der App) es erneut versucht statt fuer den Rest der
+  // Session stumm zu bleiben.
+  musicEl.play().catch(() => { musicStarted = false })
 }
 
 function startMusic() {

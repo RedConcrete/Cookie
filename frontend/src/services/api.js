@@ -1,5 +1,10 @@
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876'
 
+// Reverse-Proxy-Fehler (Backend-Container down/neustartend) liefern eine
+// HTML-Fehlerseite statt JSON -- die soll nie als Fehlertext im UI landen,
+// sondern als eigener "Server nicht erreichbar"-Zustand behandelt werden.
+const GATEWAY_STATUS = new Set([502, 503, 504])
+
 async function request(method, path, body) {
   const options = {
     method,
@@ -7,8 +12,21 @@ async function request(method, path, body) {
   }
   if (body !== undefined) options.body = JSON.stringify(body)
 
-  const res = await fetch(`${BASE_URL}${path}`, options)
+  let res
+  try {
+    res = await fetch(`${BASE_URL}${path}`, options)
+  } catch (e) {
+    const err = new Error(e.message)
+    err.serverUnavailable = true
+    throw err
+  }
+
   if (!res.ok) {
+    if (GATEWAY_STATUS.has(res.status)) {
+      const err = new Error(`Gateway error ${res.status}`)
+      err.serverUnavailable = true
+      throw err
+    }
     const text = await res.text()
     let message = text
     try { message = JSON.parse(text).error ?? text } catch { /* not JSON, use raw text */ }

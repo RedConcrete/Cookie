@@ -444,3 +444,116 @@ Nur als Gedächtnisstütze, kein offener Task mehr:
 - ~~`mvnw` hatte kein Ausführungsrecht auf dieser Maschine~~ → `chmod +x`
   gesetzt (in Git bereits korrekt mit `100755` hinterlegt, war ein rein
   lokales Checkout-Problem)
+
+---
+
+## 7. Freund-Playtest-Feedback (2026-08-07)
+
+Erster echter Multiplayer-Playtest mit Freunden. Klar umrissene Bugs/kleine
+Features direkt umgesetzt (unten abgehakt), große/unscharfe Themen als
+Backlog dokumentiert.
+
+### 7.1 Umgesetzt
+
+- [x] **Bürgerzahl sprang auf 0 beim Einsammeln.** `PassiveIncomeService`,
+  `BakeService`, `MarketService` bauten `UserInformationDto` manuell und
+  vergaßen `ownedCitizens`/`workersIdle` (+ `displayName`/`avatarUrl`) zu
+  setzen — Jackson serialisierte die fehlenden Felder trotzdem mit
+  Default-Werten (`0`/`false`), Frontend übernahm das ungeprüft in den
+  Store. Alle drei Stellen ergänzt (siehe `UserService.toDto()` als
+  Vorbild). Erklärte nebenbei auch "mehr Einwohner kaufen als Platz ist" —
+  der Cap-Check selbst war serverseitig bereits korrekt.
+- [x] **Race-Condition beim schnellen Einsammeln mehrerer Gebäude.**
+  `@Version` auf `PlayerBuildingEntity` (Lost-Update-Schutz), In-Flight-Guard
+  in `FarmGridView.vue#onCollectBuilding` gegen überlappende Requests.
+- [x] **Kein Cooldown beim Einsammeln.** Neuer
+  `GameBalanceConfig.collectCooldownMs` (Default 150ms, Minimum 100ms
+  erzwungen), geprüft in `PassiveIncomeService.collectBuilding()` gegen
+  neues `PlayerBuildingEntity.lastCollectedAt`-Feld.
+- [x] **Markt-Crash bei ~200 Einheiten durch einen Spieler.** Root Cause:
+  `MarketService.performAction()` las den Stock vor dem `marketLock`,
+  wodurch schnelle Folge-Trades sich gegenseitig überschreiben konnten
+  (Lost Update), der Stock Richtung `STOCK_EPSILON` abdriften und der
+  Preis explodieren konnte. Kompletter Trade läuft jetzt unter demselben
+  Lock wie die Stock-Aktualisierung; zusätzlich `@Version` auf
+  `MarketStockEntity` als zweite Verteidigungslinie. Bewusst NICHT
+  angefasst: `initialStock`/Liquiditäts-Tuning — eigener Balancing-Pass
+  nach echtem Playtest (siehe Backlog unten).
+- [x] **Rundung: nie mehr als 2 Nachkommastellen, aufgerundet.** Neues
+  `frontend/src/utils/formatNumber.js` (`fmt`/`fmt2`/`fmtBig`/`roundUp`,
+  ceiling-basiert statt kaufmännisch gerundet), ersetzt die ca. 10× im
+  Frontend duplizierten lokalen `fmt`/`fmtBig`-Helfer sowie die einzigen
+  drei Stellen mit mehr als 2 Nachkommastellen (`ResourceBar`-Marktpreis,
+  `LagerDialog`-Ressourcenpreis, `RecipeCard`-Zutatenpreis, vorher 3–4
+  Nachkommastellen).
+- [x] **Schließen-Button im Backen-Dialog reagierte nicht.**
+  `RecipeCard.vue` `.rc-close` fehlte ein `z-index`, `PixelScrollBox`s
+  transparente Scroll-Fläche lag im gleichen Stacking-Level *nach* dem
+  Button im DOM und fing die Klicks ab.
+- [x] **Popups jetzt per Klick schließbar.** Neues generisches
+  `frontend/src/composables/useClickOutside.js` (verallgemeinert aus dem
+  Hamburger-Menü-Muster in `FarmGridView.vue`), in `PixelInfoPopover.vue`
+  eingebaut — schließt sofort per Klick statt nur über den Auto-Drain-Timer.
+- [x] **"Lager voll"-Notice und "Einsammeln"-Badge überlappten sich.**
+  `BuildingFrame.vue`: Collect-Badge höher gestapelt (`bottom: calc(100% +
+  40px)`), Blocked-Notice bleibt näher am Gebäude.
+- [x] **Rangliste: redundantes Hover-Popup auf dem Namen entfernt.**
+  `LeaderboardView.vue` — natives `title`-Attribut zeigte den ohnehin
+  sichtbaren Namen nochmal.
+- [x] **Hover-Ernte-Zahl ist jetzt immer im selben, nicht-gelben Ton**
+  (`#aea47e`, hellster neutraler Ton der Pflicht-Palette — echtes Weiß gibt
+  es dort nicht). Gold/Gelb bleibt für künftige kritische Treffer reserviert
+  (siehe Backlog unten).
+- [x] **Kamera-Geschwindigkeit:** Standard 480→1200, Maximum 1200→3000
+  (`useCameraControls.js`, `SettingsDialog.vue`).
+- [x] **Profil-Übersicht zeigt nichts mehr vom Skill-Baum**
+  (`PlayerProfileView.vue`: Skill-Knoten-Liste + Skill-Baum-Wert-Kachel
+  entfernt).
+- [x] **Stern-Indikator im HUD bei verfügbaren Skillpunkten**
+  (`FarmGridView.vue`, `.hud-skillpoint-star`), Klick öffnet direkt den
+  Skill-Baum.
+- [x] **Verbleibende Skillpunkte jetzt immer sichtbar im Skill-Baum**
+  (`SkillTreeView.vue`, `.stv-points-badge`, zentriert über der Canvas) —
+  vorher nur im Kauf-Popup nach Klick auf die Wurzel sichtbar.
+- [x] Verifiziert, **kein Bug**: Gebäude-Lager bei vollem Hauptlager
+  (`PassiveIncomeService.java` kreditiert bereits nur bis zur Kapazität,
+  Rest bleibt im Gebäude liegen statt verworfen zu werden).
+
+### 7.2 Backlog (noch offen, nicht in dieser Session umgesetzt)
+
+- [ ] **Fenstermodus + Auflösungs-Einstellung + Maus-Containment.**
+  `electron/main.js` erzwingt aktuell `fullscreen: true`, feste
+  Fenstergröße (1280×800), kein Windowed-Toggle, keine Resolution-UI.
+  **Wichtiger Vorbehalt:** echtes OS-Level-Cursor-Clamping (Maus bleibt
+  strikt im Fenster) ist mit reinem Electron nicht ohne Weiteres lösbar —
+  die Pointer-Lock-API versteckt den Cursor nur und liefert relative
+  Deltas, das ist nicht dasselbe wie "Cursor bleibt sichtbar innerhalb der
+  Fenstergrenzen". Braucht eigene Machbarkeits-Recherche vor der Umsetzung.
+- [x] **Steam Deck: Pfeil hoch/runter zoomt Kamera** — bereits vorhanden,
+  kein neuer Code nötig (`FarmGridView.vue:642–656`, D-Pad-Indizes 12/13
+  über die Gamepad API).
+- [ ] **Steam Deck: R1/L1 zyklisch durch platzierte Gebäude springen.**
+  Datengrundlage vorhanden (`farmLayout.js` `BASE`, `buildingOffsets`,
+  `buildingFrameEls` in `FarmGridView.vue`), bestehendes
+  `resetView()`/`centerExactlyOnRathaus()` müsste zu einem generischen
+  `centerOnBuilding(id)` werden, neue Actions in `useActionHotkeys.js` +
+  `triggerAction()`. Prioritätsliste (Rathaus → nächstbestes falls Ziel
+  fehlt) muss noch definiert werden.
+- [ ] **Mehr passive Skills, ein Zweig pro Rohstoff** (Zucker/Mehl/Eier/
+  Butter/Schokolade analog zum bestehenden MILK-Zweig in
+  `SkillTreeService`) — eigener Design-Pass nötig (Node-Anzahl,
+  Effektwerte, Balance), zu groß für einen Fix-Pass.
+- [ ] **Rezepte pro Season randomisiert + Entdecken-Minigame.** Komplett
+  neues Feature (Rezept-Rotation-Modell im Backend, Minigame-Konzept) —
+  eigene Design-Session nötig.
+- [ ] **Vollständiger Gelb-Kontrast-Sweep.** Phase 1 hat nur die konkret
+  gemeldete Ernte-Zahl-Farbe behoben. Grep fand 60+ weitere Stellen mit
+  Gelb/Gold als Textfarbe (`--px-gold-txt`, `--px-cream`, `--px-gold`,
+  `--px-green-txt` als `color:`, u.a. in `ResourceBar.vue`,
+  `BuildingDetailDialog.vue`, `MarketView.vue`, `main.css`). Für "Schrift
+  darf nirgends gelb sein" als generelle Regel braucht es eine visuelle
+  Durchsicht im Browser (welche Kombination wirklich unlesbar ist) statt
+  blindem Suchen-Ersetzen.
+- [ ] **Markt-Liquiditäts-Tuning** (`initialStock`, `K`-Werte je Ressource)
+  nach dem Lost-Update-Fix aus 7.1 — eigener Balancing-Pass mit echtem
+  Playtest-Feedback statt blindem Hochdrehen.

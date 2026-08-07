@@ -177,6 +177,8 @@ public class BakeService {
 
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(user.getSteamId());
+        dto.setDisplayName(user.getDisplayName());
+        dto.setAvatarUrl(UserService.avatarEndpointFor(user));
         dto.setCookies(user.getCookies());
         dto.setSugar(user.getSugar());
         dto.setFlour(user.getFlour());
@@ -184,6 +186,8 @@ public class BakeService {
         dto.setButter(user.getButter());
         dto.setChocolate(user.getChocolate());
         dto.setMilk(user.getMilk());
+        dto.setWorkersIdle(user.isWorkersIdle());
+        dto.setOwnedCitizens(user.getOwnedCitizens());
         dto.setTotalResourceCap(buildingService.getTotalCap(user.getSteamId()));
         return dto;
     }

@@ -92,5 +92,5 @@ export function useHoverReveal() {
   const running = computed(() => state.phase !== 'off')
   const pinned  = computed(() => state.phase === 'drain-slow')
 
-  return { state, onEnter, onLeave, running, pinned }
+  return { state, onEnter, onLeave, running, pinned, forceClose }
 }

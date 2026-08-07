@@ -4,8 +4,6 @@
   "badgesCount": "ORDEN · {count}",
   "viewAll": "ALLE ANSEHEN →",
   "noBadges": "Noch keine Orden",
-  "skillTreeTitle": "SKILL-BAUM",
-  "noSkillNodes": "Keine Knoten freigeschaltet",
   "seasonHistoryTitle": "SEASON-HISTORIE",
   "seasonHeaderSeason": "SEASON",
   "seasonHeaderRank": "PLATZ",
@@ -13,6 +11,5 @@
   "seasonHeaderPrestige": "PRESTIGE",
   "statCookies": "COOKIES",
   "statResourceValue": "RESSOURCENWERT",
-  "statSkillTreeValue": "SKILL-BAUM-WERT",
   "statLifetimeBaked": "GEBACKEN (LIFETIME)"
 }

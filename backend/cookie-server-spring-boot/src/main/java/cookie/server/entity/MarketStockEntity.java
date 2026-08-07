@@ -15,6 +15,11 @@ public class MarketStockEntity {
     @Id
     private String id = "SINGLETON";
 
+    // Zweite Verteidigungslinie gegen Lost-Updates neben dem marketLock (siehe
+    // MarketService#performAction) -- falls je ein Codepfad den Lock umgeht.
+    @Version
+    private long version;
+
     private double sugarStock;
     private double flourStock;
     private double eggsStock;

@@ -4,8 +4,6 @@
   "badgesCount": "BADGES · {count}",
   "viewAll": "VIEW ALL →",
   "noBadges": "No badges yet",
-  "skillTreeTitle": "SKILL TREE",
-  "noSkillNodes": "No nodes unlocked",
   "seasonHistoryTitle": "SEASON HISTORY",
   "seasonHeaderSeason": "SEASON",
   "seasonHeaderRank": "RANK",
@@ -13,6 +11,5 @@
   "seasonHeaderPrestige": "PRESTIGE",
   "statCookies": "COOKIES",
   "statResourceValue": "RESOURCE VALUE",
-  "statSkillTreeValue": "SKILL TREE VALUE",
   "statLifetimeBaked": "BAKED (LIFETIME)"
 }

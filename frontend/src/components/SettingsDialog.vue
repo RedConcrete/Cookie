@@ -8,17 +8,6 @@
 
       <PixelScrollBox class="sd-scroll">
       <div class="sd-body">
-        <PixelSection :title="t('settings.language')">
-          <div class="sd-lang-row">
-            <button
-              v-for="lang in SUPPORTED_LOCALES" :key="lang"
-              class="px-btn sd-lang-btn"
-              :class="{ active: locale === lang }"
-              @click="setLocale(lang)"
-            ><ShortcutSlot />{{ lang.toUpperCase() }}</button>
-          </div>
-        </PixelSection>
-
         <PixelSection :title="t('settings.volume')">
           <div class="sd-slider-row">
             <div class="sd-slider-label">{{ t('settings.music') }} <button class="sd-mute" @click="audio.musicMuted.value = !audio.musicMuted.value"><ShortcutSlot /><PixelIcon :name="audio.musicMuted.value ? 'mute' : 'music'" :size="14" /></button></div>
@@ -78,7 +67,7 @@
         <PixelSection :title="t('settings.camera')">
           <div class="sd-slider-row sd-cam-speed-row">
             <div class="sd-slider-label">{{ t('settings.speed') }}</div>
-            <input type="range" min="120" max="1200" step="20" :value="camera.cameraSpeed.value"
+            <input type="range" min="120" max="3000" step="20" :value="camera.cameraSpeed.value"
               @input="camera.cameraSpeed.value = +$event.target.value" class="sd-slider"
               :style="{ '--fill': camSpeedFillPct + '%' }" />
             <span class="sd-slider-val">{{ camera.cameraSpeed.value }}</span>
@@ -97,6 +86,12 @@
         <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame"><ShortcutSlot />{{ t('settings.exitGame') }}</button>
       </div>
       </PixelScrollBox>
+
+      <div class="sd-footer">
+        <button class="px-btn sd-lang-toggle" @click="cycleLocale" :aria-label="t('settings.language')" :title="t('settings.language')">
+          <ShortcutSlot /><PixelIcon :name="`flag-${locale}`" :size="20" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -122,13 +117,18 @@ const { t, locale } = useI18n()
 const musicFillPct = computed(() => audio.musicVolume.value * 100)
 const sfxFillPct   = computed(() => audio.sfxVolume.value * 100)
 
+function cycleLocale() {
+  const i = SUPPORTED_LOCALES.indexOf(locale.value)
+  setLocale(SUPPORTED_LOCALES[(i + 1) % SUPPORTED_LOCALES.length])
+}
+
 const camDirections = [
   { dir: 'up',    labelKey: 'settings.dirUp' },
   { dir: 'down',  labelKey: 'settings.dirDown' },
   { dir: 'left',  labelKey: 'settings.dirLeft' },
   { dir: 'right', labelKey: 'settings.dirRight' },
 ]
-const CAM_SPEED_MIN = 120, CAM_SPEED_MAX = 1200
+const CAM_SPEED_MIN = 120, CAM_SPEED_MAX = 3000
 const camSpeedFillPct = computed(() => (camera.cameraSpeed.value - CAM_SPEED_MIN) / (CAM_SPEED_MAX - CAM_SPEED_MIN) * 100)
 const listeningFor = ref(null)
 const listeningForAction = ref(null)
@@ -205,9 +205,16 @@ function exitGame() {
 .sd-scroll { flex: 1 1 auto; min-height: 0; }
 .sd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
-.sd-lang-row { display: flex; gap: 10px; padding: 4px 10px 10px; }
-.sd-lang-btn { min-width: 64px; opacity: .6; }
-.sd-lang-btn.active { opacity: 1; background: var(--px-green); }
+.sd-footer {
+  flex-shrink: 0;
+  display: flex; justify-content: flex-end;
+  padding: 12px 18px 18px;
+}
+.sd-lang-toggle {
+  width: 40px; height: 40px;
+  padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
 
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
 .sd-slider-label { width: 168px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; white-space: nowrap; }

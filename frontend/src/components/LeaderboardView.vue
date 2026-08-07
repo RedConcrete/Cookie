@@ -12,7 +12,7 @@
         @click="emit('view-profile', entry.steamId)"
       >
         <div class="lv-rank">#{{ entry.rank }}</div>
-        <div class="lv-name" :title="entry.displayName || entry.steamId">{{ entry.displayName || entry.steamId }}</div>
+        <div class="lv-name">{{ entry.displayName || entry.steamId }}</div>
         <div class="lv-nw">{{ fmtBig(entry.netWorth) }}</div>
         <div class="lv-num">{{ fmt(entry.cookies) }}</div>
         <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
@@ -28,6 +28,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { getLeaderboard } from '../services/api.js'
+import { fmt, fmtBig } from '../utils/formatNumber.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
@@ -44,13 +45,6 @@ async function load() {
   } finally {
     loading.value = false
   }
-}
-
-function fmt(v)    { return Number(v).toFixed(1) }
-function fmtBig(v) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v).toFixed(1)
 }
 
 onMounted(load)

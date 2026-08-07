@@ -35,7 +35,7 @@
               <PixelIcon :name="ing.icon" :size="20" />
               <span class="rc-ing-name">{{ ing.label }}</span>
               <span class="rc-ing-qty" :class="{ insufficient: playerStore[ing.key] < ing.total }">{{ ing.total }}</span>
-              <span class="rc-ing-price">&times; {{ fmtP(ing.price) }}</span>
+              <span class="rc-ing-price">&times; {{ fmt2(ing.price) }}</span>
               <span class="rc-ing-sum">= {{ fmt2(ing.cost) }}</span>
             </div>
           </div>
@@ -114,6 +114,7 @@ import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBakeStore }   from '../stores/bake.js'
 import { bakeStart, bakeClaim } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
+import { fmt2 } from '../utils/formatNumber.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
@@ -223,9 +224,6 @@ function formatDuration(s) {
   const m = Math.floor(s / 60); const sec = s % 60
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`
 }
-function fmt2(v) { return Number(v ?? 0).toFixed(2) }
-function fmtP(v) { return Number(v ?? 0).toFixed(4) }
-
 onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].id })
 </script>
 
@@ -256,7 +254,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 }
 .rc-scroll { flex: 1 1 auto; min-height: 0; }
 .rc-scroll-inner { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
-.rc-close { position: absolute; top: 12px; right: 14px; }
+.rc-close { position: absolute; top: 12px; right: 14px; z-index: 10; }
 .rc-heading { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); padding-right: 24px; }
 .rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 8px; }
 

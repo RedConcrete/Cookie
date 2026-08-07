@@ -38,14 +38,6 @@
         </div>
       </div>
 
-      <div class="pp-section">
-        <div class="pp-label">{{ t('playerProfileView.skillTreeTitle') }}</div>
-        <div class="pp-upgrades">
-          <div v-for="n in allocatedSkillNodes" :key="n.id" class="pp-upgrade-chip">{{ n.name }}</div>
-          <div v-if="allocatedSkillNodes.length === 0" class="pp-no-badges">{{ t('playerProfileView.noSkillNodes') }}</div>
-        </div>
-      </div>
-
       <template v-if="data.seasonHistory?.length">
         <div class="pp-label" style="margin-top:6px">{{ t('playerProfileView.seasonHistoryTitle') }}</div>
         <div class="pp-season-table">
@@ -65,6 +57,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getProfile, avatarSrc } from '../services/api.js'
+import { fmtBig } from '../utils/formatNumber.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -81,12 +74,9 @@ const ordenOpen = ref(false)
 const avatarError = ref(false)
 const profileAvatarSrc = computed(() => avatarError.value ? null : avatarSrc(data.value?.avatarUrl))
 
-const allocatedSkillNodes = computed(() => data.value?.skillNodes ?? [])
-
 const stats = computed(() => !data.value ? [] : [
   { label: t('playerProfileView.statCookies'), val: fmtBig(data.value.cookies) },
   { label: t('playerProfileView.statResourceValue'), val: fmtBig(data.value.resourceValue) },
-  { label: t('playerProfileView.statSkillTreeValue'), val: fmtBig(data.value.skillTreeValue) },
   { label: t('playerProfileView.statLifetimeBaked'), val: fmtBig(data.value.lifetimeCookiesBaked) },
 ])
 
@@ -96,12 +86,6 @@ async function load() {
   avatarError.value = false
   try { data.value = await getProfile(props.steamId) }
   finally { loading.value = false }
-}
-
-function fmtBig(v) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v).toFixed(1)
 }
 
 watch(() => props.steamId, load)

@@ -95,6 +95,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { trade, getConfig } from '../services/api.js'
+import { roundUp } from '../utils/formatNumber.js'
 import { useAudio } from '../composables/useAudio.js'
 import PriceChart from '../components/PriceChart.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
@@ -239,8 +240,8 @@ async function doTrade(res, action) {
   }
 }
 
-function fmt(v)  { return Number(v ?? 0).toFixed(2) }
-function fmt2(v) { return Number(v ?? 0).toFixed(1) }
+function fmt(v)  { return roundUp(v, 2).toFixed(2) }
+function fmt2(v) { return roundUp(v, 1).toFixed(1) }
 function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` }
 </script>
 

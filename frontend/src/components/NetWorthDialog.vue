@@ -103,6 +103,7 @@ import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { getNetWorth, getNetWorthHistory } from '../services/api.js'
+import { fmtBig } from '../utils/formatNumber.js'
 import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -133,13 +134,6 @@ let userHasMoved = false
 let historyTimer = null
 
 const INITIAL_WINDOW_MS = 10 * 60 * 1000
-
-function fmtBig(v) {
-  if (!v) return '0'
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v).toFixed(1)
-}
 
 function pct(val) {
   if (!nw.value?.netWorth) return 0

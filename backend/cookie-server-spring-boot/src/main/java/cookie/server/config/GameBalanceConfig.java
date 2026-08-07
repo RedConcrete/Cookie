@@ -57,6 +57,9 @@ public class GameBalanceConfig {
      * Einzeleffekt. */
     private double skillPointCostGrowth = 1.4;
 
+    /** Mindestabstand zwischen zwei Collect-Aufrufen auf dasselbe Gebäude (Anti-Spam). */
+    private long collectCooldownMs = 150;
+
     public double getBaseStorageCap() { return baseStorageCap; }
     public void setBaseStorageCap(double v) { this.baseStorageCap = v; }
 
@@ -92,4 +95,7 @@ public class GameBalanceConfig {
 
     public double getSkillPointCostGrowth() { return skillPointCostGrowth; }
     public void setSkillPointCostGrowth(double v) { this.skillPointCostGrowth = v; }
+
+    public long getCollectCooldownMs() { return collectCooldownMs; }
+    public void setCollectCooldownMs(long v) { this.collectCooldownMs = v; }
 }

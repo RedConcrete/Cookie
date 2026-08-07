@@ -28,6 +28,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
+import { fmt, fmt2, fmtBig } from '../utils/formatNumber.js'
 import NestedTooltip from './NestedTooltip.vue'
 import cookieIcon    from '../assets/Sprites/RecSprits/BackgroundCookie512.png'
 import sugarIcon     from '../assets/Sprites/RecSprits/Zucker.png'
@@ -61,18 +62,10 @@ function resTooltip(res) {
   const sellVal  = amount * price * 0.85   // nach 15% Gebühr
   return [
     { text: t('resourceBar.resourceLine', { label: res.label, amount: fmt(amount) }) },
-    { text: t('resourceBar.marketPriceLine', { price: price.toFixed(4) }) },
+    { text: t('resourceBar.marketPriceLine', { price: fmt2(price) }) },
     { text: t('resourceBar.sellValueLabel'), tooltip: t('resourceBar.sellValueExplain') },
     { text: `${fmt2(sellVal)} C` },
   ]
-}
-
-function fmt(v)    { return Number(v).toFixed(1) }
-function fmt2(v)   { return Number(v).toFixed(2) }
-function fmtBig(v) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (v >= 1_000)     return (v / 1_000).toFixed(2) + 'K'
-  return Number(v ?? 0).toFixed(1)
 }
 </script>
 

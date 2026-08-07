@@ -1,5 +1,6 @@
 package cookie.server.service;
 
+import cookie.server.config.GameBalanceConfig;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.entity.PlayerBuildingEntity;
 import cookie.server.entity.UserEntity;
@@ -9,6 +10,7 @@ import cookie.server.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
@@ -24,19 +26,29 @@ public class PassiveIncomeService {
     private final UserRepository userRepository;
     private final PlayerBuildingRepository buildingRepo;
     private final BuildingService buildingService;
+    private final GameBalanceConfig balanceConfig;
 
     public PassiveIncomeService(UserRepository userRepository,
                                 PlayerBuildingRepository buildingRepo,
-                                BuildingService buildingService) {
+                                BuildingService buildingService,
+                                GameBalanceConfig balanceConfig) {
         this.userRepository = userRepository;
         this.buildingRepo = buildingRepo;
         this.buildingService = buildingService;
+        this.balanceConfig = balanceConfig;
     }
 
     @Transactional
     public UserInformationDto collectBuilding(String userId, String buildingId) {
         PlayerBuildingEntity ent = buildingRepo.findByUserIdAndBuildingId(userId, buildingId)
                 .orElseThrow(() -> new NoSuchElementException("Building not owned: " + buildingId));
+
+        LocalDateTime now = LocalDateTime.now();
+        long cooldownMs = Math.max(100, balanceConfig.getCollectCooldownMs());
+        if (ent.getLastCollectedAt() != null
+                && Duration.between(ent.getLastCollectedAt(), now).toMillis() < cooldownMs) {
+            throw new IllegalStateException("Zu schnell -- bitte kurz warten.");
+        }
 
         BuildingService.BuildingDef def = BuildingService.getDefMap().get(buildingId);
         if (def == null || def.passiveResource() == null)
@@ -45,7 +57,7 @@ public class PassiveIncomeService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
-        buildingService.settle(ent, def, user.isWorkersIdle(), LocalDateTime.now());
+        buildingService.settle(ent, def, user.isWorkersIdle(), now);
 
         double cap = buildingService.getTotalCap(userId);
         double total = user.getSugar() + user.getFlour() + user.getEggs()
@@ -64,10 +76,13 @@ public class PassiveIncomeService {
         }
 
         ent.setPendingAmount(ent.getPendingAmount() - credited);
+        ent.setLastCollectedAt(now);
         buildingRepo.save(ent);
 
         UserInformationDto dto = new UserInformationDto();
         dto.setSteamId(user.getSteamId());
+        dto.setDisplayName(user.getDisplayName());
+        dto.setAvatarUrl(UserService.avatarEndpointFor(user));
         dto.setCookies(user.getCookies());
         dto.setSugar(user.getSugar());
         dto.setFlour(user.getFlour());
@@ -75,6 +90,8 @@ public class PassiveIncomeService {
         dto.setButter(user.getButter());
         dto.setChocolate(user.getChocolate());
         dto.setMilk(user.getMilk());
+        dto.setWorkersIdle(user.isWorkersIdle());
+        dto.setOwnedCitizens(user.getOwnedCitizens());
         dto.setTotalResourceCap(cap);
         return dto;
     }

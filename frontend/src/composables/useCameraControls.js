@@ -2,7 +2,7 @@ import { reactive, ref, watch } from 'vue'
 
 const DIRECTIONS = ['up', 'down', 'left', 'right']
 const DEFAULT_KEYS = { up: 'w', down: 's', left: 'a', right: 'd' }
-const DEFAULT_SPEED = 480 // px/sec, screen space
+const DEFAULT_SPEED = 1200 // px/sec, screen space
 
 function loadKeys() {
   try {

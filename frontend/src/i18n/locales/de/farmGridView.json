@@ -8,6 +8,7 @@
   "devResetLabel": "DEV",
   "menuTitle": "Menü",
   "skillTreeLabel": "SKILL-BAUM",
+  "skillPointsAvailable": "{count} Skillpunkt(e) verfügbar",
   "statsLabel": "STATISTIKEN",
   "leaderboardLabel": "RANGLISTE",
   "settingsTitle": "Einstellungen",

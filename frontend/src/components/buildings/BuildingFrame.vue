@@ -36,7 +36,7 @@
       @click.stop="emit('collect')"
     >
       <PixelIcon v-if="resourceIcon" :name="resourceIcon" :size="14" />
-      <span class="bf-collect-amount">{{ pendingAmount.toFixed(1) }}</span>
+      <span class="bf-collect-amount">{{ fmt(pendingAmount) }}</span>
     </button>
 
     <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
@@ -70,6 +70,7 @@ import { useI18n } from 'vue-i18n'
 import PixelIcon from '../pixel/PixelIcon.vue'
 import { useHoldDrag } from '../../composables/useHoldDrag.js'
 import { TILE_SIZE } from './farmLayout.js'
+import { fmt } from '../../utils/formatNumber.js'
 
 const { t } = useI18n()
 
@@ -179,7 +180,10 @@ const rootStyle = computed(() => ({
 
 .bf-collect-badge {
   position: absolute;
-  bottom: calc(100% + 6px);
+  /* Hoeher als .bf-blocked-notice gestapelt (statt exakt gleicher Position) -- beide
+     koennen gleichzeitig sichtbar sein (Lager voll + noch was zum Einsammeln), siehe
+     docs/ROADMAP.md. Einsammeln bleibt oben, "Lager voll" naeher am Gebaeude. */
+  bottom: calc(100% + 40px);
   left: 50%;
   transform: translateX(-50%);
   display: flex; align-items: center; gap: 5px;

@@ -28,7 +28,7 @@
               </div>
             </div>
             <div class="ld-res-val">{{ r.amount.toFixed(1) }}</div>
-            <div class="ld-res-price">{{ r.price.toFixed(3) }} C</div>
+            <div class="ld-res-price">{{ fmt2(r.price) }} C</div>
           </div>
         </div>
 
@@ -64,6 +64,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { buyBuilding } from '../services/api.js'
+import { fmt2 } from '../utils/formatNumber.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
