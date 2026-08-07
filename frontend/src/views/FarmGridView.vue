@@ -15,7 +15,6 @@
           <div class="hud-chip hud-chip-cookie">
             <PixelIcon name="cookie" :size="24" />
             <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
-            <div class="hud-chip-label">{{ t('farmGridView.cookiesTitle') }}</div>
           </div>
         </PixelInfoPopover>
 
@@ -26,7 +25,6 @@
           <div class="hud-chip">
             <PixelIcon :name="r.icon" :size="24" />
             <div class="hud-chip-val">{{ r.val }}</div>
-            <div class="hud-chip-label">{{ r.label }}</div>
           </div>
         </PixelInfoPopover>
 
@@ -34,7 +32,6 @@
           <div class="hud-chip hud-chip-clickable" @click="dialog = 'citizens'">
             <PixelIcon name="einw" :size="24" />
             <div class="hud-chip-val">{{ playerStore.ownedCitizens }}/{{ playerStore.maxCitizens }}</div>
-            <div class="hud-chip-label">{{ t('farmGridView.residentsLabel') }}</div>
           </div>
         </PixelInfoPopover>
       </div>
@@ -48,11 +45,6 @@
       </PixelInfoPopover>
 
       <div class="hud-actions">
-        <button
-          v-if="playerStore.skillTree.skillPoints > 0"
-          class="px-btn hud-skillpoint-star"
-          @click="dialog = 'skilltree'"
-        ><PixelIcon name="stern" :size="16" /></button>
         <div class="hud-menu-wrap" ref="hudMenuRef">
           <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">
             &#9776;
@@ -76,7 +68,11 @@
         </div>
       </div>
     </div>
-
+<button
+          v-if="playerStore.skillTree.skillPoints > 0"
+          class="px-btn hud-skillpoint-star"
+          @click="dialog = 'skilltree'"
+        ><PixelIcon name="stern" :size="16" /></button>
     <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
     <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
@@ -955,6 +951,7 @@ onUnmounted(() => {
 /* Zeigt an, dass noch Skill-Punkte zu vergeben sind (Playtest-Feedback) -- verweist per
    Klick direkt in den Skill-Baum, statt dass Spieler das Menue durchsuchen muessen. */
 .hud-skillpoint-star {
+  position: absolute; top: 88px; right: 14px; z-index: 51;
   display: flex;
   align-items: center;
   justify-content: center;
