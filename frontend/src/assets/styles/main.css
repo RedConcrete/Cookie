@@ -6,6 +6,8 @@ button, input, select, textarea { font-family: inherit; }
 html, body, #app {
   user-select: none;
   -webkit-user-select: none;
+  height: 100%;
+  overflow: hidden;
 }
 input, textarea, [contenteditable] {
   user-select: text;
