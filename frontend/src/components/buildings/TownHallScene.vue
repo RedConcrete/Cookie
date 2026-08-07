@@ -2,13 +2,16 @@
   <div class="th-scene">
     <img class="scene-bg" :src="bgSrc" alt="" />
     <div v-if="idleCount > 0" class="th-idle-label" :class="{ 'th-idle-label-warn': idleWarn }">
-      {{ idleCount }} IDLE
+      {{ t('townHallScene.idleLabel', { count: idleCount }) }}
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import bgSrc from '../../assets/buildings/placeholder/rathaus.png'
+
+const { t } = useI18n()
 
 defineProps({
   idleCount: { type: Number, default: 0 },

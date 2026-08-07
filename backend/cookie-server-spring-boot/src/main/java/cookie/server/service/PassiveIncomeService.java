@@ -24,14 +24,11 @@ public class PassiveIncomeService {
 
     private final UserRepository userRepository;
     private final BuildingService buildingService;
-    private final MarketService marketService;
 
     public PassiveIncomeService(UserRepository userRepository,
-                                BuildingService buildingService,
-                                MarketService marketService) {
+                                BuildingService buildingService) {
         this.userRepository = userRepository;
         this.buildingService = buildingService;
-        this.marketService = marketService;
     }
 
     @Transactional
@@ -53,20 +50,14 @@ public class PassiveIncomeService {
         // Reicht der Platz fuer alles, gibt's nichts zu verteilen -- jede Ressource bekommt ihr volles Soll.
         // Reicht er nicht, wird die verfuegbare Kapazitaet PROPORTIONAL zum Anteil jeder Ressource an der
         // Gesamtproduktion dieses Ticks aufgeteilt (statt Listenreihenfolge: erste Ressource frisst den
-        // ganzen Platz, Rest faellt komplett in den Ueberlauf-Verkauf).
+        // ganzen Platz, Rest faellt komplett unter den Tisch). Kein Auto-Verkauf von Ueberlauf mehr
+        // (2026-08-07) -- was ueber die Kapazitaet hinausgeht, ist schlicht verloren statt automatisch
+        // zu Cookies verkauft zu werden. Ausgleich dafuer ist als groessere Passiv-Baum-Mechanik geplant,
+        // siehe docs/ROADMAP.md.
         double shareFactor = totalRequested <= available ? 1.0 : (totalRequested > 0 ? available / totalRequested : 0);
-        double feeRate = buildingService.getEffectiveSellFeeRate(userId, owned, marketService.getSellFeeRate());
 
         for (BuildingService.PassiveTick t : ticks) {
             double toAdd = t.amount() * shareFactor;
-            double overflow = t.amount() - toAdd;
-
-            if (overflow > 0) {
-                double price = marketService.getCurrentPrice(t.resource());
-                double payout = overflow * price * (1.0 - feeRate);
-                user.setCookies(user.getCookies() + payout);
-            }
-
             addResource(user, t.resource(), toAdd);
         }
 

@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
@@ -169,7 +169,15 @@ function onQtyBlur(res) {
 }
 
 // ── Trade ───────────────────────────────────────────────
-function canBuy(res)    { return amounts[res.name] > 0 && playerStore.cookies >= buyCost(res) }
+const totalResources = computed(() =>
+  (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
+  (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
+)
+const freeStorage = computed(() => Math.max(0, playerStore.totalResourceCap - totalResources.value))
+
+function canBuy(res) {
+  return amounts[res.name] > 0 && playerStore.cookies >= buyCost(res) && amounts[res.name] <= freeStorage.value
+}
 function canSell(res)   { return amounts[res.name] > 0 && playerStore[res.key] >= amounts[res.name] }
 function buyCost(res)   { return marketStore.priceOf(res.name) * (amounts[res.name] || 0) }
 function netPayout(res) { return buyCost(res) * (1 - sellFeeRate.value) }

@@ -6,7 +6,7 @@
   "chocolate": "Schokolade",
   "milk": "Milch",
   "cookiesLine": "Cookies: {value}",
-  "netWorthLine": "\nNet Worth: {value}",
+  "netWorthLine": "\nGesamtwert: {value}",
   "resourceLine": "{label}: {amount}",
   "marketPriceLine": "\nMarktpreis: {price} C",
   "sellValueLabel": "\nVerkaufswert: ",

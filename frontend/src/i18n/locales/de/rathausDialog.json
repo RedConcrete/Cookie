@@ -2,7 +2,7 @@
   "title": "RATHAUS · STUFE {level}",
   "statPopulation": "EINWOHNER",
   "statAssigned": "ZUGEWIESEN",
-  "statIdle": "IDLE",
+  "statIdle": "INAKTIV",
   "statWage": "GESAMTLOHN",
   "assignSectionLabel": "EINWOHNER-ZUWEISUNG",
   "idleRowName": "Wandernd (idle)",

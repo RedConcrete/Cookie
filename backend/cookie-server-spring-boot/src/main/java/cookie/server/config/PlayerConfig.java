@@ -17,6 +17,12 @@ public class PlayerConfig {
     private double initialButter = 0.0;
     private double initialChocolate = 0.0;
     private double initialMilk = 0.0;
+    // Free Skill-Punkte bei Accounterstellung -- zaehlen NICHT in totalSkillPointsBought
+    // (siehe SkillTreeService), verzerren also nicht die Kostenkurve fuer spaeter
+    // tatsaechlich gekaufte Punkte. Sollen den Spieler direkt am Start eine erste
+    // Skill-Baum-Entscheidung treffen lassen, statt dass der Baum erst nach dem ersten
+    // Kauf ueberhaupt relevant wird.
+    private int initialSkillPoints = 1;
 
     public double getInitialCookies() {
         return initialCookies;
@@ -72,5 +78,13 @@ public class PlayerConfig {
 
     public void setInitialMilk(double initialMilk) {
         this.initialMilk = initialMilk;
+    }
+
+    public int getInitialSkillPoints() {
+        return initialSkillPoints;
+    }
+
+    public void setInitialSkillPoints(int initialSkillPoints) {
+        this.initialSkillPoints = initialSkillPoints;
     }
 }

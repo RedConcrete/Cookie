@@ -39,6 +39,24 @@ public class MarketConfig {
     private double stockFluctuationRatio = 0.02;
 
     /**
+     * Zeitkonstante (Sekunden), mit der die Baseline (das Rückfall-Ziel des Zufalls-Ticks)
+     * von selbst zurück auf initialStock zerfaellt, wenn keine weiteren Trades passieren.
+     * Reiner Anker-Zerfall gegen einen FIXEN Zielwert -- deshalb unbedingt stabil, unabhaengig
+     * vom Rauschen des Zufalls-Ticks. Standard 3600s (1h): ein Preis-Ausschlag durch Spieler-
+     * Trading klingt binnen ~1-3h wieder ab statt sofort.
+     */
+    private double stockBaselineTimeConstantSeconds = 3600.0;
+
+    /**
+     * Anteil der Stock-Bewegung eines einzelnen echten Trades, der dauerhaft in die Baseline
+     * uebernommen wird (0.5 = ein Trade verschiebt die Baseline um die Haelfte seiner eigenen
+     * Stock-Aenderung). Nur echte Spieler-Trades duerfen die Baseline bewegen, niemals der
+     * Zufalls-Tick selbst -- sonst koennte reines Hintergrundrauschen die Baseline unbegrenzt
+     * wegtreiben lassen.
+     */
+    private double stockBaselineTradeTransferRatio = 0.5;
+
+    /**
      * Anteil des Verkaufserlöses, der als Gebühr vernichtet wird.
      * 0.05 = 5% Gebühr: Spieler erhält 95% des Marktpreises.
      */
@@ -128,6 +146,22 @@ public class MarketConfig {
 
     public void setStockFluctuationRatio(double stockFluctuationRatio) {
         this.stockFluctuationRatio = stockFluctuationRatio;
+    }
+
+    public double getStockBaselineTimeConstantSeconds() {
+        return stockBaselineTimeConstantSeconds;
+    }
+
+    public void setStockBaselineTimeConstantSeconds(double stockBaselineTimeConstantSeconds) {
+        this.stockBaselineTimeConstantSeconds = stockBaselineTimeConstantSeconds;
+    }
+
+    public double getStockBaselineTradeTransferRatio() {
+        return stockBaselineTradeTransferRatio;
+    }
+
+    public void setStockBaselineTradeTransferRatio(double stockBaselineTradeTransferRatio) {
+        this.stockBaselineTradeTransferRatio = stockBaselineTradeTransferRatio;
     }
 
     public double getSellFeeRate() {

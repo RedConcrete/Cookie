@@ -32,11 +32,9 @@
           </div>
         </div>
 
-        <!-- Auto-sell info -->
+        <!-- Wage info -->
         <div class="ld-info">
-          <div class="ld-info-title">{{ t('lagerDialog.autoSellTitle') }}</div>
           <div class="ld-info-text">
-            {{ t('lagerDialog.autoSellDesc') }}
             {{ t('lagerDialog.wageLine', { level: lagerLevel, wage: lagerWage.toFixed(1) }) }}
             <span v-if="lagerLevel === 1" class="ld-free">{{ t('lagerDialog.free') }}</span>
           </div>
@@ -168,7 +166,6 @@ async function upgradeLager() {
 .ld-res-price { font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-muted); min-width: 52px; text-align: right; }
 
 .ld-info { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
-.ld-info-title { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-orange); margin-bottom: 4px; }
 .ld-info-text  { font-size: 12px; }
 .ld-free { color: var(--px-green-txt); font-weight: bold; }
 

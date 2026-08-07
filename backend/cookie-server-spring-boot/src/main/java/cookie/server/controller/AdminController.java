@@ -72,18 +72,21 @@ public class AdminController {
         UserEntity user = userRepository.findById(userId).orElse(null);
         if (user == null) return ResponseEntity.notFound().build();
 
-        // Reset resources and cookies (give dev player plenty for testing)
-        double startCookies = isDev ? 5000.0 : playerConfig.getInitialCookies();
+        // Reset to the same starting values a brand-new account gets (see UserService) --
+        // dev-reset used to hand DEV_PLAYER_001 a hardcoded 5000 cookies + 100 of every
+        // resource here, bypassing PlayerConfig entirely, so testing "dev reset" never
+        // actually reflected the real new-player experience/balance.
+        double startCookies = playerConfig.getInitialCookies();
         user.setCookies(startCookies);
-        user.setSugar(isDev ? 100 : playerConfig.getInitialSugar());
-        user.setFlour(isDev ? 100 : playerConfig.getInitialFlour());
-        user.setEggs(isDev ? 100 : playerConfig.getInitialEggs());
-        user.setButter(isDev ? 100 : playerConfig.getInitialButter());
-        user.setChocolate(isDev ? 100 : playerConfig.getInitialChocolate());
-        user.setMilk(isDev ? 100 : playerConfig.getInitialMilk());
+        user.setSugar(playerConfig.getInitialSugar());
+        user.setFlour(playerConfig.getInitialFlour());
+        user.setEggs(playerConfig.getInitialEggs());
+        user.setButter(playerConfig.getInitialButter());
+        user.setChocolate(playerConfig.getInitialChocolate());
+        user.setMilk(playerConfig.getInitialMilk());
         user.setWorkersIdle(false);
         user.setOwnedCitizens(0);
-        user.setSkillPoints(0);
+        user.setSkillPoints(playerConfig.getInitialSkillPoints());
         user.setTotalSkillPointsBought(0);
         user.setTotalSkillPointCookiesSpent(0);
         userRepository.save(user);

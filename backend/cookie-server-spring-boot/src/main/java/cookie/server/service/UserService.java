@@ -61,6 +61,7 @@ public class UserService {
         entity.setButter(playerConfig.getInitialButter());
         entity.setChocolate(playerConfig.getInitialChocolate());
         entity.setMilk(playerConfig.getInitialMilk());
+        entity.setSkillPoints(playerConfig.getInitialSkillPoints());
 
         userRepository.save(entity);
         return toDto(entity);
@@ -108,6 +109,7 @@ public class UserService {
                     newUser.setButter(playerConfig.getInitialButter());
                     newUser.setChocolate(playerConfig.getInitialChocolate());
                     newUser.setMilk(playerConfig.getInitialMilk());
+                    newUser.setSkillPoints(playerConfig.getInitialSkillPoints());
                     userRepository.save(newUser);
                     return toDto(newUser);
                 });
@@ -175,8 +177,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserInformationDto harvest(String userId, ResourceName resource,
-                                      double storageCap, double marketPrice, double sellFeeRate) {
+    public UserInformationDto harvest(String userId, ResourceName resource, double storageCap) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
@@ -195,16 +196,13 @@ public class UserService {
 
         double amount = (1.0 + harvestBonus) * prestigeMultiplier * ticks;
 
+        // Kein Auto-Verkauf von Ueberlauf mehr (2026-08-07) -- was ueber die Lagerkapazitaet
+        // hinausgeht, wird schlicht nicht gutgeschrieben. Ein Ausgleich fuer volles Lager ist
+        // als groessere Passiv-Baum-Mechanik geplant, siehe docs/ROADMAP.md.
         double totalRes = user.getSugar() + user.getFlour() + user.getEggs()
                         + user.getButter() + user.getChocolate() + user.getMilk();
         double available = Math.max(0, storageCap - totalRes);
-        double overflow  = Math.max(0, amount - available);
-        double toAdd     = amount - overflow;
-
-        if (overflow > 0) {
-            double payout = overflow * marketPrice * (1.0 - sellFeeRate);
-            user.setCookies(user.getCookies() + payout);
-        }
+        double toAdd = Math.min(amount, available);
 
         switch (resource) {
             case SUGAR     -> user.setSugar(user.getSugar()         + toAdd);

@@ -7,8 +7,6 @@
   "resButter": "Butter",
   "resChocolate": "Schokolade",
   "resMilk": "Milch",
-  "autoSellTitle": "AUTO-VERKAUF",
-  "autoSellDesc": "Wenn das Lager voll ist, werden überlaufende Ressourcen automatisch zum aktuellen Marktpreis verkauft.",
   "wageLine": "Stufe {level} Lohn: {wage} C/MIN",
   "free": "(kostenlos)",
   "upgradeLevelLine": "Stufe {from} → {to}",

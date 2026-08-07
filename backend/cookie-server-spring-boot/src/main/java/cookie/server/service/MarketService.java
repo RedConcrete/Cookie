@@ -276,6 +276,10 @@ public class MarketService {
             setPrice(newMarket, resource, newPrice);
             newMarket.setDate(LocalDateTime.now());
 
+            // Baseline anteilig mitziehen -- nur echte Trades duerfen das Rueckfall-Ziel des
+            // Zufalls-Ticks verschieben, siehe applyTradeToBaseline.
+            applyTradeToBaseline(stock, resource, marketStock, newStock);
+
             // Stock in separater Tabelle aktualisieren (ueberschreibt sich selbst)
             setStock(stock, resource, newStock);
             marketStockRepository.save(stock);
@@ -295,9 +299,13 @@ public class MarketService {
     /**
      * Simuliert Hintergrund-Marktaktivitaet: bewegt den Pool-Stock jeder Ressource um einen
      * kleinen zufaelligen Betrag (Phantom-Kauf/-Verkauf, nicht von einem echten Spieler) und
-     * leitet den neuen Preis aus der AMM-Kurve ab. Leicht Richtung Ausgangsbestand verzerrt,
-     * damit der Markt langfristig nicht wegdriftet, aber echte Knappheit durch Spieler-Handel
-     * kann sich trotzdem aufbauen (kein Deckel).
+     * leitet den neuen Preis aus der AMM-Kurve ab. Verzerrt Richtung einer pro Ressource
+     * gefuehrten Baseline statt eines fixen Ausgangsbestands -- die Baseline wird ausschliesslich
+     * von echten Trades verschoben ({@link #applyTradeToBaseline}) und zerfaellt von selbst
+     * langsam zurueck auf initialStock ({@link #decayBaselineTowardAnchor}). So haelt der
+     * Preis-Effekt anhaltenden Spieler-Tradings ueber die konfigurierte Zeitkonstante an, statt
+     * dass er nach wenigen Minuten auf den Ausgangswert zurueckfaellt -- reines Hintergrundrauschen
+     * kann die Baseline aber nie selbst bewegen, bleibt also unbegrenzt stabil.
      */
     @Transactional
     public void applyRandomPriceFluctuation() {
@@ -318,10 +326,16 @@ public class MarketService {
                 double marketStock = getStock(stock, resource);
                 double initialStock = getInitialStock(resource);
 
+                // Baseline zuerst einen Schritt Richtung initialStock zerfallen lassen (reiner,
+                // rauschfreier Anker-Zerfall -- die Baseline selbst wird nur von echten Trades
+                // bewegt, siehe applyTradeToBaseline).
+                double baseline = decayBaselineTowardAnchor(stock, resource);
+
                 // Wahrscheinlichkeit fuer "Stock steigt" (Phantom-Verkauf) haengt sanft davon ab,
-                // wie weit der aktuelle Stock vom Ausgangsbestand entfernt ist -- ist er schon
-                // knapp, ist ein Nachschub-Tick wahrscheinlicher als ein weiterer Abfluss.
-                double deviation = (initialStock - marketStock) / initialStock;
+                // wie weit der aktuelle Stock von der Baseline entfernt ist -- ist er schon
+                // knapp (relativ zur Baseline), ist ein Nachschub-Tick wahrscheinlicher als ein
+                // weiterer Abfluss.
+                double deviation = (baseline - marketStock) / initialStock;
                 double increaseChance = 0.5 + Math.max(-0.4, Math.min(0.4, deviation * 0.5));
                 double magnitude = Math.random() * marketConfig.getStockFluctuationRatio() * initialStock;
 
@@ -501,6 +515,7 @@ public class MarketService {
             stock.setButterStock(marketConfig.getInitialButterStock());
             stock.setChocolateStock(marketConfig.getInitialChocolateStock());
             stock.setMilkStock(marketConfig.getInitialMilkStock());
+            resetBaselinesToStock(stock);
             marketStockRepository.save(stock);
 
             createInitialMarket();
@@ -563,12 +578,20 @@ public class MarketService {
         stock.setButterStock(marketConfig.getInitialButterStock());
         stock.setChocolateStock(marketConfig.getInitialChocolateStock());
         stock.setMilkStock(marketConfig.getInitialMilkStock());
+        resetBaselinesToStock(stock);
 
         logger.info("Created initial market stock: Sugar={}, Flour={}, Eggs={}, Butter={}, Chocolate={}, Milk={}",
                 stock.getSugarStock(), stock.getFlourStock(), stock.getEggsStock(),
                 stock.getButterStock(), stock.getChocolateStock(), stock.getMilkStock());
 
         return marketStockRepository.save(stock);
+    }
+
+    /** Setzt die Baseline jeder Ressource auf ihren aktuellen Stock (Neuanlage/Reset). */
+    private void resetBaselinesToStock(MarketStockEntity stock) {
+        for (ResourceName resource : ResourceName.values()) {
+            setBaseline(stock, resource, getStock(stock, resource));
+        }
     }
 
     private double getPrice(MarketEntity market, ResourceName resource) {
@@ -618,6 +641,69 @@ public class MarketService {
             case CHOCOLATE -> stock.setChocolateStock(safeStock);
             case MILK -> stock.setMilkStock(safeStock);
         }
+    }
+
+    private double getBaseline(MarketStockEntity stock, ResourceName resource) {
+        return switch (resource) {
+            case SUGAR -> stock.getSugarStockBaseline();
+            case FLOUR -> stock.getFlourStockBaseline();
+            case EGGS -> stock.getEggsStockBaseline();
+            case BUTTER -> stock.getButterStockBaseline();
+            case CHOCOLATE -> stock.getChocolateStockBaseline();
+            case MILK -> stock.getMilkStockBaseline();
+        };
+    }
+
+    private void setBaseline(MarketStockEntity stock, ResourceName resource, double baseline) {
+        double safeBaseline = Math.max(STOCK_EPSILON, baseline);
+        switch (resource) {
+            case SUGAR -> stock.setSugarStockBaseline(safeBaseline);
+            case FLOUR -> stock.setFlourStockBaseline(safeBaseline);
+            case EGGS -> stock.setEggsStockBaseline(safeBaseline);
+            case BUTTER -> stock.setButterStockBaseline(safeBaseline);
+            case CHOCOLATE -> stock.setChocolateStockBaseline(safeBaseline);
+            case MILK -> stock.setMilkStockBaseline(safeBaseline);
+        }
+    }
+
+    /**
+     * Laesst die Baseline einer Ressource pro Zufalls-Tick ein Stueck Richtung initialStock
+     * zerfallen (reiner Anker-Zerfall gegen einen fixen Zielwert, unbedingt stabil -- siehe
+     * {@link MarketConfig#getStockBaselineTimeConstantSeconds()}). Die Baseline selbst wird nur
+     * durch echte Trades verschoben ({@link #applyTradeToBaseline}), nie durch dieses Rauschen --
+     * sonst koennte reines Hintergrundrauschen die Baseline unbegrenzt wegtreiben.
+     *
+     * @return die aktualisierte Baseline
+     */
+    private double decayBaselineTowardAnchor(MarketStockEntity stock, ResourceName resource) {
+        double initialStock = getInitialStock(resource);
+        double baseline = getBaseline(stock, resource);
+        if (baseline <= 0) {
+            baseline = initialStock;
+        } else {
+            double dtSeconds = marketConfig.getUpdateIntervalMs() / 1000.0;
+            double tau = Math.max(1.0, marketConfig.getStockBaselineTimeConstantSeconds());
+            double alpha = 1.0 - Math.exp(-dtSeconds / tau);
+            baseline = baseline + alpha * (initialStock - baseline);
+        }
+        setBaseline(stock, resource, baseline);
+        return baseline;
+    }
+
+    /**
+     * Verschiebt die Baseline anteilig um die Stock-Aenderung eines echten Trades
+     * ({@link MarketConfig#getStockBaselineTradeTransferRatio()}). Dadurch "merkt" sich der
+     * Markt anhaltendes Kaufen/Verkaufen als neue vorlaeufige Gleichgewichtslage, statt dass der
+     * Preis-Effekt sofort durch den naechsten Zufalls-Tick wieder wegkorrigiert wird -- klingt
+     * ueber {@link #decayBaselineTowardAnchor} langsam von selbst wieder ab.
+     */
+    private void applyTradeToBaseline(MarketStockEntity stock, ResourceName resource, double oldStock, double newStock) {
+        double baseline = getBaseline(stock, resource);
+        if (baseline <= 0) {
+            baseline = oldStock;
+        }
+        baseline = baseline + marketConfig.getStockBaselineTradeTransferRatio() * (newStock - oldStock);
+        setBaseline(stock, resource, baseline);
     }
 
     private double totalUserResources(UserEntity user) {

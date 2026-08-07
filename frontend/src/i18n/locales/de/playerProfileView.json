@@ -1,6 +1,6 @@
 {
   "rankPrestige": "Platz #{rank} · Prestige {level}",
-  "netWorthLabel": "NET WORTH",
+  "netWorthLabel": "GESAMTWERT",
   "badgesCount": "ORDEN · {count}",
   "viewAll": "ALLE ANSEHEN →",
   "noBadges": "Noch keine Orden",
@@ -9,7 +9,7 @@
   "seasonHistoryTitle": "SEASON-HISTORIE",
   "seasonHeaderSeason": "SEASON",
   "seasonHeaderRank": "PLATZ",
-  "seasonHeaderNetWorth": "NET WORTH",
+  "seasonHeaderNetWorth": "GESAMTWERT",
   "seasonHeaderPrestige": "PRESTIGE",
   "statCookies": "COOKIES",
   "statResourceValue": "RESSOURCENWERT",

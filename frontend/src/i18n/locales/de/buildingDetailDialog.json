@@ -2,7 +2,7 @@
   "subtitle": "Stufe {level} · liefert {resource}",
   "residents": "EINWOHNER {count}/{max}",
   "remove": "Entfernen",
-  "idle": "IDLE",
+  "idle": "INAKTIV",
   "active": "AKTIV",
   "assign": "Einwohner zuweisen",
   "noResidents": "KEINE EINW.",

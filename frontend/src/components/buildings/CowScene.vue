@@ -8,8 +8,8 @@
     </svg>
 
     <div v-if="workers > 0" class="milker">
-      <PixelWorker anim="milk" :dur="1.1" hat="#6dba79" torso="#534664"
-        :tool="{ anim: 'tap', dur: 1.1, color: '#aea47e', top: '12px', height: '9px', width: '7px' }" />
+      <PixelWorker :anim="idle ? 'bob' : 'milk'" :dur="1.1" hat="#6dba79" torso="#534664"
+        :tool="idle ? null : { anim: 'tap', dur: 1.1, color: '#aea47e', top: '12px', height: '9px', width: '7px' }" />
     </div>
   </div>
 </template>
@@ -19,7 +19,7 @@ import PixelWorker from '../pixel/PixelWorker.vue'
 import bgSrc from '../../assets/buildings/placeholder/kuh.png'
 import { buildSpriteCells, dots } from '../pixel/spriteGrid.js'
 
-defineProps({ workers: { type: Number, default: 0 } })
+defineProps({ workers: { type: Number, default: 0 }, idle: { type: Boolean, default: false } })
 
 const cows = [
   { left: 68,  bottom: 46, body: '#fff1a9', spot: '#402e2b', delay: 0 },

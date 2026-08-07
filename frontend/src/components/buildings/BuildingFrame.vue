@@ -15,8 +15,15 @@
 
     <!-- Hover ring: wraps the whole card (label + scene), same footprint as
          the drag outline above -- scoping it to just .bf-scene made its -8px
-         inset bleed upward into the label bar instead of framing it cleanly. -->
-    <div class="bf-hover-ring" :class="{ visible: hovering && !state.armed && !state.pressing }"></div>
+         inset bleed upward into the label bar instead of framing it cleanly.
+         Red instead of green while blocked (e.g. Lager voll -- see FarmGridView's
+         isStorageFull), so hovering a production building signals "won't help"
+         instead of implying it's still harvesting. -->
+    <div class="bf-hover-ring" :class="{ visible: hovering && !state.armed && !state.pressing, blocked: harvestBlocked }"></div>
+
+    <!-- Brief explanation while blocked -- only shown on actual hover, not a
+         persistent badge, per design: "kurz" (Lager-voll popover). -->
+    <div v-if="harvestBlocked && hovering" class="bf-blocked-notice">{{ t('buildingFrame.storageFullNotice') }}</div>
 
     <!-- Name bar — normal flow, sits above the scene so it never covers the artwork -->
     <div class="bf-overlay">
@@ -26,6 +33,7 @@
       </div>
       <div class="bf-overlay-right">
         <!--<span class="bf-rate">{{ rate }}</span>-->
+        <span v-if="harvestBlocked && Number(workers) > 0" class="bf-idle-tag">{{ t('buildingFrame.idleBadge') }}</span>
         <span v-if="workers !== null" class="bf-workers">
           <PixelIcon name="einw" :size="12" />{{ workers }}
         </span>
@@ -44,9 +52,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PixelIcon from '../pixel/PixelIcon.vue'
 import { useHoldDrag } from '../../composables/useHoldDrag.js'
 import { TILE_SIZE } from './farmLayout.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   buildingId: { type: String, default: '' },
@@ -62,6 +73,12 @@ const props = defineProps({
   dropOk:     { type: Function, required: true },
   zoom:       { type: Number, default: 1 },
   offset:     { type: Object, default: () => ({ x: 0, y: 0 }) },  // last saved drag offset
+  // Storage-full (or similar) -- this production building's hover-harvest currently
+  // grants nothing. Purely visual here (red ring + notice); FarmGridView owns the
+  // actual gating of whether harvest-start does anything. Named distinctly from the
+  // pre-existing local `blocked` computed below (invalid-drag-drop-position), which
+  // a same-named prop would silently shadow in the template.
+  harvestBlocked: { type: Boolean, default: false },
 })
 const emit = defineEmits(['open', 'harvest-start', 'harvest-stop', 'moved'])
 
@@ -115,6 +132,10 @@ const rootStyle = computed(() => ({
 .bf-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff1a9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bf-rate { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-green-txt); white-space: nowrap; }
 .bf-workers { display: flex; align-items: center; gap: 3px; font-family: 'Silkscreen', monospace; font-size: 9px; color: #fff1a9; white-space: nowrap; }
+.bf-idle-tag {
+  font-family: 'Silkscreen', monospace; font-size: 8px; padding: 2px 4px;
+  background: #402e2b; color: #e67a84; border: 2px solid #764032; white-space: nowrap;
+}
 
 .bf-hold-bar {
   position: absolute; left: -8px; top: -24px; height: 10px;
@@ -136,4 +157,25 @@ const rootStyle = computed(() => ({
   z-index: 4;
 }
 .bf-hover-ring.visible { opacity: 1; }
+.bf-hover-ring.blocked { border-color: var(--px-red); }
+
+.bf-blocked-notice {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 190px;
+  background: var(--px-wood);
+  border: 3px solid var(--px-red);
+  box-shadow: inset 2px 2px 0 #402e2b, 0 4px 0 rgba(0,0,0,.4);
+  padding: 6px 9px;
+  font-family: 'Silkscreen', monospace;
+  font-size: 9px;
+  line-height: 1.4;
+  color: #fff1a9;
+  text-align: center;
+  pointer-events: none;
+  z-index: 6;
+}
 </style>

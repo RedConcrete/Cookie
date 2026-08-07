@@ -84,14 +84,16 @@
         :drop-ok="(pos) => dropOk(b.id, pos)"
         :zoom="zoom"
         :offset="buildingOffsets[b.id]"
-        :class="{ 'building-idle': playerStore.workersIdle && isBuildingOwned(b.id) }"
+        :ref="(el) => onBuildingFrameRef(b.id, el)"
+        :harvest-blocked="isProductionBlocked(b)"
+        :class="{ 'building-idle': (playerStore.workersIdle || isProductionBlocked(b)) && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
-        @harvest-start="b.resource && startHarvest(b.id, b.resource)"
+        @harvest-start="b.resource && !isStorageFull && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
         @moved="onBuildingMoved(b.id, $event)"
       >
         <component
-          :is="b.comp" :workers="b.workers"
+          :is="b.comp" :workers="b.workers" :idle="isProductionBlocked(b)"
           v-bind="b.id === 'rathaus' ? { idleCount: playerStore.idleCitizens, idleWarn: playerStore.workersIdle } : {}"
         />
       </BuildingFrame>
@@ -142,12 +144,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, trade, adminResetPlayer, getConfig, avatarSrc } from '../services/api.js'
+import { harvestResource, trade, adminResetPlayer, avatarSrc } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
@@ -155,7 +157,7 @@ import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
-import { BASE, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
+import { BASE, HGT, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
 import { BUILDING_INFO, RESOURCE_ICON, buildingTitle, resourceLabel } from '../components/buildings/buildingInfo.js'
 import grassTile from '../assets/tiles/grass.png'
 const grassBg = `url(${grassTile})`
@@ -234,7 +236,6 @@ const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
-const sellFeeRate = ref(0.08)
 
 // Avatar: falls back to the placeholder icon if the cached image ever fails
 // to load, instead of showing a broken image forever.
@@ -280,6 +281,14 @@ const buildingOffsets = reactive(
 function onBuildingMoved(id, offset) {
   buildingOffsets[id] = offset
   localStorage.setItem(OFFSETS_KEY, JSON.stringify(buildingOffsets))
+}
+
+// Actual rendered DOM nodes per building (keyed by id) -- used to nudge the camera to a
+// pixel-exact center on Rathaus in resetView(), since BASE/HGT are only approximate
+// (BuildingFrame's real height includes its label bar, which HGT doesn't precisely track).
+const buildingFrameEls = {}
+function onBuildingFrameRef(id, el) {
+  buildingFrameEls[id] = el ? (el.$el ?? el) : null
 }
 
 const SCENE_COMP = {
@@ -346,6 +355,11 @@ const totalResources = computed(() =>
   (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
   (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
 )
+// Shared warehouse cap across all 6 resources -- no auto-sell of overflow anymore
+// (2026-08-07), so once this is true, hover-harvest/passive production simply stops
+// granting anything until the player frees up space (sell, upgrade Lager).
+const isStorageFull = computed(() => totalResources.value >= playerStore.totalResourceCap)
+function isProductionBlocked(b) { return Boolean(b.resource) && isStorageFull.value }
 
 const mobileNavItems = [
   { labelKey: 'farmGridView.navHome',        icon: 'haus',  action: () => { dialog.value = null; resetView() } },
@@ -452,7 +466,34 @@ function panMove(e) {
 }
 function panEnd() { dragging = false }
 
-function resetView() { panX.value = 0; panY.value = 0; zoom.value = 0.85 }
+// Centers the camera on the Rathaus (accounting for it having been dragged elsewhere)
+// instead of the world rect's geometric center, which sits in empty grass below the
+// building cluster (see WORLD's comment in farmLayout.js) and isn't where a player
+// actually wants to land when hitting "center". Two-step: an approximate jump from
+// BASE/HGT (so there's no visible mid-flight jump once the DOM measurement lands),
+// then a pixel-exact nudge from the Rathaus's real rendered bounding box -- HGT is
+// only an approximation of BuildingFrame's true height (label bar included), so the
+// approximate step alone lands a few px off.
+function resetView() {
+  zoom.value = 0.85
+  const off = buildingOffsets.rathaus || { x: 0, y: 0 }
+  const rathausCenterX = BASE.rathaus.x + off.x + BASE.rathaus.w / 2
+  const rathausCenterY = BASE.rathaus.y + off.y + HGT.rathaus / 2
+  panX.value = -zoom.value * (rathausCenterX - WORLD.w / 2)
+  panY.value = -zoom.value * (rathausCenterY - WORLD.h / 2)
+  clampPan()
+  nextTick(centerExactlyOnRathaus)
+}
+
+function centerExactlyOnRathaus() {
+  const el = buildingFrameEls.rathaus
+  if (!el || !viewEl.value) return
+  const target = el.getBoundingClientRect()
+  const view = viewEl.value.getBoundingClientRect()
+  panX.value += (view.left + view.width / 2) - (target.left + target.width / 2)
+  panY.value += (view.top + view.height / 2) - (target.top + target.height / 2)
+  clampPan()
+}
 
 function onWheel(e) {
   e.preventDefault()
@@ -595,23 +636,20 @@ function harvestBonus(resourceName) {
 }
 
 // Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
-// formula (including the storage-full -> auto-sell-to-cookies overflow), just
-// scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
+// formula, scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
+// No auto-sell of overflow (2026-08-07): once the shared warehouse is full, toAdd
+// caps at 0 and the tick simply grants nothing -- see isStorageFull/ROADMAP.md.
 function localHarvestTick(buildingId, name) {
   const predicted = (1.0 + harvestBonus(name)) * playerStore.prestigeMultiplier
   const key = name.toLowerCase()
   const cap = playerStore.totalResourceCap ?? Infinity
   const totalRes = RESOURCES.reduce((s, r) => s + (playerStore[r.key] ?? 0), 0)
   const available = Math.max(0, cap - totalRes)
-  const overflow  = Math.max(0, predicted - available)
-  const toAdd     = predicted - overflow
-  if (toAdd > 0) playerStore[key] = (playerStore[key] ?? 0) + toAdd
-  if (overflow > 0) {
-    const price = marketStore.priceOf(name)
-    playerStore.cookies = (playerStore.cookies ?? 0) + overflow * price * (1 - sellFeeRate.value)
-  }
+  const toAdd = Math.min(predicted, available)
+  if (toAdd <= 0) return
+  playerStore[key] = (playerStore[key] ?? 0) + toAdd
   const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
-  spawnFarmNumber(predicted, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
+  spawnFarmNumber(toAdd, BASE[buildingId].x + off.x + BASE[buildingId].w / 2, BASE[buildingId].y + off.y + 60, { icon: RESOURCE_ICON[name] })
 }
 
 // The actual, authoritative call -- backend computes the real amount from elapsed
@@ -648,17 +686,21 @@ let passiveTimer  = null
 function spawnPassiveNumbers() {
   for (const b of playerStore.ownedBuildings) {
     if (!b.passiveRatePerTick || b.passiveRatePerTick <= 0) continue
+    const resource = BUILDING_INFO[b.id]?.resource
+    // Purely cosmetic ticker -- PassiveIncomeService actually credits nothing once the
+    // shared warehouse is full (no auto-sell, see isStorageFull), so don't show a number
+    // that implies otherwise.
+    if (resource && isStorageFull.value) continue
     const off = buildingOffsets[b.id] || { x: 0, y: 0 }
     const base = BASE[b.id]
     if (!base) continue
-    const resource = BUILDING_INFO[b.id]?.resource
     spawnFarmNumber(b.passiveRatePerTick, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[resource] })
   }
 }
 
 onMounted(() => {
   bakeStore.start(playerStore.steamId)
-  getConfig().then(cfg => { sellFeeRate.value = cfg.sellFeeRate ?? 0.08 }).catch(() => {})
+  resetView()
   passiveTimer  = setInterval(spawnPassiveNumbers, 5000)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeydown)

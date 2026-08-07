@@ -4,8 +4,8 @@
 
     <template v-if="workers > 0">
       <div class="picker">
-        <PixelWorker anim="reach" :dur="1.5" hat="#56642e" skin="#ebb85b" torso="#764032"
-          :tool="{ anim: 'swing', dur: 1.5, color: '#402e2b', top: '2px', height: '16px' }" />
+        <PixelWorker :anim="idle ? 'bob' : 'reach'" :dur="1.5" hat="#56642e" skin="#ebb85b" torso="#764032"
+          :tool="idle ? null : { anim: 'swing', dur: 1.5, color: '#402e2b', top: '2px', height: '16px' }" />
       </div>
       <div class="rowwalker">
         <TravelingWorker travel-anim="rowwalk" :travel-dur="4.4" hat="#56642e" torso="#a15c34" />
@@ -19,7 +19,7 @@ import PixelWorker from '../pixel/PixelWorker.vue'
 import TravelingWorker from './TravelingWorker.vue'
 import bgSrc from '../../assets/buildings/placeholder/kakao.png'
 
-defineProps({ workers: { type: Number, default: 0 } })
+defineProps({ workers: { type: Number, default: 0 }, idle: { type: Boolean, default: false } })
 </script>
 
 <style scoped>

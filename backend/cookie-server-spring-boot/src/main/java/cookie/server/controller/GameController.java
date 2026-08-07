@@ -57,10 +57,8 @@ public class GameController {
     public ResponseEntity<UserInformationDto> harvest(
             @PathVariable String userId,
             @RequestBody HarvestRequestDto request) {
-        double cap       = buildingService.getTotalCap(userId);
-        double price     = marketService.getCurrentPrice(request.getResource());
-        double feeRate   = marketService.getSellFeeRate();
-        UserInformationDto dto = userService.harvest(userId, request.getResource(), cap, price, feeRate);
+        double cap = buildingService.getTotalCap(userId);
+        UserInformationDto dto = userService.harvest(userId, request.getResource(), cap);
         dto.setTotalResourceCap(cap);
         return ResponseEntity.ok(dto);
     }

@@ -20,12 +20,12 @@
             <div v-for="i in workerCount" :key="'a'+i" class="bd-crew-cell bd-crew-cell-active">
               <button class="bd-crew-x" @click="adjustWorkers(-1)" :title="t('buildingDetailDialog.remove')">×</button>
               <PixelWorker variant="work"
-                :anim="playerStore.workersIdle ? 'bob' : bodyAnim"
+                :anim="isBuildingIdle ? 'bob' : bodyAnim"
                 :dur="1.1"
-                :tool="!playerStore.workersIdle ? { anim: 'tap', dur: 1.1, color: '#aea47e' } : null" />
+                :tool="!isBuildingIdle ? { anim: 'tap', dur: 1.1, color: '#aea47e' } : null" />
               <div class="bd-crew-name">{{ crewNames[(i - 1) % crewNames.length] }}</div>
-              <div class="bd-crew-tag" :class="{ idle: playerStore.workersIdle }">
-                {{ playerStore.workersIdle ? t('buildingDetailDialog.idle') : (building.act || t('buildingDetailDialog.active')) }}
+              <div class="bd-crew-tag" :class="{ idle: isBuildingIdle }">
+                {{ isBuildingIdle ? t('buildingDetailDialog.idle') : (building.act || t('buildingDetailDialog.active')) }}
               </div>
             </div>
             <!-- Add slot — shown if available citizens exist and slots remain -->
@@ -136,6 +136,19 @@ const yieldRow = computed(() => props.building.rows.find(r => /Passiv/.test(r.k)
 const stock = computed(() => (props.building.resource ? playerStore[props.building.resource.toLowerCase()] ?? 0 : 0))
 const storageCap = computed(() => playerStore.totalResourceCap)
 const storagePct = computed(() => Math.min(100, (stock.value / storageCap.value) * 100))
+
+// Shared warehouse cap across all 6 resources -- mirrors FarmGridView's isStorageFull.
+// A production building's worker still counts as "assigned" (workerCount/adjustWorkers
+// untouched) but shows idle here, same as the wage-can't-pay case, since there's nowhere
+// left to put what they'd produce (no auto-sell, see docs/ROADMAP.md).
+const totalResources = computed(() =>
+  (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
+  (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
+)
+const isStorageFull = computed(() => totalResources.value >= playerStore.totalResourceCap)
+const isBuildingIdle = computed(() =>
+  playerStore.workersIdle || (Boolean(props.building.resource) && isStorageFull.value)
+)
 const storageText = computed(() => {
   const cap = storageCap.value
   return `${stock.value.toFixed(1)} / ${cap >= 1000 ? (cap / 1000).toFixed(1) + 'K' : cap}`

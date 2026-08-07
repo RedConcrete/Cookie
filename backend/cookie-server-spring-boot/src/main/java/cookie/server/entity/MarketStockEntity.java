@@ -3,7 +3,9 @@ package cookie.server.entity;
 import jakarta.persistence.*;
 
 /**
- * Speichert den aktuellen Lagerbestand des Marktes.
+ * Speichert den aktuellen Lagerbestand des Marktes sowie eine geglättete
+ * Baseline pro Ressource (EMA über ~1h), die als Rückfall-Ziel für die
+ * Hintergrund-Fluktuation dient statt eines fixen Ausgangsbestands.
  * Es gibt immer nur einen Eintrag (Singleton-Tabelle).
  */
 @Entity
@@ -19,6 +21,13 @@ public class MarketStockEntity {
     private double butterStock;
     private double chocolateStock;
     private double milkStock;
+
+    private double sugarStockBaseline;
+    private double flourStockBaseline;
+    private double eggsStockBaseline;
+    private double butterStockBaseline;
+    private double chocolateStockBaseline;
+    private double milkStockBaseline;
 
     public String getId() {
         return id;
@@ -74,5 +83,53 @@ public class MarketStockEntity {
 
     public void setMilkStock(double milkStock) {
         this.milkStock = milkStock;
+    }
+
+    public double getSugarStockBaseline() {
+        return sugarStockBaseline;
+    }
+
+    public void setSugarStockBaseline(double sugarStockBaseline) {
+        this.sugarStockBaseline = sugarStockBaseline;
+    }
+
+    public double getFlourStockBaseline() {
+        return flourStockBaseline;
+    }
+
+    public void setFlourStockBaseline(double flourStockBaseline) {
+        this.flourStockBaseline = flourStockBaseline;
+    }
+
+    public double getEggsStockBaseline() {
+        return eggsStockBaseline;
+    }
+
+    public void setEggsStockBaseline(double eggsStockBaseline) {
+        this.eggsStockBaseline = eggsStockBaseline;
+    }
+
+    public double getButterStockBaseline() {
+        return butterStockBaseline;
+    }
+
+    public void setButterStockBaseline(double butterStockBaseline) {
+        this.butterStockBaseline = butterStockBaseline;
+    }
+
+    public double getChocolateStockBaseline() {
+        return chocolateStockBaseline;
+    }
+
+    public void setChocolateStockBaseline(double chocolateStockBaseline) {
+        this.chocolateStockBaseline = chocolateStockBaseline;
+    }
+
+    public double getMilkStockBaseline() {
+        return milkStockBaseline;
+    }
+
+    public void setMilkStockBaseline(double milkStockBaseline) {
+        this.milkStockBaseline = milkStockBaseline;
     }
 }

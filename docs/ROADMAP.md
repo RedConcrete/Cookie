@@ -325,6 +325,40 @@ spezifiziert ist:
   **Bewusst nicht angetastet:** die Backend-Endpunkte selbst
   (`AdminConfigController`, `AdminController`) bleiben bestehen und weiter
   per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
+- [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
+  Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
+  Produktion (`PassiveIncomeService#creditUser`) automatisch zum aktuellen
+  Marktpreis in Cookies umgewandelt, sobald das Lager voll war — fühlte sich
+  wie ein unsichtbarer Dauer-Verkauf an, nicht wie eine bewusste
+  Spielerentscheidung. Jetzt wird Überschuss schlicht nicht mehr
+  gutgeschrieben (weder Ressource noch Cookies). Frontend-Feedback dazu:
+  Hover-Ring auf Produktionsgebäuden wird rot statt grün
+  (`BuildingFrame.vue`, neuer `blocked`-Prop), kurzes Popover ("Lager voll")
+  beim Hover, Gebäude optisch gedimmt wie bei nicht bezahlbarem Lohn
+  (`.building-idle`, `FarmGridView.vue`s neuer `isStorageFull`-Computed).
+  Alte "Auto-Verkauf"-Beschreibung aus `LagerDialog.vue` und
+  `buildingInfo.js` (Gebäude-Hover-Popup) entfernt, war ohnehin größtenteils
+  nur Text ohne echte Anbindung im letzteren Fall.
+  **Folgearbeit (bewusst zurückgestellt):** ein echter Ausgleich für volles
+  Lager (z. B. Ressourcen-Umwandlung, Lager-Overflow-Puffer, o.ä.) als
+  größere Mechanik im Skill-/Passiv-Baum (Abschnitt 9 im Design-Doc) statt
+  des pauschalen automatischen Verkaufs — noch nicht spezifiziert, Spieler
+  will das gezielt als Skill-Baum-Feature designen statt es hier nebenbei
+  mitzulösen.
+- [x] **Start-Balance-Bug: Lager sofort überfüllt (2026-08-07).** Jeder neue
+  Spieler startete mit 1000 von jeder der 6 Rohstoff-Ressourcen (6000
+  insgesamt) bei nur 1100 Lagerkapazität — schon vor dem ersten Klick 5-fach
+  überfüllt (`player.initial-sugar` etc. in `application.properties` standen
+  auf 1000 statt 0, vermutlich ein Leftover). **Fix:** Startressourcen auf 0,
+  Start-Cookies 100→400 (reicht für genau eines der drei günstigsten
+  Produktionsgebäude, nicht für alle), plus 1 kostenloser Skill-Punkt bei
+  Accounterstellung (`player.initial-skill-points`, neues `PlayerConfig`-
+  Feld) — macht den Skill-Baum von Anfang an Teil der ersten strategischen
+  Entscheidung. Details: `cookie-game-design.md` Abschnitt 4.
+  **Hinweis für den Live-Server:** falls dort `balance.base-storage-cap`
+  jemals per Admin-API auf einen abweichenden Wert gesetzt wurde, überschreibt
+  das die neuen `application.properties`-Defaults erst nach einem Neustart
+  des Backends (der Wert liegt nur im Speicher, nicht in der DB).
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
   "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert

@@ -44,9 +44,7 @@ export const BUILDING_INFO = {
     titleKey: 'buildingInfo.lager', icon: 'lager', side: 'left', overlayRate: '', workers: 0, wagePerMin: 0,
     rows: [
       { k: 'Gesamtlimit', v: '→ Dialog', color: 'w' },
-      { k: 'Auto-Verkauf', v: 'bei Überfluss', color: 'y' },
     ],
-    note: 'Wenn das Lager voll ist, wird Überproduktion automatisch zum aktuellen Marktpreis verkauft.',
   },
   hof: {
     titleKey: 'buildingInfo.hof', icon: 'mehl', side: 'right', overlayRate: '+2.1/s', workers: 3, wagePerMin: 6,

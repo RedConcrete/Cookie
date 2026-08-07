@@ -116,9 +116,37 @@ cost(level) = baseCost × 2^level
 
 **Hover-Ernte:** Über einem Produktionsgebäude hovern startet automatisches
 Ernten (kein Auto-Pflücker-Upgrade mehr nötig, das gab es früher separat und
-ist entfernt). Wenn das Lager voll ist, wird der Überschuss automatisch zum
-aktuellen Marktpreis (abzüglich Gebühr) verkauft statt verloren zu gehen —
-gilt für Hover-Ernte wie für passive Produktion.
+ist entfernt).
+
+**Lager voll (2026-08-07):** kein Auto-Verkauf von Überschuss mehr — weder
+bei Hover-Ernte noch bei passiver Produktion. Was über die Gesamtkapazität
+hinausgeht, wird schlicht nicht gutgeschrieben (`UserService#harvest`,
+`PassiveIncomeService#creditUser`), keine automatische Umwandlung in Cookies.
+Visuelles Feedback im Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`):
+Hover-Ring wird rot statt grün, ein kurzes Popover erklärt "Lager voll",
+Gebäude werden wie bei nicht bezahlbarem Lohn optisch gedimmt
+(`.building-idle`). Ein sinnvoller Ausgleich für volles Lager (Ressourcen-
+Umwandlung, Lager-Overflow-Puffer o.ä.) ist als größere Mechanik im
+Skill-/Passiv-Baum geplant, siehe `docs/ROADMAP.md` — bis dahin bewusst hart
+gestoppt statt automatisch verkauft.
+
+**Start-Balance (neu austariert 2026-08-07):** vorher startete jeder Spieler
+mit 1000 von JEDER Rohstoff-Ressource (6000 insgesamt) bei nur 1100
+Lagerkapazität (100 Basis + 1000 für das vorgebaute Lager Stufe 1) — das
+Lager war also schon vor dem ersten Klick 5-fach überfüllt (`PlayerConfig`).
+Jetzt:
+- **0 Startressourcen** — Rohstoffe holt man sich aktiv per Hover-Ernte oder
+  am Markt.
+- **400 Start-Cookies** — reicht für **genau eines** der drei günstigsten
+  Produktionsgebäude (Butterei 280, Bauernhof 300, Hühnerhof 350), nicht für
+  alle drei; Zuckerteich (500) und Kuhstall (600) bleiben ein späteres Ziel.
+  Zwingt zu einer echten Entscheidung direkt am Spielstart statt "kauf
+  einfach alles".
+- **1 kostenloser Skill-Punkt** bei Accounterstellung (`player.initial-skill-
+  points`) — zählt nicht in `totalSkillPointsBought`, verzerrt also nicht die
+  Kostenkurve künftiger Käufe. Macht den Skill-Baum von Anfang an Teil der
+  Startentscheidung (voll auf eine Ressource + Verkauf, alles selbst backen,
+  oder Mischform mit Marktzukauf), nicht erst nach dem ersten Kauf relevant.
 
 ---
 
@@ -169,9 +197,35 @@ automatisch aus der Formel, ohne separaten Spieleranzahl-Faktor.
 **Hintergrund-Volatilität:** alle 2 Sekunden wird der Stock jeder Ressource
 um einen kleinen zufälligen Betrag verschoben (Phantom-Kauf/-Verkauf ohne
 echten Spieler dahinter, `stockFluctuationRatio` = bis zu 2 % vom
-Ausgangsbestand), leicht Richtung Ausgangsbestand vorgespannt, damit der
-Markt langfristig nicht wegdriftet. Der Preis wird danach aus der Kurve neu
-abgeleitet — ein einziger Formel-Pfad für echte Trades wie Hintergrundrauschen.
+Ausgangsbestand). Der Preis wird danach aus der Kurve neu abgeleitet — ein
+einziger Formel-Pfad für echte Trades wie Hintergrundrauschen.
+
+Der Zufalls-Tick verzerrt dabei nicht direkt Richtung `initialStock`,
+sondern Richtung einer pro Ressource geführten **Baseline**
+(`MarketStockEntity.*StockBaseline`, 2026-08-07):
+
+- **Nur echte Trades** verschieben die Baseline, anteilig um ihre eigene
+  Stock-Änderung (`stockBaselineTradeTransferRatio`, Standard 0.5). So
+  "merkt" sich der Markt anhaltendes Kaufen/Verkaufen als neue vorläufige
+  Gleichgewichtslage — der Preis-Effekt bleibt über die konfigurierte
+  Zeitkonstante bestehen, statt binnen weniger Minuten wieder auf den
+  Ausgangswert zurückzuspringen.
+- Die Baseline selbst zerfällt unabhängig davon bei jedem Zufalls-Tick
+  langsam zurück Richtung `initialStock` (`stockBaselineTimeConstantSeconds`,
+  Standard 3600s = 1h) — reiner, rauschfreier Anker-Zerfall gegen einen
+  festen Zielwert, daher unbedingt stabil.
+- Der Zufalls-Tick selbst darf die Baseline **nie** bewegen (nur den Stock,
+  Richtung Baseline) — sonst könnte reines Hintergrundrauschen die Baseline
+  unbegrenzt wegtreiben lassen. Diese Trennung ist bewusst: schnelle,
+  selbst-stabilisierende Rückkorrektur des Stocks gegen die Baseline (~2 min
+  Halbwertszeit, unverändert seit v1), aber eine träge, ausschließlich
+  trade-getriebene Baseline mit eigener, unabhängig stabiler Verfallszeit.
+
+Ergebnis: ein einzelner Trade hebt/senkt den Preis sofort (AMM, unverändert)
+und der Effekt klingt über ~1–3h graduell ab; anhaltendes Trading in eine
+Richtung zieht die Baseline mit und der Markt bleibt entsprechend länger
+verschoben. Reines Hintergrundrauschen ohne jeden Trade bleibt exakt so
+stabil wie vorher (Baseline bleibt bei `initialStock`).
 
 **Marktgebühr:** `sellFeeRate` (Standard 5 %, config `MarketConfig`),
 reduzierbar durch Markt-Gebäude-Level (Abschnitt 4). Nur beim SELL fällig,
