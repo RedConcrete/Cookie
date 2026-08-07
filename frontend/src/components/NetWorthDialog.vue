@@ -1,66 +1,68 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="dialog-box">
-      <div class="dialog-header">
-        <span class="dialog-title">Net Worth — {{ fmtBig(nw?.netWorth) }}</span>
-        <button class="dialog-close" @click="emit('close')">✕</button>
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
+    <div class="nw-box px-panel">
+      <div class="px-titlebar">
+        <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="nw-layout">
 
         <!-- ── Links: Breakdown ───────────────────────── -->
-        <div class="nw-left">
+        <PixelScrollBox class="nw-left">
+          <div class="nw-left-inner">
 
-          <div class="nw-section-label">Aufschlüsselung</div>
+          <div class="nw-section-label">{{ t('netWorthDialog.breakdownLabel') }}</div>
 
           <div v-if="nw" class="breakdown">
             <div class="bk-row">
-              <span class="bk-icon">🍪</span>
-              <span class="bk-label">Cookies</span>
+              <PixelIcon name="cookie" :size="16" class="bk-icon" />
+              <span class="bk-label">{{ t('netWorthDialog.cookiesLabel') }}</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#ef9f27' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.cookies) + '%', background: '#c78539' }"></div>
               </div>
               <span class="bk-val">{{ fmtBig(nw.cookies) }}</span>
             </div>
 
             <div class="bk-row">
-              <span class="bk-icon">🌾</span>
-              <span class="bk-label">Ressourcen</span>
+              <PixelIcon name="mehl" :size="16" class="bk-icon" />
+              <span class="bk-label">{{ t('netWorthDialog.resourcesLabel') }}</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#4a9c40' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.resourceValue) + '%', background: '#349c58' }"></div>
               </div>
               <span class="bk-val">{{ fmtBig(nw.resourceValue) }}</span>
             </div>
 
             <div class="bk-row">
-              <span class="bk-icon">⬆</span>
-              <span class="bk-label">Upgrades</span>
+              <PixelIcon name="upgrade" :size="16" class="bk-icon" />
+              <span class="bk-label">{{ t('netWorthDialog.skillTreeLabel') }}</span>
               <div class="bk-bar-wrap">
-                <div class="bk-bar" :style="{ width: pct(nw.upgradeValue) + '%', background: '#7F77DD' }"></div>
+                <div class="bk-bar" :style="{ width: pct(nw.skillTreeValue) + '%', background: '#6f6e72' }"></div>
               </div>
-              <span class="bk-val">{{ fmtBig(nw.upgradeValue) }}</span>
+              <span class="bk-val">{{ fmtBig(nw.skillTreeValue) }}</span>
             </div>
           </div>
 
-          <div v-else class="nw-loading">Lade…</div>
+          <div v-else class="nw-loading"><LoadingIndicator /></div>
 
           <div class="nw-divider"></div>
 
           <template v-if="nw">
             <div class="stat-row">
-              <span class="stat-label">Rang</span>
+              <span class="stat-label">{{ t('netWorthDialog.rankLabel') }}</span>
               <span class="stat-val">#{{ nw.rank }}</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Gesamt</span>
+              <span class="stat-label">{{ t('netWorthDialog.totalLabel') }}</span>
               <span class="stat-val accent">{{ fmtBig(nw.netWorth) }} C</span>
             </div>
           </template>
-        </div>
+          </div>
+        </PixelScrollBox>
 
         <!-- ── Rechts: Chart ──────────────────────────── -->
         <div class="nw-right">
-          <div class="nw-section-label">Verlauf</div>
+          <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
 
           <div class="chart-toolbar">
             <div class="chart-toggles">
@@ -72,10 +74,11 @@
                 :style="{ '--dot': ds.color }"
                 @click="toggleDataset(ds.key)"
               >
-                <span class="dot"></span>{{ ds.label }}
+                <ShortcutSlot />
+                <span class="dot"></span>{{ t(ds.labelKey) }}
               </button>
             </div>
-            <button class="pct-btn" @click="resetZoom" title="Zoom zurücksetzen">⊙</button>
+            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
           </div>
 
           <div class="chart-wrap">
@@ -90,27 +93,35 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Chart, LineController, LineElement, PointElement,
   LinearScale, TimeScale, Tooltip, Legend
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ZoomPlugin from 'chartjs-plugin-zoom'
 import { getNetWorth, getNetWorthHistory } from '../services/api.js'
 import { usePlayerStore } from '../stores/player.js'
+import { useAudio } from '../composables/useAudio.js'
+import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
 const props = defineProps({ steamId: { type: String, required: true } })
 const emit  = defineEmits(['close'])
+const audio = useAudio()
+const { t } = useI18n()
 
 const playerStore = usePlayerStore()
 
 const DATASETS = [
-  { key: 'netWorth',     label: 'Net Worth',  color: '#aaff88' },
-  { key: 'cookies',      label: 'Cookies',    color: '#ef9f27' },
-  { key: 'resourceValue',label: 'Ressourcen', color: '#4a9c40' },
-  { key: 'upgradeValue', label: 'Upgrades',   color: '#7F77DD' },
+  { key: 'netWorth',      labelKey: 'netWorthDialog.netWorthLabel', color: '#aea47e' },
+  { key: 'cookies',       labelKey: 'netWorthDialog.cookiesLabel',  color: '#c78539' },
+  { key: 'resourceValue', labelKey: 'netWorthDialog.resourcesLabel',color: '#349c58' },
+  { key: 'skillTreeValue', labelKey: 'netWorthDialog.skillTreeLabel', color: '#6f6e72' },
 ]
 
 const nw        = ref(null)
@@ -141,7 +152,7 @@ function latestMs() {
 
 function buildDatasets() {
   return DATASETS.map(d => ({
-    label: d.label,
+    label: t(d.labelKey),
     dataKey: d.key,
     data: fullHistory.map(h => ({ x: new Date(h.timestamp), y: h[d.key] })),
     borderColor: d.color,
@@ -276,11 +287,11 @@ function initChart() {
               hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.', month: 'MM.yy',
             },
           },
-          ticks: { color: '#999', maxTicksLimit: 6, maxRotation: 0 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
-          ticks: { color: '#999', maxTicksLimit: 6 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6 },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
       },
@@ -293,10 +304,10 @@ function initChart() {
 
 // Breakdown live aus playerStore
 watch(
-  () => [playerStore.netWorth, playerStore.nwCookies, playerStore.nwResources, playerStore.nwUpgrades],
-  ([netWorth, cookies, resourceValue, upgradeValue]) => {
+  () => [playerStore.netWorth, playerStore.nwCookies, playerStore.nwResources, playerStore.nwSkillTreeValue],
+  ([netWorth, cookies, resourceValue, skillTreeValue]) => {
     if (!nw.value) return
-    nw.value = { ...nw.value, netWorth, cookies, resourceValue, upgradeValue }
+    nw.value = { ...nw.value, netWorth, cookies, resourceValue, skillTreeValue }
   }
 )
 
@@ -321,6 +332,7 @@ async function refreshHistory() {
 }
 
 onMounted(async () => {
+  audio.playBookOpen()
   const [nwData, history] = await Promise.all([
     getNetWorth(props.steamId).catch(() => null),
     getNetWorthHistory(props.steamId).catch(() => []),
@@ -338,61 +350,42 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-  display: flex; align-items: center; justify-content: center; z-index: 300;
-}
-.dialog-box {
-  background: var(--surface); border: 2px solid var(--border);
-  border-radius: 16px; width: 820px; max-width: 96vw; height: 480px;
+.nw-box {
+  width: 820px; max-width: 96vw; height: 480px;
   display: flex; flex-direction: column; overflow: hidden;
 }
-.dialog-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-}
-.dialog-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.dialog-close {
-  background: none; border: none; font-size: 18px; cursor: pointer;
-  color: var(--text-muted); padding: 2px 6px; border-radius: 4px;
-}
-.dialog-close:hover { color: var(--text); background: var(--surface2); }
 
 .nw-layout {
   display: flex; flex: 1; min-height: 0; overflow: hidden;
 }
 
 /* ── Links ─────────────────────────────────────── */
-.nw-left {
-  width: 280px; flex-shrink: 0;
-  padding: 16px; border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 8px;
-  overflow-y: auto;
-}
+.nw-left { width: 280px; flex-shrink: 0; border-right: 3px solid var(--px-tan); }
+.nw-left-inner { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 
 .nw-section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px;
+  font-family: 'Silkscreen', monospace; font-size: 10px;
+  letter-spacing: 1px; color: var(--px-tan-hd); margin-bottom: 4px;
 }
 
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .bk-row { display: flex; align-items: center; gap: 8px; }
-.bk-icon  { font-size: 16px; flex-shrink: 0; }
-.bk-label { width: 80px; flex-shrink: 0; font-size: 12px; color: var(--text); }
+.bk-icon  { flex-shrink: 0; }
+.bk-label { width: 92px; flex-shrink: 0; font-size: 13px; color: var(--px-ink-txt); white-space: nowrap; }
 .bk-bar-wrap {
-  flex: 1; height: 8px; background: rgba(255,255,255,0.08);
-  border-radius: 4px; overflow: hidden;
+  flex: 1; height: 10px; background: var(--px-ink);
+  border: 2px solid var(--px-ink); overflow: hidden;
 }
-.bk-bar { height: 100%; border-radius: 4px; transition: width 0.4s; }
-.bk-val { width: 52px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
+.bk-bar { height: 100%; transition: width 0.4s; }
+.bk-val { width: 52px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.nw-divider { border-top: 1px solid var(--border); margin: 4px 0; }
-.stat-row { display: flex; justify-content: space-between; font-size: 12px; }
-.stat-label { color: var(--text-muted); }
-.stat-val   { font-weight: 700; color: var(--text); }
-.stat-val.accent { color: #aaff88; }
+.nw-divider { border-top: 2px solid #fff1a9; margin: 4px 0; }
+.stat-row { display: flex; justify-content: space-between; font-size: 13px; }
+.stat-label { color: var(--px-tan-ink); }
+.stat-val   { font-family: 'Silkscreen', monospace; color: var(--px-ink-txt); }
+.stat-val.accent { color: #56642e; }
 
-.nw-loading { color: var(--text-muted); font-size: 12px; }
+.nw-loading { color: var(--px-tan-ink); font-size: 13px; }
 
 /* ── Rechts ─────────────────────────────────────── */
 .nw-right {
@@ -409,27 +402,30 @@ onUnmounted(() => {
 }
 
 .toggle-btn {
+  position: relative;
   display: flex; align-items: center; gap: 5px;
-  padding: 3px 8px; border: 1px solid var(--border);
-  border-radius: 6px; background: var(--surface2);
-  color: var(--text); font-size: 12px; cursor: pointer;
+  padding: 4px 9px; border: 2px solid var(--px-brown2);
+  background: var(--px-cream2);
+  color: var(--px-ink-txt); font-size: 12px; cursor: pointer;
   transition: opacity 0.15s;
 }
 .toggle-btn.inactive { opacity: 0.35; }
 .toggle-btn:hover    { opacity: 1; }
 
 .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--dot); flex-shrink: 0;
+  width: 8px; height: 8px;
+  background: var(--dot); flex-shrink: 0; box-shadow: 0 0 0 1px #402e2b;
 }
 
 .pct-btn {
-  padding: 3px 10px; border: 1px solid var(--border);
-  border-radius: 6px; background: var(--surface2);
-  color: var(--text-muted); font-size: 12px; font-weight: 700;
+  position: relative;
+  padding: 4px 10px; border: 2px solid var(--px-brown2);
+  background: var(--px-cream2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--px-tan-ink); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
-.pct-btn:hover { color: var(--text); }
+.pct-btn:hover { color: var(--px-ink-txt); background: #fff1a9; }
 
 .chart-wrap { flex: 1; min-height: 0; position: relative; }
 </style>

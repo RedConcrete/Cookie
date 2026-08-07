@@ -1,0 +1,18 @@
+{
+  "rankPrestige": "Platz #{rank} · Prestige {level}",
+  "netWorthLabel": "GESAMTWERT",
+  "badgesCount": "ORDEN · {count}",
+  "viewAll": "ALLE ANSEHEN →",
+  "noBadges": "Noch keine Orden",
+  "skillTreeTitle": "SKILL-BAUM",
+  "noSkillNodes": "Keine Knoten freigeschaltet",
+  "seasonHistoryTitle": "SEASON-HISTORIE",
+  "seasonHeaderSeason": "SEASON",
+  "seasonHeaderRank": "PLATZ",
+  "seasonHeaderNetWorth": "GESAMTWERT",
+  "seasonHeaderPrestige": "PRESTIGE",
+  "statCookies": "COOKIES",
+  "statResourceValue": "RESSOURCENWERT",
+  "statSkillTreeValue": "SKILL-BAUM-WERT",
+  "statLifetimeBaked": "GEBACKEN (LIFETIME)"
+}

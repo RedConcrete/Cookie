@@ -1,48 +1,34 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="dialog-box">
-      <button class="dialog-close" @click="emit('close')">✕</button>
-      <PlayerProfileView :steamId="steamId" />
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
+    <div class="ppd-box px-panel">
+      <div class="px-titlebar">
+        <span>{{ t('playerProfileDialog.title') }}</span>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
+      </div>
+      <PixelScrollBox class="ppd-scroll">
+        <PlayerProfileView :steamId="steamId" />
+      </PixelScrollBox>
     </div>
   </div>
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PlayerProfileView from './PlayerProfileView.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
+import { useAudio } from '../composables/useAudio.js'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 defineProps({ steamId: { type: String, required: true } })
 const emit = defineEmits(['close'])
+const audio = useAudio()
+const { t } = useI18n()
+
+onMounted(() => audio.playBookOpen())
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 300;
-}
-.dialog-box {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  width: 520px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow: auto;
-  position: relative;
-  padding: 20px;
-}
-.dialog-close {
-  position: absolute;
-  top: 12px; right: 14px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-.dialog-close:hover { color: var(--text); }
+.ppd-box { width: 560px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.ppd-scroll { flex: 1 1 auto; min-height: 0; }
 </style>

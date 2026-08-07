@@ -4,6 +4,7 @@ import cookie.server.dto.MarketDto;
 import cookie.server.dto.MarketRequestDto;
 import cookie.server.dto.UserInformationDto;
 import cookie.server.service.MarketService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class MarketController {
 
     @PostMapping
     public ResponseEntity<UserInformationDto> processMarketAction(
-            @RequestBody MarketRequestDto request) {
+            @Valid @RequestBody MarketRequestDto request) {
         return ResponseEntity.ok(marketService.performAction(request));
     }
 }

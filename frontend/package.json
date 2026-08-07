@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:palette": "node scripts/check-palette.mjs",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build:win": "vite build && electron-builder --win",
     "build:linux": "vite build && electron-builder --linux",
@@ -20,6 +21,7 @@
     "pinia": "^2.1.7",
     "steamworks.js": "^0.4.0",
     "vue": "^3.4.21",
+    "vue-i18n": "^11.4.2",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
@@ -37,16 +39,6 @@
     "files": [
       "dist/**/*",
       "electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "../backend/cookie-server-spring-boot/target/",
-        "to": "backend/",
-        "filter": [
-          "*.jar",
-          "!*sources*"
-        ]
-      }
     ],
     "directories": {
       "output": "release"

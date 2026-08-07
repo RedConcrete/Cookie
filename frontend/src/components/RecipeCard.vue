@@ -1,172 +1,139 @@
 <template>
-  <div class="book-inner">
+  <div class="rc-inner">
 
-    <!-- ── Linke Seite: Rezept-Index ───────────────────── -->
-    <div class="page-left">
-      <div class="page-header">
-        <div class="page-deco">✦ ✦ ✦</div>
-        <div class="page-title">Rezeptbuch</div>
-        <div class="page-rule"></div>
-      </div>
+    <!-- ── Left: recipe index ─────────────────────────── -->
+    <div class="rc-left">
+      <div class="rc-left-title">{{ t('recipeCard.title') }}</div>
+      <div class="rc-rule"></div>
 
-      <div v-if="!recipes.length" class="index-loading">Lade…</div>
+      <div v-if="!recipes.length" class="rc-loading"><LoadingIndicator /></div>
 
-      <nav class="recipe-index">
+      <nav class="rc-index">
         <button
-          v-for="(r, i) in recipes"
-          :key="r.id"
-          class="index-entry"
-          :class="{ active: selectedId === r.id }"
-          @click="selectRecipe(r.id)"
+          v-for="(r, i) in recipes" :key="r.id" class="rc-entry"
+          :class="{ active: selectedId === r.id }" @click="selectRecipe(r.id)"
         >
-          <span class="index-num">{{ i + 1 }}.</span>
-          <span class="index-name">{{ r.name }}</span>
-          <span class="index-arrow" v-if="selectedId === r.id">→</span>
+          <span class="rc-entry-name">{{ i + 1 }}. {{ r.name }}</span>
+          <span class="rc-entry-time">{{ formatDuration(r.bakeDurationSeconds) }}</span>
         </button>
       </nav>
-
-      <div class="page-footer">
-        <div class="page-rule"></div>
-        <div class="page-num">I</div>
-      </div>
     </div>
 
-    <!-- ── Buchrücken ──────────────────────────────────── -->
-    <div class="book-spine"></div>
+    <!-- ── Right: selected recipe ─────────────────────── -->
+    <div class="rc-right">
+      <button class="px-close rc-close" @click="emit('close')"><ShortcutSlot />&times;</button>
 
-    <!-- ── Rechte Seite ───────────────────────────────── -->
-    <div class="page-right">
-      <button class="book-close" @click="emit('close')">✕</button>
-
+      <PixelScrollBox class="rc-scroll">
+      <div class="rc-scroll-inner">
       <template v-if="selected">
-        <div class="recipe-heading">{{ selected.name }}</div>
-        <div class="page-rule"></div>
+        <div class="rc-heading">{{ selected.name.toUpperCase() }}</div>
 
-        <!-- Zutaten mit Live-Marktkosten -->
-        <div class="section-label">Zutaten <span class="section-note">(× {{ batches }} Batch)</span></div>
-        <div class="ingredients">
-          <template v-for="ing in usedIngredients" :key="ing.key">
-            <div class="ing-row">
-              <img :src="ing.icon" class="ing-icon" :alt="ing.label" />
-              <span class="ing-name">{{ ing.label }}</span>
-              <span class="ing-need-qty" :class="{ insufficient: playerStore[ing.key] < ing.total }">
-                {{ ing.total }}
-              </span>
-              <span class="ing-sep">×</span>
-              <span class="ing-price">{{ fmtP(ing.price) }} C</span>
-              <span class="ing-cost">=&nbsp;{{ fmt2(ing.cost) }} C</span>
+        <div>
+          <div class="rc-label">{{ t('recipeCard.ingredientsHeader', { batches }) }}</div>
+          <div class="rc-ingredients">
+            <div v-for="ing in usedIngredients" :key="ing.key" class="rc-ing-row">
+              <PixelIcon :name="ing.icon" :size="20" />
+              <span class="rc-ing-name">{{ ing.label }}</span>
+              <span class="rc-ing-qty" :class="{ insufficient: playerStore[ing.key] < ing.total }">{{ ing.total }}</span>
+              <span class="rc-ing-price">&times; {{ fmtP(ing.price) }}</span>
+              <span class="rc-ing-sum">= {{ fmt2(ing.cost) }}</span>
             </div>
-          </template>
-        </div>
-
-        <!-- Trennstrich + Gesamtkosten -->
-        <div class="cost-row">
-          <span class="cost-label">Zutaten gesamt</span>
-          <span class="cost-val">{{ fmt2(ingredientMarketCost) }} C</span>
-        </div>
-
-        <div class="page-rule" style="margin: 6px 0"></div>
-
-        <!-- Rentabilitätsvergleich -->
-        <div class="section-label">Lohnt es sich?</div>
-        <div class="profit-block">
-          <div class="profit-row" :class="bakeBetter ? 'profit-winner' : 'profit-loser'">
-            <span class="profit-icon">🍪</span>
-            <span class="profit-label">Backen</span>
-            <span class="profit-val">{{ fmt2(bakeOutput) }} C</span>
-            <span v-if="bakeBetter" class="profit-badge">✓ besser</span>
           </div>
-          <div class="profit-row" :class="!bakeBetter ? 'profit-winner' : 'profit-loser'">
-            <span class="profit-icon">💰</span>
-            <span class="profit-label">Ressourcen verkaufen</span>
-            <span class="profit-val">{{ fmt2(ingredientSellValue) }} C</span>
-            <span v-if="!bakeBetter" class="profit-badge">✓ besser</span>
-          </div>
-          <div class="profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
-            {{ bakeBetter ? '+' : '' }}{{ fmt2(bakeOutput - ingredientSellValue) }} C durch Backen
-          </div>
+          <div class="rc-cost-row"><span>{{ t('recipeCard.ingredientsTotal') }}</span><span>{{ fmt2(ingredientMarketCost) }} C</span></div>
         </div>
 
-        <!-- Batches + Bestand -->
-        <div class="batches-row">
-          <span class="batches-label">Batches</span>
-          <button class="step-sm" @click="batches = Math.max(1, batches - 1)">−</button>
-          <input v-model.number="batches" type="number" min="1" class="batches-input" :disabled="!!activeJob" />
-          <button class="step-sm" @click="batches++">+</button>
-          <span class="stock-hint">Bestand: {{ stockBatches }} möglich</span>
-        </div>
+        <template v-if="!activeJob">
+          <div>
+            <div class="rc-profit-row" :class="bakeBetter ? 'winner' : ''">
+              <span>{{ t('recipeCard.bake') }}</span>
+              <span>{{ fmt2(bakeOutput) }} <PixelIcon name="cookie" :size="12" /> </span>
+            </div>
+            <div class="rc-profit-row" :class="!bakeBetter ? 'winner' : ''">
+              <span>{{ t('recipeCard.sellResources') }}</span>
+              <span>{{ fmt2(ingredientSellValue) }} <PixelIcon name="cookie" :size="12" /> </span>
+            </div>
+            <div class="rc-profit-diff" :class="bakeBetter ? 'pos' : 'neg'">
+              {{ t('recipeCard.profitDiff', { sign: bakeBetter ? '+' : '', value: fmt2(bakeOutput - ingredientSellValue) }) }}
+            </div>
+          </div>
+
+          <div class="rc-batches">
+            <span>{{ t('recipeCard.batches') }}</span>
+            <div class="rc-stepper">
+              <button @click="batches = Math.max(1, batches - 1)"><ShortcutSlot />&minus;</button>
+              <span class="rc-stepper-val">{{ batches }}</span>
+              <button @click="batches++"><ShortcutSlot />+</button>
+            </div>
+            <span class="rc-stock-hint">{{ t('recipeCard.stockHint', { stockBatches }) }}</span>
+          </div>
+        </template>
       </template>
 
-      <div v-else class="empty-hint">← Rezept auswählen</div>
+      <div v-else class="rc-empty">&larr; {{ t('recipeCard.selectRecipe') }}</div>
 
-      <!-- Backen / Fortschritt -->
-      <div class="bake-section">
-        <template v-if="selected">
-          <div class="bake-meta" v-if="!activeJob">
-            <span class="bake-out">🍪 {{ selected.output * batches }} Cookies</span>
-            <span class="bake-time">⏱ {{ formatDuration(selected.bakeDurationSeconds * batches) }}</span>
+      <div class="rc-bake-section">
+        <!-- No active job: normal "pick a batch size and start" form -->
+        <template v-if="selected && !activeJob">
+          <div class="rc-bake-meta">
+            <span>{{ selected.output * batches }} Cookies</span>
+            <span>{{ formatDuration(selected.bakeDurationSeconds * batches) }}</span>
           </div>
-          <button v-if="!activeJob" class="btn-bake" :disabled="!canBake || busy" @click="startBake">
-            {{ busy ? 'Startet…' : '🔥 Backen starten' }}
+          <button class="px-btn px-btn-accent rc-bake-btn" :disabled="!canBake || busy" @click="startBake">
+            <ShortcutSlot />{{ busy ? t('recipeCard.starting') : t('recipeCard.startBaking') }}
           </button>
         </template>
 
-        <div v-if="activeJob" class="progress-block">
-          <div class="progress-meta">
-            <span>{{ activeJob.recipe?.name }} · {{ activeJob.batches }}×</span>
-            <span v-if="!activeJob.done" class="progress-time">{{ formatDuration(activeJob.remainingSeconds) }}</span>
-            <span v-else class="progress-done">Fertig! 🎉</span>
+        <!-- Job in progress: replaces the start form with a live progress bar until claimed -->
+        <div v-if="activeJob" class="rc-progress">
+          <div class="rc-progress-meta">
+            <span>{{ activeJob.recipe?.name }} &middot; {{ activeJob.batches }}&times;</span>
+            <span v-if="!activeJob.done">{{ formatDuration(activeJob.remainingSeconds) }}</span>
+            <span v-else class="rc-done">{{ t('recipeCard.done') }}</span>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
-          </div>
-          <button class="btn-claim" :disabled="!activeJob.done || busy" @click="claim">
-            {{ busy ? '…' : `🍪 +${activeJob.totalCookies} Cookies einlösen` }}
+          <div class="rc-progress-track"><div class="rc-progress-bar" :style="{ width: progressPct + '%' }"></div></div>
+          <button class="px-btn px-btn-buy rc-bake-btn" :disabled="!activeJob.done || busy" @click="claim">
+            <ShortcutSlot />{{ busy ? '…' : t('recipeCard.claimCookies', { count: activeJob.totalCookies }) }}
           </button>
         </div>
 
-        <div v-if="feedback" class="book-feedback" :class="feedbackType">{{ feedback }}</div>
+        <div v-if="feedback" class="rc-feedback" :class="feedbackType">{{ feedback }}</div>
       </div>
-
-      <div class="page-footer">
-        <div class="page-rule"></div>
-        <div class="page-num">II</div>
       </div>
+      </PixelScrollBox>
     </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
+import LoadingIndicator from './pixel/LoadingIndicator.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBakeStore }   from '../stores/bake.js'
 import { bakeStart, bakeClaim } from '../services/api.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
-import sugarIcon  from '../assets/Sprites/RecSprits/Zucker.png'
-import flourIcon  from '../assets/Sprites/RecSprits/Mehl.png'
-import eggsIcon   from '../assets/Sprites/RecSprits/Eier.png'
-import butterIcon from '../assets/Sprites/RecSprits/ButterICon.png'
-import chocoIcon  from '../assets/Sprites/RecSprits/SchokiIcon.png'
-import milkIcon   from '../assets/Sprites/RecSprits/MilchIcon.png'
+import PixelIcon from './pixel/PixelIcon.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
+const { t }       = useI18n()
 
-const SELL_FEE = 0.15   // Standardgebühr (könnte auch aus config kommen)
+const SELL_FEE = 0.08
 
-const INGREDIENTS = [
-  { key: 'sugar',     label: 'Zucker',     icon: sugarIcon,  market: 'SUGAR'     },
-  { key: 'flour',     label: 'Mehl',       icon: flourIcon,  market: 'FLOUR'     },
-  { key: 'eggs',      label: 'Eier',       icon: eggsIcon,   market: 'EGGS'      },
-  { key: 'butter',    label: 'Butter',     icon: butterIcon, market: 'BUTTER'    },
-  { key: 'chocolate', label: 'Schokolade', icon: chocoIcon,  market: 'CHOCOLATE' },
-  { key: 'milk',      label: 'Milch',      icon: milkIcon,   market: 'MILK'      },
-]
+const INGREDIENTS = computed(() => [
+  { key: 'sugar',     label: t('recipeCard.sugar'),     icon: 'zucker', market: 'SUGAR'     },
+  { key: 'flour',     label: t('recipeCard.flour'),     icon: 'mehl',   market: 'FLOUR'     },
+  { key: 'eggs',      label: t('recipeCard.eggs'),      icon: 'eier',   market: 'EGGS'      },
+  { key: 'butter',    label: t('recipeCard.butter'),    icon: 'butter', market: 'BUTTER'    },
+  { key: 'chocolate', label: t('recipeCard.chocolate'), icon: 'schoko', market: 'CHOCOLATE' },
+  { key: 'milk',      label: t('recipeCard.milk'),      icon: 'milch',  market: 'MILK'      },
+])
 
 const recipes    = computed(() => playerStore.recipes)
 const activeJob  = computed(() => bakeStore.status)
@@ -180,10 +147,9 @@ const selected = computed(() => recipes.value.find(r => r.id === selectedId.valu
 
 function selectRecipe(id) { selectedId.value = id }
 
-// Nur Zutaten mit amount > 0, angereichert mit Marktdaten
 const usedIngredients = computed(() => {
   if (!selected.value) return []
-  return INGREDIENTS
+  return INGREDIENTS.value
     .map(ing => {
       const amount = selected.value[ing.key] ?? 0
       const total  = amount * batches.value
@@ -193,29 +159,14 @@ const usedIngredients = computed(() => {
     .filter(ing => ing.amount > 0)
 })
 
-// Gesamte Marktkosten der Zutaten (Kaufpreis)
-const ingredientMarketCost = computed(() =>
-  usedIngredients.value.reduce((s, i) => s + i.cost, 0)
-)
+const ingredientMarketCost = computed(() => usedIngredients.value.reduce((s, i) => s + i.cost, 0))
+const ingredientSellValue  = computed(() => usedIngredients.value.reduce((s, i) => s + i.cost * (1 - SELL_FEE), 0))
+const bakeOutput  = computed(() => selected.value ? selected.value.output * batches.value : 0)
+const bakeBetter  = computed(() => bakeOutput.value >= ingredientSellValue.value)
 
-// Verkaufswert der Zutaten (nach Gebühr)
-const ingredientSellValue = computed(() =>
-  usedIngredients.value.reduce((s, i) => s + i.cost * (1 - SELL_FEE), 0)
-)
-
-// Cookie-Output als Wert (1 Cookie = 1 C)
-const bakeOutput = computed(() =>
-  selected.value ? selected.value.output * batches.value : 0
-)
-
-const bakeBetter = computed(() => bakeOutput.value >= ingredientSellValue.value)
-
-// Wie viele Batches kann man mit aktuellem Bestand machen?
 const stockBatches = computed(() => {
   if (!selected.value) return 0
-  const limits = usedIngredients.value.map(ing =>
-    ing.amount > 0 ? Math.floor(playerStore[ing.key] / ing.amount) : Infinity
-  )
+  const limits = usedIngredients.value.map(ing => ing.amount > 0 ? Math.floor(playerStore[ing.key] / ing.amount) : Infinity)
   return Math.max(0, Math.min(...limits))
 })
 
@@ -234,10 +185,17 @@ const progressPct = computed(() => {
 
 async function startBake() {
   busy.value = true
+  // Snapshot before the request -- ingredients are deducted server-side
+  // immediately, but bakeStart() only returns the job status (not the player),
+  // so without this the HUD wouldn't show the drop until something else
+  // happened to refresh the player. Deduct locally right away instead.
+  const spent = usedIngredients.value
   try {
     await bakeStart(playerStore.steamId, selectedId.value, batches.value)
-    await bakeStore.poll()
-    showFeedback('Backen gestartet!', 'ok')
+    for (const ing of spent) {
+      playerStore[ing.key] = Math.max(0, (playerStore[ing.key] ?? 0) - ing.total)
+    }
+    await bakeStore.poll() // swaps the form below for the progress bar
   } catch (e) { showFeedback(e.message, 'err') }
   finally     { busy.value = false }
 }
@@ -248,9 +206,9 @@ async function claim() {
   try {
     const updated = await bakeClaim(playerStore.steamId)
     playerStore.updateFromDto(updated)
-    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#ef9f27' })
+    spawnFarmNumber(Math.round(earned), 360, 470, { crit: earned >= 200, color: '#c78539', icon: 'cookie' })
     await bakeStore.poll()
-    showFeedback(`+${earned} Cookies!`, 'ok')
+    showFeedback(t('recipeCard.claimSuccess', { earned }), 'ok')
   } catch (e) { showFeedback(e.message, 'err') }
   finally     { busy.value = false }
 }
@@ -265,186 +223,79 @@ function formatDuration(s) {
   const m = Math.floor(s / 60); const sec = s % 60
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`
 }
-function fmt(v)  { return Number(v ?? 0).toFixed(1) }
 function fmt2(v) { return Number(v ?? 0).toFixed(2) }
 function fmtP(v) { return Number(v ?? 0).toFixed(4) }
 
-onMounted(() => {
-  if (recipes.value.length) selectedId.value = recipes.value[0].id
-})
+onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].id })
 </script>
 
 <style scoped>
-.book-inner { display: flex; width: 100%; height: 100%; }
+.rc-inner { display: flex; width: 100%; height: 100%; font-family: 'Silkscreen', monospace; }
 
-/* ── Linke Seite ─────────────────────────────────────── */
-.page-left {
-  width: 220px; flex-shrink: 0;
-  background: #f0e6cc;
-  display: flex; flex-direction: column;
-  padding: 20px 16px 14px;
+.rc-left {
+  width: 260px; flex-shrink: 0; background: var(--px-cream3);
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+  border-right: 6px solid var(--px-brown);
 }
-.page-header { text-align: center; margin-bottom: 14px; }
-.page-deco   { font-size: 10px; color: #c9a96e; letter-spacing: 4px; margin-bottom: 4px; }
-.page-title  { font-size: 16px; font-weight: 700; color: #3b2410; font-family: Georgia, serif; }
-.page-rule   { border: none; border-top: 1px solid #c9a96e; margin: 8px 0; }
+.rc-left-title { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); text-align: center; }
+.rc-rule { height: 3px; background: var(--px-brown2); }
+.rc-loading { color: var(--px-tan-ink); font-style: italic; font-size: 13px; }
+.rc-index { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.rc-entry {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 11px 12px; background: var(--px-cream); border: 3px solid var(--px-brown2);
+  font-size: 16px; color: var(--px-ink-txt); cursor: pointer; text-align: left;
+}
+.rc-entry:hover { background: #fff1a9; }
+.rc-entry.active { background: var(--px-gold); border-color: var(--px-ink); }
+.rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
 
-.recipe-index { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.index-entry {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border: none; border-radius: 4px;
-  background: transparent; color: #5c3d1e;
-  cursor: pointer; text-align: left; font-size: 13px;
-  font-family: Georgia, serif; transition: background 0.15s;
+.rc-right {
+  flex: 1; background: var(--px-cream); position: relative;
+  display: flex; flex-direction: column; overflow: hidden;
 }
-.index-entry:hover { background: rgba(180,130,60,0.15); }
-.index-entry.active { background: #c9a96e; color: #2a1a08; font-weight: 700; }
-.index-num   { color: #9a7040; font-size: 11px; width: 18px; flex-shrink: 0; }
-.index-name  { flex: 1; }
-.index-arrow { color: #8B5e3c; font-size: 12px; }
-.index-loading { color: #9a7040; font-style: italic; font-size: 12px; padding: 8px 0; }
+.rc-scroll { flex: 1 1 auto; min-height: 0; }
+.rc-scroll-inner { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
+.rc-close { position: absolute; top: 12px; right: 14px; }
+.rc-heading { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); padding-right: 24px; }
+.rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 8px; }
 
-.page-footer { margin-top: auto; text-align: center; }
-.page-num { font-size: 10px; color: #9a7040; margin-top: 4px; font-family: Georgia, serif; }
+.rc-ingredients { display: flex; flex-direction: column; gap: 2px; }
+.rc-ing-row { display: grid; grid-template-columns: 24px 1fr 46px 70px 70px; align-items: center; gap: 8px; padding: 7px 8px; background: var(--px-cream2); border: 2px solid #fff1a9; }
+.rc-ing-name  { font-size: 15px; color: var(--px-ink-txt); }
+.rc-ing-qty   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
+.rc-ing-qty.insufficient { color: var(--px-red); }
+.rc-ing-price { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
+.rc-ing-sum   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); text-align: right; }
+.rc-cost-row  { display: flex; justify-content: space-between; padding: 9px 8px; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); border-top: 3px solid var(--px-brown2); margin-top: 4px; }
 
-/* ── Buchrücken ──────────────────────────────────────── */
-.book-spine {
-  width: 14px; flex-shrink: 0;
-  background: linear-gradient(to right, #3a2008, #6b4520, #3a2008);
-}
+.rc-profit-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--px-cream2); border: 3px solid var(--px-tan); margin-bottom: 6px; font-size: 16px; color: var(--px-tan-ink); }
+.rc-profit-row.winner { background: #fff1a9; border-color: var(--px-green); color: var(--px-ink-txt); font-weight: 600; }
+.rc-profit-diff { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; margin-top: 4px; }
+.rc-profit-diff.pos { color: #56642e; }
+.rc-profit-diff.neg { color: var(--px-red); }
 
-/* ── Rechte Seite ────────────────────────────────────── */
-.page-right {
-  flex: 1; background: #faf6ed;
-  display: flex; flex-direction: column;
-  padding: 18px 20px 14px;
-  position: relative; overflow: hidden;
-}
-.book-close {
-  position: absolute; top: 10px; right: 12px;
-  background: none; border: none; font-size: 16px;
-  cursor: pointer; color: #9a7040; z-index: 10;
-}
-.book-close:hover { color: #3b2410; }
+.rc-batches { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--px-tan-ink); }
+.rc-stepper { display: flex; align-items: center; border: 3px solid var(--px-ink); }
+.rc-stepper button { position: relative; padding: 8px 12px; background: var(--px-cream3); font-family: 'Silkscreen', monospace; font-size: 13px; border: none; cursor: pointer; color: var(--px-ink-txt); }
+.rc-stepper-val { padding: 8px 18px; background: var(--px-cream); font-family: 'Silkscreen', monospace; font-size: 13px; }
+.rc-stock-hint { margin-left: auto; font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
 
-.recipe-heading {
-  font-size: 19px; font-weight: 700; color: #3b2410;
-  font-family: Georgia, serif; padding-right: 24px;
-}
-.section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 1px; color: #9a7040; margin: 8px 0 4px;
-}
-.section-note { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.rc-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--px-tan-ink); font-style: italic; font-size: 15px; }
 
-/* ── Zutaten ─────────────────────────────────────────── */
-.ingredients { display: flex; flex-direction: column; gap: 3px; }
-.ing-row {
-  display: flex; align-items: center; gap: 5px; font-size: 12px;
-}
-.ing-icon     { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
-.ing-name     { width: 68px; flex-shrink: 0; color: #5c3d1e; }
-.ing-need-qty { width: 28px; text-align: right; font-weight: 700; color: #3b2410; flex-shrink: 0; }
-.ing-need-qty.insufficient { color: #b84a28; }
-.ing-sep      { color: #9a7040; }
-.ing-price    { width: 52px; color: #7a5c3c; font-size: 11px; }
-.ing-cost     { flex: 1; text-align: right; font-weight: 700; color: #3b2410; font-size: 11px; }
+.rc-bake-section { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.rc-bake-meta { display: flex; gap: 12px; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-tan-ink); }
+.rc-bake-btn { width: 100%; text-align: center; }
 
-/* ── Kosten-Zeile ────────────────────────────────────── */
-.cost-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 4px; padding: 3px 0;
-  font-size: 12px;
-}
-.cost-label { color: #7a5c3c; }
-.cost-val   { font-weight: 700; color: #3b2410; }
+.rc-progress { display: flex; flex-direction: column; gap: 8px; }
+.rc-progress-meta { display: flex; justify-content: space-between; font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
+.rc-done { color: #56642e; }
+/* Same recipe as BuildingFrame.vue's .bf-hold-bar (the move/drag progress
+   bar): a single growing gold rectangle with a dark ink halo, no track. */
+.rc-progress-track { height: 14px; }
+.rc-progress-bar { height: 100%; background: var(--px-gold); box-shadow: 0 0 0 3px var(--px-ink); transition: width .3s linear; }
 
-/* ── Rentabilität ────────────────────────────────────── */
-.profit-block { display: flex; flex-direction: column; gap: 3px; }
-.profit-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 8px; border-radius: 6px; font-size: 12px;
-  border: 1px solid transparent;
-}
-.profit-winner { background: rgba(74,124,53,0.12); border-color: #4a7c35; }
-.profit-loser  { background: rgba(0,0,0,0.04); color: #9a7040; }
-.profit-icon   { font-size: 14px; flex-shrink: 0; }
-.profit-label  { flex: 1; }
-.profit-val    { font-weight: 700; }
-.profit-badge  { font-size: 10px; color: #4a7c35; font-weight: 700; }
-.profit-diff   {
-  font-size: 11px; font-style: italic; text-align: center;
-  margin-top: 2px; padding: 2px 0;
-}
-.profit-diff.pos { color: #4a7c35; }
-.profit-diff.neg { color: #b84a28; }
-
-/* ── Batches ─────────────────────────────────────────── */
-.batches-row {
-  display: flex; align-items: center; gap: 6px;
-  margin-top: 8px; font-size: 12px; color: #5c3d1e;
-}
-.batches-label { color: #7a5c3c; }
-.step-sm {
-  width: 22px; height: 22px; border: 1px solid #c9a96e;
-  border-radius: 4px; background: transparent; color: #5c3d1e;
-  cursor: pointer; font-size: 14px; line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-}
-.step-sm:hover { background: #c9a96e; color: #fff; }
-.batches-input {
-  width: 44px; padding: 2px 4px; border: 1px solid #c9a96e;
-  border-radius: 4px; background: transparent; color: #3b2410;
-  font-size: 12px; text-align: center; -moz-appearance: textfield;
-}
-.batches-input::-webkit-outer-spin-button,
-.batches-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-.stock-hint { margin-left: auto; color: #9a7040; font-size: 11px; }
-
-.empty-hint {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  color: #9a7040; font-style: italic; font-family: Georgia, serif; font-size: 14px;
-}
-
-/* ── Backen-Bereich ──────────────────────────────────── */
-.bake-section { margin-top: auto; }
-.bake-meta {
-  display: flex; gap: 12px; font-size: 12px; color: #5c3d1e;
-  margin-bottom: 6px;
-}
-.bake-out  { font-weight: 700; }
-.bake-time { color: #9a7040; }
-
-.btn-bake {
-  width: 100%; padding: 9px; border: 2px solid #8B5e3c;
-  border-radius: 6px; background: #c9853a; color: #fff8ee;
-  font-size: 13px; font-weight: 700; font-family: Georgia, serif;
-  cursor: pointer; transition: background 0.15s;
-}
-.btn-bake:hover:not(:disabled) { background: #b5732a; }
-.btn-bake:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.progress-block { display: flex; flex-direction: column; gap: 5px; }
-.progress-meta  { display: flex; justify-content: space-between; font-size: 12px; color: #5c3d1e; }
-.progress-time  { color: #9a7040; }
-.progress-done  { color: #4a7c35; font-weight: 700; }
-.progress-bar {
-  height: 8px; background: rgba(180,130,60,0.2);
-  border-radius: 4px; border: 1px solid #c9a96e; overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(to right, #c9853a, #e8a84a);
-  border-radius: 4px; transition: width 0.5s linear;
-}
-.btn-claim {
-  width: 100%; padding: 7px; border: 2px solid #4a7c35;
-  border-radius: 6px; background: #5a9c40; color: #f0fff0;
-  font-size: 12px; font-weight: 700; cursor: pointer;
-}
-.btn-claim:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.book-feedback { font-size: 12px; margin-top: 5px; text-align: center; font-style: italic; }
-.book-feedback.ok  { color: #4a7c35; }
-.book-feedback.err { color: #b84a28; }
+.rc-feedback { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; }
+.rc-feedback.ok  { color: #56642e; }
+.rc-feedback.err { color: var(--px-red); }
 </style>

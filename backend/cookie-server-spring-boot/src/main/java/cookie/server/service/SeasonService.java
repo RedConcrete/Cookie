@@ -7,7 +7,7 @@ import cookie.server.entity.SeasonEntity;
 import cookie.server.entity.SeasonResultEntity;
 import cookie.server.entity.UserEntity;
 import cookie.server.repository.BakeJobRepository;
-import cookie.server.repository.PlayerUpgradeRepository;
+import cookie.server.repository.PlayerSkillNodeRepository;
 import cookie.server.repository.SeasonRepository;
 import cookie.server.repository.SeasonResultRepository;
 import cookie.server.repository.UserRepository;
@@ -32,20 +32,20 @@ public class SeasonService {
     private final SeasonRepository seasonRepository;
     private final SeasonResultRepository seasonResultRepository;
     private final UserRepository userRepository;
-    private final PlayerUpgradeRepository playerUpgradeRepository;
+    private final PlayerSkillNodeRepository playerSkillNodeRepository;
     private final BakeJobRepository bakeJobRepository;
     private final NetWorthService netWorthService;
 
     public SeasonService(SeasonRepository seasonRepository,
                          SeasonResultRepository seasonResultRepository,
                          UserRepository userRepository,
-                         PlayerUpgradeRepository playerUpgradeRepository,
+                         PlayerSkillNodeRepository playerSkillNodeRepository,
                          BakeJobRepository bakeJobRepository,
                          NetWorthService netWorthService) {
         this.seasonRepository = seasonRepository;
         this.seasonResultRepository = seasonResultRepository;
         this.userRepository = userRepository;
-        this.playerUpgradeRepository = playerUpgradeRepository;
+        this.playerSkillNodeRepository = playerSkillNodeRepository;
         this.bakeJobRepository = bakeJobRepository;
         this.netWorthService = netWorthService;
     }
@@ -121,10 +121,13 @@ public class SeasonService {
             user.setButter(0); user.setChocolate(0); user.setMilk(0);
             user.setPrestigeLevel(0);
             user.setTotalPrestiges(0);
+            user.setSkillPoints(0);
+            user.setTotalSkillPointsBought(0);
+            user.setTotalSkillPointCookiesSpent(0);
         });
         userRepository.saveAll(users);
 
-        playerUpgradeRepository.deleteAll();
+        playerSkillNodeRepository.deleteAll();
         bakeJobRepository.deleteAll();
 
         log.info("Season closed: {} — {} players archived, all progress reset", season.getName(), results.size());

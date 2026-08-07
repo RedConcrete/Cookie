@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+
+# nvm (falls vorhanden)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Java 21 (falls JAVA_HOME nicht gesetzt oder falsch, per which java ableiten)
+if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+  JAVA_BIN="$(command -v java)"
+  if [ -n "$JAVA_BIN" ]; then
+    export JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$JAVA_BIN")")")"
+    export PATH="$JAVA_HOME/bin:$PATH"
+  fi
+fi
+
+LOG_DIR="$REPO/.logs"
+mkdir -p "$LOG_DIR"
+
+echo ""
+echo "  Cookie Game — Dev Start"
+echo "  ========================"
+echo ""
+
+# Alte Prozesse stoppen
+printf "  [1/3] Stoppe alte Prozesse ... "
+fuser -k 9876/tcp 2>/dev/null; fuser -k 5173/tcp 2>/dev/null
+sleep 1
+echo "OK"
+
+# Backend starten
+printf "  [2/3] Backend starten      ... "
+cd "$REPO/backend/cookie-server-spring-boot"
+chmod +x ./mvnw 2>/dev/null
+bash ./mvnw spring-boot:run > "$LOG_DIR/backend.log" 2>&1 &
+BACKEND_PID=$!
+
+# Warte bis Backend antwortet (max 90s -- mvnw baut bei Code-Aenderungen erst
+# neu (Maven-Kompilierung), bevor der Spring-Boot-Start selbst ueberhaupt
+# losgeht; 30s reichte dafuer bei einem kalten Build nicht immer aus.
+# /api/v1/config statt /actuator/health -- Actuator ist kein Dependency hier,
+# der alte Pfad haette nie einen echten 200er geliefert.
+for i in $(seq 1 90); do
+  if curl -sf http://localhost:9876/api/v1/config > /dev/null 2>&1; then
+    echo "OK  (PID $BACKEND_PID)"
+    break
+  fi
+  if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo "FEHLER"
+    echo ""
+    echo "  Backend-Log: $LOG_DIR/backend.log"
+    exit 1
+  fi
+  sleep 1
+  if [ $i -eq 90 ]; then
+    echo "TIMEOUT"
+    echo ""
+    echo "  Backend-Log: $LOG_DIR/backend.log"
+    exit 1
+  fi
+done
+
+# Frontend starten
+printf "  [3/3] Frontend starten     ... "
+cd "$REPO/frontend"
+if [ ! -d node_modules ]; then
+  npm install > "$LOG_DIR/npm-install.log" 2>&1
+fi
+npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
+FRONTEND_PID=$!
+
+# Warte bis Frontend antwortet (max 20s)
+for i in $(seq 1 20); do
+  if curl -s http://localhost:5173 > /dev/null 2>&1; then
+    echo "OK  (PID $FRONTEND_PID)"
+    break
+  fi
+  if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+    echo "FEHLER"
+    echo ""
+    echo "  Frontend-Log: $LOG_DIR/frontend.log"
+    exit 1
+  fi
+  sleep 1
+  if [ $i -eq 20 ]; then
+    echo "TIMEOUT"
+    echo ""
+    echo "  Frontend-Log: $LOG_DIR/frontend.log"
+    exit 1
+  fi
+done
+
+echo ""
+echo "  ========================"
+echo "  Backend:  http://localhost:9876"
+echo "  Frontend: http://localhost:5173"
+echo "  Logs:     $LOG_DIR/"
+echo "  ========================"
+echo ""
+echo "  Ctrl+C zum Stoppen"
+echo ""
+
+trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; fuser -k 9876/tcp 5173/tcp 2>/dev/null; exit 0" INT TERM
+wait $BACKEND_PID $FRONTEND_PID

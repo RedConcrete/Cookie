@@ -13,8 +13,13 @@ Cookie/
 ├── frontend/                         ← Vue 3 + Electron Frontend (Port 5173)
 ├── database/
 │   └── setup.sql                     ← Datenbank-Schema (einmalig ausführen)
-├── start.sh                          ← Schnellstart Backend + Frontend (WSL/Linux)
-├── build.sh                          ← Interaktives Build-Menü (WSL/Linux)
+├── docs/
+│   ├── cookie-game-design.md         ← Vollständiges Game Design
+│   └── ROADMAP.md                    ← Bugs, Aufräumarbeiten, offene Punkte
+├── scripts/
+│   ├── start.sh / start.bat          ← Schnellstart Backend + Frontend
+│   ├── build.sh / build.bat          ← Interaktives Build-Menü
+│   └── docker-start.sh / .bat        ← Docker-Compose-Start
 └── README.md
 ```
 
@@ -75,10 +80,10 @@ market.update-interval-ms=2000
 
 ## Build & Start
 
-### start.sh — Schnellstart
+### scripts/start.sh — Schnellstart
 
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 ```
@@ -96,10 +101,10 @@ Logs: `.logs/backend.log` und `.logs/frontend.log`
 
 ---
 
-### build.sh — Interaktives Menü
+### scripts/build.sh — Interaktives Menü
 
 ```bash
-./build.sh
+./scripts/build.sh
 ```
 
 ```
@@ -267,7 +272,11 @@ frontend/
 │   │   ├── UpgradeDialog.vue
 │   │   ├── BakeDialog.vue
 │   │   ├── ResourceBar.vue       ← Header-Ressourcenanzeige
+│   │   ├── SettingsDialog.vue    ← Einstellungen inkl. Sprachumschalter
 │   │   └── CookieSpinner.vue     ← Lade-Animation
+│   ├── i18n/
+│   │   ├── index.js              ← vue-i18n Setup (DE/EN, localStorage)
+│   │   └── locales/{de,en}/      ← ein JSON-Paar pro Komponente
 │   ├── stores/
 │   │   ├── player.js    ← Pinia: Spielerdaten, Net-Worth-Polling (10s)
 │   │   └── market.js    ← Pinia: Marktpreise + Historie
@@ -276,6 +285,15 @@ frontend/
 │       └── websocket.js  ← WS-Client mit Auto-Reconnect
 └── package.json
 ```
+
+---
+
+## Lokalisierung
+
+Deutsch + Englisch, umschaltbar über das Einstellungs-Menü im Spiel (Sprache
+wird in `localStorage` gemerkt). Umsetzung: `vue-i18n`, ein JSON-Dateipaar
+pro Komponente unter `frontend/src/i18n/locales/{de,en}/`. Weitere Sprachen
+lassen sich durch Hinzufügen eines neuen `locales/<code>/`-Ordners ergänzen.
 
 ---
 

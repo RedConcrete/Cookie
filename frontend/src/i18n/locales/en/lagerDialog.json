@@ -1,0 +1,17 @@
+{
+  "title": "STORAGE · LEVEL {level}",
+  "capacityLabel": "TOTAL CAPACITY",
+  "resSugar": "Sugar",
+  "resFlour": "Flour",
+  "resEggs": "Eggs",
+  "resButter": "Butter",
+  "resChocolate": "Chocolate",
+  "resMilk": "Milk",
+  "wageLine": "Level {level} wage: {wage} C/MIN",
+  "free": "(free)",
+  "upgradeLevelLine": "Level {from} → {to}",
+  "upgradeDesc": "+{bonus} capacity ·",
+  "upgradeBtn": "UPGRADE",
+  "upgradeSuccess": "Storage upgraded to level {level}!",
+  "notEnoughCookies": "Not enough cookies."
+}

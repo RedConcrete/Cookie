@@ -10,10 +10,10 @@
         @mouseleave="stopHarvest(res.name)"
       >
         <div class="hex-card-img">
-          <img :src="res.icon" :alt="res.label" />
+          <img :src="res.icon" :alt="t(res.labelKey)" />
         </div>
-        <div class="hex-card-label">{{ res.label }}</div>
-        <div class="hex-card-hint">+1/s bei Hover</div>
+        <div class="hex-card-label">{{ t(res.labelKey) }}</div>
+        <div class="hex-card-hint">{{ t('idleView.hoverHint') }}</div>
       </div>
     </div>
   </div>
@@ -21,6 +21,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { harvestResource } from '../services/api.js'
 import sugarIcon  from '../assets/Sprites/RecSprits/Zucker.png'
@@ -30,15 +31,16 @@ import butterIcon from '../assets/Sprites/RecSprits/ButterICon.png'
 import chocoIcon  from '../assets/Sprites/RecSprits/SchokiIcon.png'
 import milkIcon   from '../assets/Sprites/RecSprits/MilchIcon.png'
 
+const { t } = useI18n()
 const playerStore = usePlayerStore()
 
 const resources = [
-  { name: 'SUGAR',     label: 'Zucker',     icon: sugarIcon  },
-  { name: 'FLOUR',     label: 'Mehl',       icon: flourIcon  },
-  { name: 'EGGS',      label: 'Eier',       icon: eggsIcon   },
-  { name: 'BUTTER',    label: 'Butter',     icon: butterIcon },
-  { name: 'CHOCOLATE', label: 'Schokolade', icon: chocoIcon  },
-  { name: 'MILK',      label: 'Milch',      icon: milkIcon   },
+  { name: 'SUGAR',     labelKey: 'idleView.resourceSugar',     icon: sugarIcon  },
+  { name: 'FLOUR',     labelKey: 'idleView.resourceFlour',     icon: flourIcon  },
+  { name: 'EGGS',      labelKey: 'idleView.resourceEggs',      icon: eggsIcon   },
+  { name: 'BUTTER',    labelKey: 'idleView.resourceButter',    icon: butterIcon },
+  { name: 'CHOCOLATE', labelKey: 'idleView.resourceChocolate', icon: chocoIcon  },
+  { name: 'MILK',      labelKey: 'idleView.resourceMilk',      icon: milkIcon   },
 ]
 
 const flashing  = reactive({})

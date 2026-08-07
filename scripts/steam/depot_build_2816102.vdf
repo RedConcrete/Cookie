@@ -1,0 +1,12 @@
+"DepotBuild"
+{
+	// Windows-Depot ("Cookie"-Depot, OS: Windows)
+	"DepotID" "2816102"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+}

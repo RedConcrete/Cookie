@@ -1,22 +1,37 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+button, input, select, textarea { font-family: inherit; }
 
+/* Game UI shouldn't be text-selectable (drag-to-select fights with building
+   drag/pan). Form fields stay selectable so typing/copy-paste still works. */
+html, body, #app {
+  user-select: none;
+  -webkit-user-select: none;
+  height: 100%;
+  overflow: hidden;
+}
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Fruitpunch24 palette only (frontend/src/assets/colorpalate/fruitpunch24.hex) — see CLAUDE.md */
 :root {
-  --bg:          #F5EDD6;
-  --surface:     #FFFBF0;
-  --surface2:    #EDE0C0;
-  --accent:      #C97B2A;
-  --accent2:     #5A8C2A;
-  --text:        #3D2B1F;
-  --text-muted:  #8B6E52;
-  --border:      #D4B87A;
-  --success:     #4A7C2F;
-  --error:       #B83232;
+  --bg:          #fff1a9;
+  --surface:     #fff1a9;
+  --surface2:    #aea47e;
+  --accent:      #e67146;
+  --accent2:     #349c58;
+  --text:        #120e23;
+  --text-muted:  #764032;
+  --border:      #a15c34;
+  --success:     #349c58;
+  --error:       #b74132;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Silkscreen', monospace;
   font-size: 14px;
 }
 
@@ -28,7 +43,7 @@ body {
   align-items: center;
   gap: 24px;
   padding: 10px 24px;
-  background: linear-gradient(135deg, #6B4F2A 0%, #4A7C2F 100%);
+  background: linear-gradient(135deg, #764032 0%, #56642e 100%);
   border-bottom: 3px solid var(--border);
   flex-shrink: 0;
 }
@@ -45,7 +60,7 @@ body {
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.25);
   background: rgba(255,255,255,0.1);
-  color: #F5EDD6;
+  color: #fff1a9;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -69,11 +84,11 @@ body {
   transition: background 0.15s;
 }
 .header-networth.clickable:hover { background: rgba(100,200,100,0.35); }
-.header-networth .nw-label { font-size: 9px; color: #F5EDD6; opacity: 0.75; line-height: 1; }
-.header-networth .nw-val   { font-size: 14px; font-weight: 700; color: #aaff88; line-height: 1.3; }
+.header-networth .nw-label { font-size: 9px; color: #fff1a9; opacity: 0.75; line-height: 1; }
+.header-networth .nw-val   { font-size: 14px; font-weight: 700; color: #aea47e; line-height: 1.3; }
 
 .nav-link {
-  color: #F5EDD6;
+  color: #fff1a9;
   text-decoration: none;
   padding: 6px 16px;
   border-radius: 20px;
@@ -81,7 +96,7 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .nav-link:hover { background: rgba(255,255,255,0.2); }
-.nav-link.router-link-active { background: var(--accent); color: #fff; }
+.nav-link.router-link-active { background: var(--accent); color: #fff1a9; }
 
 /* ── Resource bar ─────────────────────────────────────── */
 .resource-bar { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -94,8 +109,8 @@ body {
   padding: 4px 10px;
   border-radius: 12px;
 }
-.resource-label { font-size: 10px; color: #F5EDD6; opacity: 0.8; }
-.resource-value { font-size: 13px; font-weight: 700; color: #FFE680; }
+.resource-label { font-size: 10px; color: #fff1a9; opacity: 0.8; }
+.resource-value { font-size: 13px; font-weight: 700; color: #fff1a9; }
 
 /* ── Market view ──────────────────────────────────────── */
 .market-view { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 900px; margin: 0 auto; }
@@ -182,8 +197,8 @@ body {
 }
 .btn:hover { opacity: 0.85; transform: translateY(-1px); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-.btn-buy  { background: var(--success); color: #fff; }
-.btn-sell { background: var(--error);   color: #fff; }
+.btn-buy  { background: var(--success); color: #fff1a9; }
+.btn-sell { background: var(--error);   color: #fff1a9; }
 
 /* ── Production / Idle view ───────────────────────────── */
 .idle-view {
@@ -258,15 +273,17 @@ body {
 }
 @keyframes flash {
   0%   { background: var(--surface); }
-  50%  { background: #FFF3C4; }
+  50%  { background: #fff1a9; }
   100% { background: var(--surface); }
 }
 
 /* ── Status overlay ───────────────────────────────────── */
 .status-overlay {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   height: 100%;
   color: var(--text-muted);
   font-size: 18px;

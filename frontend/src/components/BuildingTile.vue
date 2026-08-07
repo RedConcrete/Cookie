@@ -12,7 +12,7 @@
         <div class="oven-progress-fill" :style="{ width: bakeProgressPct + '%' }"></div>
       </div>
       <div class="oven-timer">
-        <template v-if="bakeStatus.done">✓ Fertig!</template>
+        <template v-if="bakeStatus.done">✓ {{ t('buildingTile.done') }}</template>
         <template v-else>⏱ {{ formatSec(bakeStatus.remainingSeconds) }}</template>
       </div>
     </div>
@@ -26,7 +26,7 @@
 
     <div v-if="upgradeBadges && upgradeBadges.length" class="tile-badges">
       <span v-for="b in upgradeBadges" :key="b.label" class="tile-badge">
-        {{ b.icon }} Stufe {{ b.level }}
+        {{ b.icon }} {{ t('buildingTile.level', { level: b.level }) }}
       </span>
     </div>
   </div>
@@ -34,6 +34,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps({
   variant:       { type: String, required: true }, // 'market' | 'oven' | 'harvest'
@@ -103,7 +106,7 @@ function onLeave() {
   border-color: var(--accent);
 }
 
-.tile-done { border-color: #4A7C2F; box-shadow: 0 0 12px rgba(74,124,47,0.4); }
+.tile-done { border-color: #56642e; box-shadow: 0 0 12px rgba(74,124,47,0.4); }
 
 .tile-img {
   width: 100%;
@@ -144,7 +147,7 @@ function onLeave() {
 .harvest-flash { animation: hflash 0.3s ease; }
 @keyframes hflash {
   0%   { background: var(--surface); }
-  50%  { background: #FFF3C4; }
+  50%  { background: #fff1a9; }
   100% { background: var(--surface); }
 }
 
@@ -156,19 +159,19 @@ function onLeave() {
 }
 .oven-progress-bar {
   height: 6px;
-  background: #2a2a3a;
+  background: #2a2942;
   border-radius: 3px;
   overflow: hidden;
 }
 .oven-progress-fill {
   height: 100%;
-  background: #7F77DD;
+  background: #6f6e72;
   border-radius: 3px;
   transition: width 0.5s linear;
 }
 .oven-timer {
   font-size: 11px;
-  color: #aaa;
+  color: #aea47e;
   text-align: center;
   margin-top: 3px;
 }

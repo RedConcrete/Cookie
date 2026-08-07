@@ -2,6 +2,8 @@ package cookie.server.dto;
 
 public class UserInformationDto {
     private String steamId;
+    private String displayName;
+    private String avatarUrl;
     private double cookies;
     private double sugar;
     private double flour;
@@ -9,6 +11,8 @@ public class UserInformationDto {
     private double butter;
     private double chocolate;
     private double milk;
+    private boolean workersIdle;
+    private double totalResourceCap;
 
     public String getSteamId() {
         return steamId;
@@ -16,6 +20,22 @@ public class UserInformationDto {
 
     public void setSteamId(String steamId) {
         this.steamId = steamId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public double getCookies() {
@@ -73,5 +93,14 @@ public class UserInformationDto {
     public void setMilk(double milk) {
         this.milk = milk;
     }
+
+    public boolean isWorkersIdle() { return workersIdle; }
+    public void setWorkersIdle(boolean workersIdle) { this.workersIdle = workersIdle; }
+    public double getTotalResourceCap() { return totalResourceCap; }
+    public void setTotalResourceCap(double totalResourceCap) { this.totalResourceCap = totalResourceCap; }
+
+    private int ownedCitizens;
+    public int getOwnedCitizens() { return ownedCitizens; }
+    public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
 }
 

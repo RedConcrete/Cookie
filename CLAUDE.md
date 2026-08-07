@@ -25,19 +25,44 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
 - Kommentare/Code-Erklärungen knapp halten (keine Füllwörter)
 - Backend-Validierung ist Pflicht bei allem, was Ressourcen/Cookies bewegt
   (Client-Werte nie vertrauen)
+- Das gesamte Frontend-Aussehen (CSS, Vue-Komponenten, neue Pixel-Art) nutzt
+  ausschließlich Farben aus der Fruitpunch24-Palette
+  (`frontend/src/assets/colorpalate/fruitpunch24.hex`), siehe
+  `docs/cookie-game-design.md` Abschnitt 8.1 — keine anderen Farben, auch
+  keine rgba()/hsl()-Fremdfarben. Check: `cd frontend && npm run
+  check:palette` (scannt `.vue`/`.css`/`.js` unter `src/` auf Hex-Werte
+  außerhalb der Palette, exit 1 bei Verstoß). Bestehende Gebäude-SVGs sind
+  Platzhalter und davon ausgenommen (siehe `docs/ROADMAP.md`).
 
-## Aktueller Stand (2026-06-25)
+## Aktueller Stand (2026-08-06)
 
 Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
 Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
-Markt-Preisgraph mit %-Modus und Zoom.
+Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint),
+Lokalisierung DE/EN (vue-i18n, Sprachumschalter in den Einstellungen), custom
+Pixel-Scrollbar (`PixelScrollBox.vue`) + animierte Lade-Anzeige
+(`LoadingIndicator.vue`) in allen scrollenden Dialogen.
 
-Nächste Schritte (nächste Session):
-1. **Unity-Reste aufräumen** — `.meta`-Dateien (149 Stück), `.sfk`-Dateien,
-   ungenutzte Sprites/Assets aus `src/assets/` entfernen
-2. **Steam-Upload vorbereiten** — Build testen, Depots konfigurieren, Upload via
-   SteamCMD (siehe Plan unten)
-3. **Server-Deployment** — produktiven Server aufsetzen/aktualisieren
+## Lokalisierung (i18n)
+
+Frontend nutzt `vue-i18n` (Composition API, `legacy:false`). Setup:
+`frontend/src/i18n/index.js`. Texte liegen als ein JSON-Paar pro Komponente
+unter `frontend/src/i18n/locales/{de,en}/<namespace>.json` (Namespace =
+Dateiname = Komponentenname in camelCase, automatisch per
+`import.meta.glob` gemergt). Sprache umschaltbar über Einstellungen
+(`SettingsDialog.vue`), Wahl wird in `localStorage` gespeichert.
+
+Neue Texte: in der jeweiligen Komponente `const { t } = useI18n()`
+verwenden, Key in beiden Locale-Dateien (de + en) ergänzen. Bei
+Text-Daten außerhalb von `.vue`-Dateien (z. B. `buildingInfo.js`) den Key
+in der Datenstruktur ablegen und erst in der konsumierenden Komponente
+über `t()` auflösen (siehe `buildingTitle()`/`resourceLabel()` dort als
+Vorbild) — reine JS-Module haben keinen eigenen i18n-Kontext.
+
+**Vollständige Fix-/Roadmap-Liste (Bugs, Aufräumarbeiten, Build/Deployment,
+Design-Doc-Pflege): `docs/ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob der
+Punkt schon abgehakt ist — Duplizierung vermeiden, Datei ist die einzige
+Quelle für offene Baustellen.
 
 ## Steam-Upload-Plan
 
@@ -70,4 +95,11 @@ Nächste Schritte (nächste Session):
 6. app.dev-mode=false setzen (nur Steam-Auth erlaubt)
 ```
 
-Offene Issues im Repo (#19, #21, #24, #14) bei Gelegenheit mit einplanen.
+Offene GitHub-Issues: Status-Check in `docs/ROADMAP.md` Abschnitt 1, nicht
+hier duplizieren.
+
+## Skripte
+
+Alle Build-/Start-Skripte liegen in `scripts/` (nicht im Repo-Root):
+`scripts/start.sh`, `scripts/build.sh`, `scripts/docker-start.sh` (+ `.bat`-
+Pendants für Windows ohne WSL).

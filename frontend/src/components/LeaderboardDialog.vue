@@ -1,8 +1,13 @@
 <template>
-  <div class="dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="dialog-box">
-      <button class="dialog-close" @click="emit('close')">✕</button>
-      <LeaderboardView @view-profile="openProfile" />
+  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
+    <div class="ld-box px-panel">
+      <div class="px-titlebar">
+        <span>{{ t('leaderboardDialog.title') }}</span>
+        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
+      </div>
+      <PixelScrollBox class="ld-scroll">
+        <LeaderboardView @view-profile="openProfile" />
+      </PixelScrollBox>
     </div>
   </div>
 
@@ -14,12 +19,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import LeaderboardView    from './LeaderboardView.vue'
 import PlayerProfileDialog from './PlayerProfileDialog.vue'
+import PixelScrollBox from './pixel/PixelScrollBox.vue'
+import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useAudio } from '../composables/useAudio.js'
 
 const emit = defineEmits(['close'])
+const audio = useAudio()
+const { t } = useI18n()
 const profileSteamId = ref(null)
+
+onMounted(() => audio.playBookOpen())
 
 function openProfile(steamId) {
   profileSteamId.value = steamId
@@ -27,34 +40,6 @@ function openProfile(steamId) {
 </script>
 
 <style scoped>
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-.dialog-box {
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  width: 580px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow: auto;
-  position: relative;
-  padding: 20px;
-}
-.dialog-close {
-  position: absolute;
-  top: 12px; right: 14px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-.dialog-close:hover { color: var(--text); }
+.ld-box { width: 760px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.ld-scroll { flex: 1 1 auto; min-height: 0; }
 </style>

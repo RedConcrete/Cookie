@@ -41,23 +41,30 @@ public class MarketService {
     private final UserRepository userRepository;
     private final MarketConfig marketConfig;
     private final cookie.server.handler.MarketWebSocketHandler webSocketHandler;
+    private final BuildingService buildingService;
 
     private final ReentrantLock marketLock = new ReentrantLock();
     private final AtomicInteger updateCounter = new AtomicInteger(0);
     private static final int CLEANUP_INTERVAL = 100;
     private static final String STOCK_SINGLETON_ID = "SINGLETON";
 
+    // Absolute Untergrenze fuer den Pool-Stock einer Ressource -- rein numerische
+    // Sicherheitsbremse gegen Division durch (fast) Null, kein Gameplay-Deckel.
+    private static final double STOCK_EPSILON = 0.01;
+
     public MarketService(MarketRepository marketRepository,
                          MarketSnapshotRepository snapshotRepository,
                          MarketStockRepository marketStockRepository,
                          UserRepository userRepository, MarketConfig marketConfig,
-                         cookie.server.handler.MarketWebSocketHandler webSocketHandler) {
+                         cookie.server.handler.MarketWebSocketHandler webSocketHandler,
+                         BuildingService buildingService) {
         this.marketRepository = marketRepository;
         this.snapshotRepository = snapshotRepository;
         this.marketStockRepository = marketStockRepository;
         this.userRepository = userRepository;
         this.marketConfig = marketConfig;
         this.webSocketHandler = webSocketHandler;
+        this.buildingService = buildingService;
     }
 
     /** Alle 5 Minuten einen Preis-Snapshot speichern (persistente Langzeit-History). */
@@ -202,28 +209,42 @@ public class MarketService {
         double amount = request.getResource().getAmount();
         MarketAction action = request.getAction();
 
-        double currentPrice = getPrice(currentMarket, resource);
-        double totalCost = currentPrice * amount;
+        // Negative/Null-Mengen wuerden Kosten/Auszahlung in der AMM-Formel umkehren
+        // (negativer Kaufpreis -> Cookies aus dem Nichts, negativer Verkauf -> Ressourcen
+        // aus dem Nichts). Muss serverseitig geprueft werden, Client-Wert nie vertrauen.
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive: " + amount);
+        }
+
+        double marketStock = getStock(stock, resource);
 
         if (action == MarketAction.BUY) {
-            // Pruefen ob der Markt genug auf Lager hat
-            double marketStock = getStock(stock, resource);
-            if (marketStock < amount) {
+            // Ein Kauf kann den Pool nie ganz leerkaufen -- die Kosten explodieren vorher.
+            if (amount >= marketStock) {
                 throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
             }
-            if (user.getCookies() < totalCost) {
-                throw new IllegalArgumentException("Not enough cookies. Need: " + totalCost + ", Have: " + user.getCookies());
+            double cap = buildingService.getTotalCap(request.getUserId());
+            double freeSpace = cap - totalUserResources(user);
+            if (amount > freeSpace) {
+                throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
             }
-            user.setCookies(user.getCookies() - totalCost);
+            double cost = buyCost(marketStock, resource, amount);
+            if (user.getCookies() < cost) {
+                throw new IllegalArgumentException("Not enough cookies. Need: " + cost + ", Have: " + user.getCookies());
+            }
+            user.setCookies(user.getCookies() - cost);
             addResourceToUser(user, resource, amount);
+            user.setLifetimeCookiesSpentOnMarket(user.getLifetimeCookiesSpentOnMarket() + cost);
         } else if (action == MarketAction.SELL) {
             double userAmount = getResourceFromUser(user, resource);
             if (userAmount < amount) {
                 throw new IllegalArgumentException("Not enough " + resource + ". Need: " + amount + ", Have: " + userAmount);
             }
             addResourceToUser(user, resource, -amount);
-            double payout = totalCost * (1.0 - marketConfig.getSellFeeRate());
+            double feeRate = buildingService.getEffectiveSellFeeRate(request.getUserId(), marketConfig.getSellFeeRate());
+            double payout = sellPayout(marketStock, resource, amount) * (1.0 - feeRate);
             user.setCookies(user.getCookies() + payout);
+            user.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket() + payout);
         }
 
         userRepository.save(user);
@@ -242,33 +263,24 @@ public class MarketService {
         marketLock.lock();
         try {
             double marketStock = getStock(stock, resource);
-            double currentPrice = getPrice(currentMarket, resource);
 
-            // Preisaenderung: Je mehr Stock vorhanden, desto geringer die Preisaenderung
-            // Formel: (amount / stock) * price * multiplier
-            // Bei niedrigem Stock -> grosse Preisaenderung
-            // Bei hohem Stock -> kleine Preisaenderung
-            double priceChange = (amount / Math.max(marketStock, 1)) * currentPrice * marketConfig.getTradeImpactMultiplier();
-
-            double newPrice;
-            double newStock;
-            if (action == MarketAction.BUY) {
-                // Spieler kauft -> Preis steigt, Markt-Stock sinkt
-                newPrice = currentPrice + priceChange;
-                newStock = marketStock - amount;
-            } else {
-                // Spieler verkauft -> Preis sinkt, Markt-Stock steigt
-                newPrice = currentPrice - priceChange;
-                newStock = marketStock + amount;
-            }
-
-            newPrice = clampPrice(newPrice);
-            newStock = Math.max(0, newStock);
+            // Stock bewegen, Preis rein aus der neuen Poolgroesse ableiten (price = K / stock).
+            // Kein separater Impact-Multiplikator/Online-Spieler-Divisor mehr noetig: die Kurve
+            // ist von Natur aus konvex, ein einzelner grosser Trade bewegt den Preis ueberproportional
+            // staerker als viele kleine mit derselben Gesamtmenge -- "nur die Masse bewegt den Markt"
+            // ergibt sich also automatisch aus der Formel selbst.
+            double newStock = action == MarketAction.BUY ? marketStock - amount : marketStock + amount;
+            newStock = Math.max(STOCK_EPSILON, newStock);
+            double newPrice = spotPrice(newStock, resource);
 
             // Neuen Markteintrag fuer Preis-Historie erstellen
             MarketEntity newMarket = copyMarketWithNewId(currentMarket);
             setPrice(newMarket, resource, newPrice);
             newMarket.setDate(LocalDateTime.now());
+
+            // Baseline anteilig mitziehen -- nur echte Trades duerfen das Rueckfall-Ziel des
+            // Zufalls-Ticks verschieben, siehe applyTradeToBaseline.
+            applyTradeToBaseline(stock, resource, marketStock, newStock);
 
             // Stock in separater Tabelle aktualisieren (ueberschreibt sich selbst)
             setStock(stock, resource, newStock);
@@ -287,7 +299,15 @@ public class MarketService {
     }
 
     /**
-     * Wendet zufaellige Preisschwankungen auf alle Ressourcen an.
+     * Simuliert Hintergrund-Marktaktivitaet: bewegt den Pool-Stock jeder Ressource um einen
+     * kleinen zufaelligen Betrag (Phantom-Kauf/-Verkauf, nicht von einem echten Spieler) und
+     * leitet den neuen Preis aus der AMM-Kurve ab. Verzerrt Richtung einer pro Ressource
+     * gefuehrten Baseline statt eines fixen Ausgangsbestands -- die Baseline wird ausschliesslich
+     * von echten Trades verschoben ({@link #applyTradeToBaseline}) und zerfaellt von selbst
+     * langsam zurueck auf initialStock ({@link #decayBaselineTowardAnchor}). So haelt der
+     * Preis-Effekt anhaltenden Spieler-Tradings ueber die konfigurierte Zeitkonstante an, statt
+     * dass er nach wenigen Minuten auf den Ausgangswert zurueckfaellt -- reines Hintergrundrauschen
+     * kann die Baseline aber nie selbst bewegen, bleibt also unbegrenzt stabil.
      */
     @Transactional
     public void applyRandomPriceFluctuation() {
@@ -306,23 +326,34 @@ public class MarketService {
 
             for (ResourceName resource : ResourceName.values()) {
                 double marketStock = getStock(stock, resource);
-                double currentPrice = getPrice(currentMarket, resource);
+                double initialStock = getInitialStock(resource);
 
-                // Falls currentPrice 0 ist, nutze den Initialpreis
-                if (currentPrice <= 0) {
-                    currentPrice = getInitialPrice(resource);
+                // Baseline zuerst einen Schritt Richtung initialStock zerfallen lassen (reiner,
+                // rauschfreier Anker-Zerfall -- die Baseline selbst wird nur von echten Trades
+                // bewegt, siehe applyTradeToBaseline).
+                double baseline = decayBaselineTowardAnchor(stock, resource);
+
+                // Wahrscheinlichkeit fuer "Stock steigt" (Phantom-Verkauf) haengt sanft davon ab,
+                // wie weit der aktuelle Stock von der Baseline entfernt ist -- ist er schon
+                // knapp (relativ zur Baseline), ist ein Nachschub-Tick wahrscheinlicher als ein
+                // weiterer Abfluss.
+                double deviation = (baseline - marketStock) / initialStock;
+                double increaseChance = 0.5 + Math.max(-0.4, Math.min(0.4, deviation * 0.5));
+                double magnitude = Math.random() * marketConfig.getStockFluctuationRatio() * initialStock;
+
+                double newStock;
+                if (Math.random() < increaseChance) {
+                    newStock = marketStock + magnitude;
+                } else {
+                    // Nie mehr als die Haelfte des aktuellen Bestands auf einen Schlag wegnehmen.
+                    newStock = marketStock - Math.min(magnitude, marketStock * 0.5);
                 }
+                newStock = Math.max(STOCK_EPSILON, newStock);
 
-                // Preisschwankung: Je weniger Stock, desto volatiler der Preis
-                // Bei niedrigem Stock -> groessere Schwankungen
-                // Bei hohem Stock -> kleinere Schwankungen
-                double random = (Math.random() * 2) - 1;
-                double priceChange = (random / Math.max(marketStock, 1)) * currentPrice * marketConfig.getRandomImpactMultiplier() * marketConfig.getRandomDivisor();
-
-                double newPrice = clampPrice(currentPrice + priceChange);
-                setPrice(newMarket, resource, newPrice);
-                // Stock bleibt gleich bei zufaelliger Preisschwankung
+                setStock(stock, resource, newStock);
+                setPrice(newMarket, resource, spotPrice(newStock, resource));
             }
+            marketStockRepository.save(stock);
 
             newMarket.setDate(LocalDateTime.now());
 
@@ -374,6 +405,59 @@ public class MarketService {
     }
 
     /**
+     * Gibt den Initial-Lagerbestand fuer eine Ressource zurueck.
+     */
+    private double getInitialStock(ResourceName resource) {
+        return switch (resource) {
+            case SUGAR -> marketConfig.getInitialSugarStock();
+            case FLOUR -> marketConfig.getInitialFlourStock();
+            case EGGS -> marketConfig.getInitialEggsStock();
+            case BUTTER -> marketConfig.getInitialButterStock();
+            case CHOCOLATE -> marketConfig.getInitialChocolateStock();
+            case MILK -> marketConfig.getInitialMilkStock();
+        };
+    }
+
+    // ── AMM-Preismodell (constant product, wie Uniswap) ──────────────────────
+    // Der Markt haelt fuer jede Ressource einen Pool aus Ressourcen-Reserve (marketStock)
+    // gegen eine VIRTUELLE Cookie-Reserve. Beide multipliziert ergeben die Konstante K,
+    // kalibriert so, dass der Spotpreis bei Ausgangsbestand genau dem Ausgangspreis
+    // entspricht: K = initialStock^2 * initialPrice.
+    //
+    // Preis ist rein aus dem aktuellen Stock abgeleitet (price = K / stock) -- kein
+    // separater Clamp/Deckel noetig. Ein Kauf kann den Pool nie ganz leerkaufen (Kosten
+    // gehen asymptotisch gegen unendlich, je naeher man an den kompletten Bestand kommt),
+    // genau wie in einem echten liquiden Markt: es gibt kein "ausverkauft", nur "immer teurer".
+
+    /** Konstante K des Pools fuer eine Ressource (bleibt ueber die Zeit fix). */
+    private double poolConstant(ResourceName resource) {
+        double s0 = getInitialStock(resource);
+        double p0 = getInitialPrice(resource);
+        return s0 * s0 * p0;
+    }
+
+    /** Aktueller Spotpreis fuer einen gegebenen Lagerbestand. */
+    private double spotPrice(double stock, ResourceName resource) {
+        double s = Math.max(stock, STOCK_EPSILON);
+        // Spotpreis = virtuelle Cookie-Reserve / Stock = (K/stock) / stock = K/stock^2.
+        return poolConstant(resource) / s / s;
+    }
+
+    /** Cookie-Kosten, um `amount` Einheiten aus dem Pool zu kaufen (Integral ueber die Kurve). */
+    private double buyCost(double stock, ResourceName resource, double amount) {
+        double k = poolConstant(resource);
+        double newStock = stock - amount;
+        return k / newStock - k / stock;
+    }
+
+    /** Cookie-Auszahlung (vor Gebuehr), um `amount` Einheiten in den Pool zu verkaufen. */
+    private double sellPayout(double stock, ResourceName resource, double amount) {
+        double k = poolConstant(resource);
+        double newStock = stock + amount;
+        return k / stock - k / newStock;
+    }
+
+    /**
      * Erstellt eine Kopie des MarketEntity mit neuer ID.
      * Stock wird nicht kopiert - dieser ist in separater Tabelle.
      */
@@ -390,13 +474,6 @@ public class MarketService {
         copy.setMilkPrice(source.getMilkPrice() > 0 ? source.getMilkPrice() : marketConfig.getInitialMilkPrice());
 
         return copy;
-    }
-
-    /**
-     * Begrenzt den Preis auf min/max Werte.
-     */
-    private double clampPrice(double price) {
-        return Math.max(marketConfig.getMinPrice(), Math.min(marketConfig.getMaxPrice(), price));
     }
 
     /**
@@ -417,6 +494,36 @@ public class MarketService {
             }
         } catch (Exception e) {
             logger.error("Error during cleanup: {}", e.getMessage());
+        }
+    }
+
+    public double getCurrentPrice(cookie.server.enums.ResourceName resource) {
+        return getPrice(getOrCreateCurrentMarket(), resource);
+    }
+
+    public double getSellFeeRate() {
+        return marketConfig.getSellFeeRate();
+    }
+
+    /** Setzt Markt-Stock und -Preise alle auf die konfigurierten Ausgangswerte zurueck. */
+    @Transactional
+    public void resetMarket() {
+        marketLock.lock();
+        try {
+            MarketStockEntity stock = getOrCreateMarketStock();
+            stock.setSugarStock(marketConfig.getInitialSugarStock());
+            stock.setFlourStock(marketConfig.getInitialFlourStock());
+            stock.setEggsStock(marketConfig.getInitialEggsStock());
+            stock.setButterStock(marketConfig.getInitialButterStock());
+            stock.setChocolateStock(marketConfig.getInitialChocolateStock());
+            stock.setMilkStock(marketConfig.getInitialMilkStock());
+            resetBaselinesToStock(stock);
+            marketStockRepository.save(stock);
+
+            createInitialMarket();
+            logger.info("Market manually reset to initial stock/prices");
+        } finally {
+            marketLock.unlock();
         }
     }
 
@@ -473,12 +580,20 @@ public class MarketService {
         stock.setButterStock(marketConfig.getInitialButterStock());
         stock.setChocolateStock(marketConfig.getInitialChocolateStock());
         stock.setMilkStock(marketConfig.getInitialMilkStock());
+        resetBaselinesToStock(stock);
 
         logger.info("Created initial market stock: Sugar={}, Flour={}, Eggs={}, Butter={}, Chocolate={}, Milk={}",
                 stock.getSugarStock(), stock.getFlourStock(), stock.getEggsStock(),
                 stock.getButterStock(), stock.getChocolateStock(), stock.getMilkStock());
 
         return marketStockRepository.save(stock);
+    }
+
+    /** Setzt die Baseline jeder Ressource auf ihren aktuellen Stock (Neuanlage/Reset). */
+    private void resetBaselinesToStock(MarketStockEntity stock) {
+        for (ResourceName resource : ResourceName.values()) {
+            setBaseline(stock, resource, getStock(stock, resource));
+        }
     }
 
     private double getPrice(MarketEntity market, ResourceName resource) {
@@ -530,6 +645,74 @@ public class MarketService {
         }
     }
 
+    private double getBaseline(MarketStockEntity stock, ResourceName resource) {
+        return switch (resource) {
+            case SUGAR -> stock.getSugarStockBaseline();
+            case FLOUR -> stock.getFlourStockBaseline();
+            case EGGS -> stock.getEggsStockBaseline();
+            case BUTTER -> stock.getButterStockBaseline();
+            case CHOCOLATE -> stock.getChocolateStockBaseline();
+            case MILK -> stock.getMilkStockBaseline();
+        };
+    }
+
+    private void setBaseline(MarketStockEntity stock, ResourceName resource, double baseline) {
+        double safeBaseline = Math.max(STOCK_EPSILON, baseline);
+        switch (resource) {
+            case SUGAR -> stock.setSugarStockBaseline(safeBaseline);
+            case FLOUR -> stock.setFlourStockBaseline(safeBaseline);
+            case EGGS -> stock.setEggsStockBaseline(safeBaseline);
+            case BUTTER -> stock.setButterStockBaseline(safeBaseline);
+            case CHOCOLATE -> stock.setChocolateStockBaseline(safeBaseline);
+            case MILK -> stock.setMilkStockBaseline(safeBaseline);
+        }
+    }
+
+    /**
+     * Laesst die Baseline einer Ressource pro Zufalls-Tick ein Stueck Richtung initialStock
+     * zerfallen (reiner Anker-Zerfall gegen einen fixen Zielwert, unbedingt stabil -- siehe
+     * {@link MarketConfig#getStockBaselineTimeConstantSeconds()}). Die Baseline selbst wird nur
+     * durch echte Trades verschoben ({@link #applyTradeToBaseline}), nie durch dieses Rauschen --
+     * sonst koennte reines Hintergrundrauschen die Baseline unbegrenzt wegtreiben.
+     *
+     * @return die aktualisierte Baseline
+     */
+    private double decayBaselineTowardAnchor(MarketStockEntity stock, ResourceName resource) {
+        double initialStock = getInitialStock(resource);
+        double baseline = getBaseline(stock, resource);
+        if (baseline <= 0) {
+            baseline = initialStock;
+        } else {
+            double dtSeconds = marketConfig.getUpdateIntervalMs() / 1000.0;
+            double tau = Math.max(1.0, marketConfig.getStockBaselineTimeConstantSeconds());
+            double alpha = 1.0 - Math.exp(-dtSeconds / tau);
+            baseline = baseline + alpha * (initialStock - baseline);
+        }
+        setBaseline(stock, resource, baseline);
+        return baseline;
+    }
+
+    /**
+     * Verschiebt die Baseline anteilig um die Stock-Aenderung eines echten Trades
+     * ({@link MarketConfig#getStockBaselineTradeTransferRatio()}). Dadurch "merkt" sich der
+     * Markt anhaltendes Kaufen/Verkaufen als neue vorlaeufige Gleichgewichtslage, statt dass der
+     * Preis-Effekt sofort durch den naechsten Zufalls-Tick wieder wegkorrigiert wird -- klingt
+     * ueber {@link #decayBaselineTowardAnchor} langsam von selbst wieder ab.
+     */
+    private void applyTradeToBaseline(MarketStockEntity stock, ResourceName resource, double oldStock, double newStock) {
+        double baseline = getBaseline(stock, resource);
+        if (baseline <= 0) {
+            baseline = oldStock;
+        }
+        baseline = baseline + marketConfig.getStockBaselineTradeTransferRatio() * (newStock - oldStock);
+        setBaseline(stock, resource, baseline);
+    }
+
+    private double totalUserResources(UserEntity user) {
+        return user.getSugar() + user.getFlour() + user.getEggs()
+             + user.getButter() + user.getChocolate() + user.getMilk();
+    }
+
     private double getResourceFromUser(UserEntity user, ResourceName resource) {
         return switch (resource) {
             case SUGAR -> user.getSugar();
@@ -562,6 +745,7 @@ public class MarketService {
         dto.setButter(entity.getButter());
         dto.setChocolate(entity.getChocolate());
         dto.setMilk(entity.getMilk());
+        dto.setTotalResourceCap(buildingService.getTotalCap(entity.getSteamId()));
         return dto;
     }
 }

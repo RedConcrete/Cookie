@@ -1,0 +1,22 @@
+{
+  "title": "REZEPTBUCH",
+  "sugar": "Zucker",
+  "flour": "Mehl",
+  "eggs": "Eier",
+  "butter": "Butter",
+  "chocolate": "Schokolade",
+  "milk": "Milch",
+  "ingredientsHeader": "ZUTATEN (×{batches} BATCH)",
+  "ingredientsTotal": "ZUTATEN GESAMT",
+  "bake": "Backen",
+  "sellResources": "Ressourcen verkaufen",
+  "profitDiff": "{sign}{value} C durch Backen",
+  "batches": "Batches",
+  "stockHint": "BESTAND: {stockBatches} MÖGLICH",
+  "selectRecipe": "Rezept auswählen",
+  "starting": "STARTET…",
+  "startBaking": "BACKEN STARTEN",
+  "done": "FERTIG!",
+  "claimCookies": "+{count} COOKIES EINLÖSEN",
+  "claimSuccess": "+{earned} Cookies!"
+}

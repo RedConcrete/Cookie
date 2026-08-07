@@ -1,0 +1,18 @@
+{
+  "title": "CITIZENS",
+  "total": "Total",
+  "assigned": "Assigned",
+  "idle": "Idle",
+  "costPerCitizen": "Cost/Citizen",
+  "needTownHallBefore": "Build the",
+  "townHall": "TOWN HALL",
+  "needTownHallAfter": "first to be able to buy citizens.",
+  "townHallLevel1Slots": "Town Hall level 1 = 4 citizen slots.",
+  "rathausGivesSlots": "Each town hall level grants 4 citizen slots.",
+  "citizenCostHint": "Citizens cost {cost} each",
+  "buyLabel": "BUY",
+  "buyButton": "BUY · {cost}",
+  "wanderersLabel": "{count} WANDERING AROUND",
+  "bought": "{count} citizens bought!",
+  "buyError": "Not enough cookies or error."
+}

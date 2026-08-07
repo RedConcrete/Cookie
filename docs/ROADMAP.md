@@ -1,0 +1,446 @@
+# Cookie — Roadmap & Fix-Liste
+
+Stand: 2026-07-31. Ersetzt keine der Detail-Dokumente (`cookie-game-design.md`,
+`CLAUDE.md`), sondern bündelt alle bekannten offenen Baustellen an einer
+Stelle: Bugs, Aufräumarbeiten, Build/Deployment, Design-Doc-Pflege.
+
+Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
+(Historie), sondern Häkchen setzen und ggf. Datum/Commit ergänzen.
+
+---
+
+## 0. Sofort (Sicherheit / Datenintegrität)
+
+- [ ] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
+  `app.dev-mode=false` schaltet aktuell NUR die Admin-Token-Pflicht scharf
+  (`AdminConfigController`, `AdminController`) sowie Bake-Dauer/Dev-Reset —
+  alle normalen Gameplay-Endpunkte (`game/init`, `farm/*`, `market/*`) nehmen
+  die `steamId` ungeprüft als Parameter entgegen. Jeder Client (curl, o.ä.)
+  kann sich als beliebige `steamId` ausgeben, fremde Ressourcen/Cookies
+  ändern oder im geteilten Markt handeln. `electron/main.js` holt zwar über
+  `steamworks.js` eine echte SteamID vom Client, reicht sie aber nur
+  ungeprüft weiter — keine serverseitige Verifizierung.
+  **Fix (noch offen):** `GetAuthSessionTicket` client-seitig (via
+  `steamworks.js`) + serverseitige Validierung über Steamworks Web API
+  (`ISteamUserAuth/AuthenticateUserTicket`) vor jedem Request, der eine
+  `steamId` entgegennimmt. Für eine geschlossene Freundes-Beta (kleine,
+  vertraute Testgruppe, kein Fremd-Traffic) vorerst zurückgestellt —
+  zwingend vor jedem Early-Access-/Public-Release nachholen.
+
+- [ ] **Browser-Zugang (ohne Electron) — Steam OpenID-Login.**
+  Aktuell nur über Electron+`steamworks.js` spielbar; der Web-Fallback in
+  `App.vue` (kein `window.electronAPI`) nutzt nur `DEV_PLAYER_001` bei
+  `dev-mode=true` — kein echter Login im Browser. Separater Mechanismus
+  von obigem Ticket-Auth-Punkt: Steam OpenID (`login.steampowered.com/openid`,
+  klassisches "Sign in through Steam"-Redirect), läuft komplett im Browser,
+  kein natives SDK nötig. Server verifiziert die OpenID-Antwort → echte
+  SteamID. Achtung: OpenID bestätigt nur die Identität, nicht den
+  Spielbesitz — für Kaufpflicht zusätzlich Ownership-Check über die Steam
+  Web API (`CheckAppOwnership` o.ä.) mit der verifizierten SteamID. Eigener
+  Implementierungsaufwand, kommt on top zum Ticket-Auth-Punkt oben, nicht
+  parallel nebenbei einflicken.
+
+- [x] **Negative-Amount-Exploit im Markt (kritisch).** — behoben 2026-08-02.
+  `MarketService.performAction()` prüfte `amount` nie auf `> 0`. Ein `BUY`
+  mit negativem `amount` machte die Kosten negativ → Cookie-Duplizierung;
+  ein `SELL` mit negativem `amount` erzeugte Ressourcen aus dem Nichts.
+  **Fix:** `amount <= 0` wird jetzt serverseitig in `performAction()`
+  abgelehnt (400), zusätzlich `@Positive` auf `ResourceDto.amount` +
+  `@Valid` durchgereicht als zweite Verteidigungslinie. Bonus: das
+  Marktpreismodell wurde in derselben Session komplett auf ein
+  Constant-Product-AMM umgebaut (kein linearer Preiseinfluss mehr) —
+  Details jetzt in `cookie-game-design.md` Abschnitt 6.
+  Betrifft: `MarketService.java`, `ResourceDto.java`,
+  `MarketRequestDto.java`, `MarketController.java`,
+  neu: `exception/GlobalExceptionHandler.java` (fängt seither auch alle
+  anderen `IllegalArgumentException`/`IllegalStateException`-Validierungsfehler
+  im ganzen Backend sauber als 400 statt als rohen 500 ab).
+
+- [x] **Swagger UI + dev API-Tester öffentlich erreichbar (kritisch).** —
+  behoben 2026-08-03, direkt beim ersten produktiven Rollout aufgefallen.
+  `/swagger-ui/index.html` und `/v3/api-docs` waren ungeschützt live und
+  erlaubten es jedem, die komplette API — inklusive `/api/v1/admin/market/reset`
+  — direkt im Browser zu erkunden und auszuführen. Zusätzlich lag unter
+  `static/index.html` ein alter manueller "API Tester" mit Buttons zum
+  Anlegen/Löschen beliebiger User und Markt-Buy/Sell für jede beliebige
+  `userId`, ganz ohne Auth auf der Seite selbst.
+  **Fix:** `springdoc.swagger-ui.enabled=false` + `springdoc.api-docs.enabled=false`
+  in `application.properties`; `static/index.html` entfernt und durch eine
+  harmlose Coming-Soon-Seite ersetzt (kein API-Zugriff von dort). Die
+  Admin-Endpunkte selbst verlangten schon vorher korrekt den Admin-Token —
+  das Problem war die Auffindbarkeit/Bedienbarkeit über Swagger, nicht
+  fehlende Prüfung im Endpunkt. Details: `docs/DEPLOYMENT.md`.
+
+---
+
+## 1. Offene GitHub Issues — Status-Check
+
+Ergebnis einer Code-Verifikation gegen die Issue-Beschreibungen. Vier der
+fünf länger offenen Issues sind entweder gelöst oder durch Rework
+überholt — sollten geschlossen bzw. präzisiert werden, damit das Issue-Board
+wieder den Ist-Zustand widerspiegelt.
+
+| Issue | Titel | Verdikt | Aktion |
+|---|---|---|---|
+| [#19](https://github.com/RedConcrete/Cookie/issues/19) | Markt-Server-Logik unklar | **Größtenteils erledigt**, aber der Negative-Amount-Bug (Abschnitt 0) ist genau die Art Lücke, die das Issue meinte | Nach Fix von Abschnitt 0 schließen, mit Verweis auf Commit |
+| [#21](https://github.com/RedConcrete/Cookie/issues/21) | Ressourcenauswahl kaputt | **Überholt.** Die im Issue gemeinte alte UI (`MarketTable.vue`, `TradePanel.vue`) wird nirgends mehr importiert — totes Code. Aktuelles `MarketView.vue` hat pro Ressource eigene Buy/Sell-Buttons, Chart-Hover hebt die passende Zeile korrekt hervor (`PriceChart.vue` → `hover-resource` Event) | Issue schließen; toten Code entfernen (Abschnitt 2) |
+| [#22](https://github.com/RedConcrete/Cookie/issues/22) | Upgrade-Kauf clientseitig (Security) | **Erledigt.** `UpgradeService.buyUpgrade()` ist `@Transactional`, berechnet Kosten serverseitig neu, prüft Guthaben/Max-Level. Frontend zeigt nur Server-Werte an, wendet nichts lokal an | Issue schließen |
+| [#24](https://github.com/RedConcrete/Cookie/issues/24) | Markt-Graph unübersichtlich | **Vermutlich erledigt** durch den Graph-Rework (Serien-Toggle, %-Modus, Zoom/Pan mit Limits, Label-Overlap-Fix in `PriceChart.vue`) | Visuell im Browser gegenchecken, dann schließen |
+| [#14](https://github.com/RedConcrete/Cookie/issues/14) | Linux-Build kaputt | **Nicht abschließend geklärt.** `mvnw` ist in Git mit `100755` committet (korrekt). `steamworks.js@0.4.0` bringt vorkompilierte Linux/Win/Mac-Binaries mit (kein Cross-Compile nötig). Root Cause vermutlich Build-Maschine (fehlende `electron-builder`/AppImage-Systemdeps oder Wine-Interferenz bei `build:all`), nicht das Repo selbst | `npm run build:linux` mit `--publish=never` einmal isoliert (ohne `build:win` parallel) laufen lassen, echten Fehler einsammeln, dann neu bewerten |
+
+Zusätzlich offen, nicht im Scope dieser Session geprüft:
+[#27](https://github.com/RedConcrete/Cookie/issues/27) (Steam-Lib-Bild),
+[#25](https://github.com/RedConcrete/Cookie/issues/25) (Lautstärke-Settings-Popup),
+[#23](https://github.com/RedConcrete/Cookie/issues/23) (dynamische Button-Freischaltung nach Fortschritt),
+[#20](https://github.com/RedConcrete/Cookie/issues/20) (SSL/HTTPS Server↔Client),
+[#18](https://github.com/RedConcrete/Cookie/issues/18) (Tooltip-Beschreibungen),
+[#17](https://github.com/RedConcrete/Cookie/issues/17) (Asset-Credits),
+[#15](https://github.com/RedConcrete/Cookie/issues/15) (Marktverlauf-Hover-Highlight — technisch schon in `PriceChart.vue` vorhanden, prüfen ob damit erledigt).
+
+---
+
+## 2. Aufräumarbeiten
+
+- [ ] **Unity-Reste entfernen** (aus `CLAUDE.md` übernommen, weiterhin offen):
+  - 153 `.meta`-Dateien, überwiegend unter `frontend/src/assets/`
+  - 51 `.sfk`-Dateien, alle unter `frontend/src/assets/Sounds/RPGsounds/OGG/`
+  - Vor dem Löschen kurz gegenchecken, ob irgendein Build-Schritt sie
+    referenziert (sollte nicht der Fall sein — reine Unity-Editor-Artefakte)
+- [ ] **Toten Frontend-Code entfernen:** `MarketTable.vue` und
+  `TradePanel.vue` — durch `MarketView.vue`/`MarketDialog.vue` ersetzt,
+  keine Referenzen mehr im Code (siehe #21 oben)
+- [ ] **`frontend/src/assets` durchsehen** (214 MB) auf ungenutzte
+  Sprites/Sounds aus der alten Unity-Optik — insbesondere nach dem
+  Pixel-Art-Rework (`2142ecc`, `493354a`) dürften alte Sprite-Sets aus dem
+  vorherigen Look verwaist sein
+- [ ] Große Audio-Assets im Build prüfen (`ElevatorMusic-*.wav` ~16.9 MB,
+  mehrere `.mp3` >3–5 MB) — für Steam-Distribution ok, aber ggf. auf OGG/
+  niedrigere Bitrate umstellen, wenn Downloadgröße relevant wird
+- [ ] **Gebäude-Szenen auf Fruitpunch24-Palette migrieren** (siehe
+  `cookie-game-design.md` Abschnitt 8). Alle aktuellen Gebäude-SVGs
+  (`frontend/src/assets/buildings/*.svg`) sind Platzhalter und nutzen
+  keine der 24 Palette-Farben — bewusst so, werden im Rahmen des
+  UI-Rebuilds nach und nach durch palette-konforme Pixel-Art ersetzt.
+  Neue Referenz-Assets liegen bereits unter
+  `frontend/src/assets/buildings/StorageBuildng/` (Lager-Gebäude,
+  Testbilder, noch nicht verdrahtet).
+
+---
+
+## 3. Design-Dokument aktualisieren
+
+- [x] Erledigt 2026-08-02: `cookie-game-design.md` komplett neu geschrieben
+  als Ist-Stand-Referenz statt Juni-Plan. Alle Systeme (Hof-Grid, Bürger,
+  AMM-Markt, Rezepte/Backen, Upgrades, Net Worth, Prestige, Season,
+  Pixel-Art-UI) beschreiben jetzt den tatsächlichen Code. Bekannte
+  Diskrepanzen (Gebäude fehlen in Net Worth, Season-Reset löscht keine
+  Gebäude, tote Legacy-Frontend-Dateien) stehen dort jetzt explizit in
+  einem eigenen Abschnitt 12 statt implizit unter "offen" zu verschwinden.
+
+---
+
+## 4. Verbleibende Feature-Phasen (laut Design-Doc Abschnitt 15)
+
+Mit Punkt 3 oben neu bewertet, ist praktisch die gesamte Phase 1–6
+implementiert. Was laut Design-Doc noch offen oder nur teilweise
+spezifiziert ist:
+
+- [x] **Lokalisierung DE/EN** — erledigt 2026-08-06. Frontend auf
+  `vue-i18n` umgestellt (Composition API, ein JSON-Locale-Paar pro
+  Komponente unter `frontend/src/i18n/locales/{de,en}/`), Sprachumschalter
+  in `SettingsDialog.vue`, Auswahl persistiert in `localStorage`. Texte aus
+  reinen JS-Datenmodulen (`buildingInfo.js`: Gebäude-/Ressourcennamen)
+  über Key-Referenzen + Resolver-Funktion (`buildingTitle()`/
+  `resourceLabel()`) angebunden, da diese Module keinen eigenen
+  i18n-Kontext haben. Aktuell nur Deutsch/Englisch befüllt, Struktur ist
+  auf weitere Sprachen ausgelegt (neuer `locales/<code>/`-Ordner genügt).
+  Backend-seitige Texte (z. B. Fehlermeldungen, Gebäude-/Item-Namen aus
+  der DB) bleiben deutsch — nicht Teil dieser Umstellung.
+- [x] **Custom Pixel-Scrollbar + Lade-Animation** — erledigt 2026-08-06.
+  Native `::-webkit-scrollbar`-Optik ließ sich nicht auf den exakten
+  3D-Block-Look der Slider (`.sd-slider`) bringen (Browser begrenzt Border/
+  Bevel auf der echten Scrollbar); stattdessen neue Komponente
+  `frontend/src/components/pixel/PixelScrollBox.vue` — versteckt die native
+  Scrollbar, zeichnet Track/Thumb selbst (identischer Border/Bevel wie die
+  Slider), inkl. Drag-to-Scroll und Klick-auf-Track. Ersetzt die alte
+  `.px-scroll`-Utility-Klasse (aus `pixel.css` entfernt) an allen 12
+  Stellen, die vorher scrollten. Neue Lade-Anzeige
+  `frontend/src/components/pixel/LoadingIndicator.vue` (drehendes
+  Cookie-Icon + Punkte-Animation `...`→`..`→`.`→`..`) ersetzt den reinen
+  "Lade..."-Text an allen 7 Ladeanzeigen.
+  **Für neue scrollende Dialoge:** `PixelScrollBox` verwenden statt
+  nativem `overflow:auto` — braucht vom Elternelement eine definierte Höhe
+  (fixe `height`, oder `flex:1 1 auto;min-height:0` in einer Flex-Column
+  mit `max-height` auf dem Container). Wichtige Falle dabei: `flex:1`
+  (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
+  `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
+  verwenden, siehe `SettingsDialog.vue` als Vorbild.
+- [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
+  im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
+  Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)
+  ist also nicht die Ursache; der eigentliche Frontend-Bug (`loading` wird nach
+  erfolgreicher Antwort nicht auf `false` gesetzt) wurde nicht mehr weiter
+  verfolgt, da das Prestige-System laut Spieler ohnehin nicht in der aktuellen
+  Form bleibt, sondern später neu gebaut wird. Deshalb komplett aus der Spieler-UI
+  entfernt statt gefixt: HUD-Button + `<PrestigeDialog>` aus `FarmGridView.vue`
+  raus, `PrestigeDialog.vue`/`PrestigeView.vue` gelöscht, dazugehörige
+  Locale-Dateien (`prestigeDialog.json`/`prestigeView.json`, de+en) gelöscht.
+  **Bewusst NICHT angetastet:** Backend (`PrestigeService`, `GameController`,
+  `UserEntity`-Felder `prestigeLevel`/`totalPrestiges`), `GameBalanceConfig`
+  inkl. der zugehörigen Felder im `AdminDialog.vue` (Marktdaten-Panel), und
+  `playerStore.prestigeMultiplier` (bleibt bei Default `1`, fließt weiterhin in
+  die Ernte-Formel in `FarmGridView.vue` ein, `loadPrestigeMultiplier()` läuft
+  unverändert beim Player-Init und funktioniert nachweislich). Beim Neubau des
+  Prestige-Systems: diese Altlasten (Backend-Endpoints, Admin-Felder,
+  `prestigeMultiplier`-Anbindung) sind noch da und wiederverwendbar, statt von
+  Null anzufangen.
+  **Konkretisierte Neubau-Richtung (2026-08-07):** kein flacher Multiplikator
+  mehr auf alles (aktuelles `prestigeMultiplierPerLevel`-Modell), sondern
+  gezielt auf einzelne Ressourcen wirkend, um unterschiedliche Spielweisen zu
+  unterstützen (ähnliches Prinzip wie `targetResource` im Skill-Baum, siehe
+  Abschnitt 9 im Design-Doc). Deshalb auch die `PRESTIGE ×1.00`-Kachel wieder
+  aus dem neuen Statistik-Dialog entfernt (`StatsView.vue`,
+  `PlayerStatsDto#prestigeMultiplier` samt Backend-Berechnung in
+  `NetWorthService#getStats()` raus) — hätte ein Modell gezeigt, das eh bald
+  nicht mehr stimmt. Kommt neu rein, sobald das tatsächliche System steht.
+- [ ] **Balancing** — alle Platzhalter-Zahlen (sellFeeRate aktuell `0.05`
+  fix im Code, Prestige-Schwelle/Multiplikator, Rezept-Mengen/Output/
+  Backzeit, Skill-Baum-Effektwerte/Skill-Punkt-Kostenkurve) sind nie in
+  einer echten Testphase durchgespielt worden. Nächster sinnvoller Schritt
+  vor Early-Access: ein bis zwei interne Testrunden, dann Werte in
+  `MarketConfig`, `RecipeEntity`-Seeds, `SkillNodeEntity`-Seeds nachziehen
+- [ ] **Kosmetik-System** — Design-Doc Abschnitt 11 lässt bewusst offen,
+  was "freigeschaltete Kosmetik" konkret bedeutet (Titel? Rahmen? Icons?).
+  `PlayerCosmeticEntity` als Datenmodell vorgesehen, aber ohne konkrete
+  Inhalte nicht sinnvoll baubar — Design-Entscheidung nötig, bevor hier
+  Code entsteht
+- [ ] **Season-Automatisierung** — aktuell rein manuell ausgelöst
+  (`AdminController`). Falls das Spiel produktiv läuft, überlegen ob ein
+  Scheduler (`SeasonScheduler`, analog `MarketScheduler`) mit konfigu-
+  rierbarem Intervall sinnvoller ist als "Dev drückt manuell einen Knopf"
+- [ ] **Echtes Steam-Avatar im Profil.** Seit 2026-08-04 zeigt `PlayerProfileView.vue`
+  den echten Steam-Anzeigenamen (`steamworks.js` `localplayer.getName()`, wird bei
+  jedem Login serverseitig auf `UserEntity.displayName` resynct). Das Profilbild
+  ist aber weiterhin ein Pixel-Icon-Platzhalter — `steamworks.js@0.4.0` hat keine
+  Avatar-API (auch nicht auf `main` im Repo geprüft, Stand 2026-08-04). Für ein
+  echtes Bild: Steam Web API (`ISteamUser/GetPlayerSummaries/v2`) serverseitig
+  mit einem Web-API-Key (https://steamcommunity.com/dev/apikey) aufrufen,
+  `avatarfull`-URL am `UserEntity` cachen. Key als Server-Secret, nie committen.
+- [ ] **Steam-Deck-Controller-Steuerung.** Angefragt 2026-08-04 nach erstem
+  Test auf echtem Steam Deck. Teilweise umgesetzt:
+  - [x] **Linker Stick pannt die Kamera** — erledigt 2026-08-05.
+    `FarmGridView.vue` liest `navigator.getGamepads()` im selben rAF-Loop wie
+    WASD (`camTick`), gleiche Geschwindigkeit/Clamping/Settings-Anbindung
+    (`useCameraControls`) wie die Tastatur. Aktiviert sich automatisch über
+    `gamepadconnected` (Browser meldet das erst nach echter Eingabe am
+    Controller — passt zu "wenn ein Controller genutzt wird"), kein
+    Deck-spezifischer Erkennungs-Code nötig dafür.
+  - **Erkennung:** `steamworks.js` bringt `isSteamRunningOnSteamDeck()`
+    fertig mit (`client.d.ts`) — automatischer Check beim Start in
+    `electron/main.js`, Ergebnis per IPC (analog `steam-auth`) ans Frontend
+    durchreichen, z.B. `steam-deck-mode` Event oder Teil des bestehenden
+    `steam-auth`-Payloads.
+  - **Fadenkreuz-Modus (Standard auf Deck):** Crosshair fix in Bildschirm-
+    mitte. Kamera-Pan via Stick ist jetzt da (s.o.) — offen ist noch der
+    Crosshair selbst: Position bleibt zentriert, die Welt bewegt sich
+    darunter.
+  - **Interaktion:** Wenn Crosshair über einem Gebäude steht und Spieler
+    A drückt → selbes Verhalten wie Klick (`BuildingFrame.vue` `@open`).
+    Braucht Hit-Test von Bildschirmmitte gegen die aktuell sichtbaren
+    Gebäude-Bounding-Boxes.
+  - **Umschalten Fadenkreuz ↔ Maus:** Klick auf linken Stick (L3) togglet
+    Modus. Im Maus-Modus steuert der linke Stick einen echten Mauszeiger
+    (Standard-Gamepad-zu-Maus-Verhalten), damit UI-Buttons/Dialoge normal
+    bedienbar bleiben, die kein Gamepad-Konzept haben.
+  - Braucht generell: Gamepad-Input-Handling im Frontend (`Gamepad API` des
+    Browsers reicht i.d.R., kein natives SDK nötig), neuer Composable
+    (z.B. `useGamepadCursor.js`) analog zu `useHotkeys.js`.
+  Zurückgestellt, User will das später angehen.
+- [x] **Passiver Skill-Baum ersetzt Upgrade-System (2026-08-06).** Das alte
+  3-Upgrade-Regal (`boost_harvest`, `boost_harvest_speed`, `boost_bake`) war
+  kaum ein Cookie-Sink und bot keine echte Wahl. Komplett ersetzt durch
+  einen Path-of-Exile-artigen Passiv-Baum (18 Knoten + Wurzel, 4 Zweige:
+  MILK/BAKING/MARKET/CORE) mit PoE-Konnektivitätsregel — Details:
+  `cookie-game-design.md` Abschnitt 9. Alte `UpgradeEntity`/
+  `PlayerUpgradeEntity`/`UpgradeService`/`UpgradeController` samt Frontend
+  (`UpgradeDialog.vue`/`UpgradeShopView.vue`) vollständig entfernt,
+  `upgradeValue` überall zu `skillTreeValue` umbenannt (Net Worth, DTOs,
+  `NetWorthHistoryEntity`). Zwei bewusst zurückgestellte Folgepunkte:
+  - [ ] **Anti-Cheat-Re-Verifikation für Skill-Allokationen.** Der
+    Allokations-Endpunkt prüft die Konnektivität nur beim Freischalten
+    selbst — es gibt keinen periodischen Job, der bestehende
+    `player_skill_nodes`-Zeilen im Nachhinein erneut gegen die Kanten
+    validiert (z. B. nach einem manuellen DB-Eingriff oder einem Bug in
+    einer früheren Version). Vor Public-Release nachholen, analog zu
+    anderen serverseitigen Integritätschecks.
+  - [ ] **Prestige-Bonuspunkte.** Ursprünglich angedacht: Prestige gibt
+    +3 Skill-Punkte on top des normalen Resets. Bewusst außerhalb des
+    Scopes beim Erstbau des Skill-Baums (Prestige-UI ist ohnehin gerade
+    aus dem Frontend entfernt, siehe Eintrag oben) — beim Prestige-Neubau
+    mit einplanen.
+- [x] **Skill-Baum-UI-Nachbesserungen nach erstem Live-Test (2026-08-06).**
+  Direktes Feedback beim ersten Ausprobieren im Browser:
+  - Tooltip-Popups öffneten sich immer oben rechts in der Ecke statt am
+    gehoverten Knoten. Ursache: `PixelInfoPopover` positioniert sich über
+    `getBoundingClientRect()` seines eigenen Wrapper-Divs (`pip-wrap`) — die
+    Knoten-Koordinaten wurden aber nur auf den inneren `<button>` gelegt,
+    nicht auf den Popover-Wrapper selbst. Da `pip-wrap` (kein eigenes Layout,
+    `width:100%`) dadurch für alle 19 Knoten am gleichen Fleck (oben,
+    volle Breite, Höhe 0) im Dokumentfluss landete, zeigte jedes Popup zur
+    selben Stelle. **Fix:** Positionierung (`position:absolute;left;top`)
+    jetzt direkt per `:style` auf `<PixelInfoPopover>` selbst statt auf den
+    Button (Vue reicht `style`/`class` an die Root-Node der Kind-Komponente
+    durch, inkl. Scoped-CSS-Attribut vom Elternteil).
+  - Skill-Punkte-Kauf-Leiste war eine volltransparente Kopfzeile über dem
+    Baum — jetzt ein schwebendes, zentriertes HUD-Element über der Canvas
+    (`.stv-buy-hud`), kein Platz mehr vom Canvas abgezogen.
+  - Zentrieren-Button war nur ein winziges, unbeschriftetes Icon in der Ecke
+    der alten Kopfzeile — jetzt wie in `FarmGridView.vue`s Kamerasteuerung
+    ein deutlich sichtbarer Button mit Text-Hinweis, unten links über der
+    Canvas.
+  - Skill-Punkt-Kosten deutlich angehoben (`skillPointBaseCost` 50→150,
+    `skillPointCostGrowth` 1.15→1.4, siehe Balancing-Punkt oben) — war zu
+    billig/flach für den Haupt-Cookie-Sink. Im Gegenzug alle Knoten-
+    Effektwerte auf ca. ein Drittel reduziert (z. B. `milk_4` +30%→+10%,
+    `bake_4` +12%→+5%) — der Baum soll vom Sammeln vieler Punkte über
+    längere Spielzeit leben, nicht von wenigen Käufen mit riesigem
+    Einzeleffekt. Beide Änderungen live per Admin-API auf den laufenden
+    Dev-Server angewendet (kein Neustart nötig, `GameBalanceConfig` +
+    `SkillNodeEntity` sind zur Laufzeit editierbar) und im Java-Seed-Code
+    nachgezogen, damit künftige Frisch-Installationen dieselben Werte
+    bekommen.
+  - Zusätzlich beim Nachbessern gefunden: `NetWorthHistoryEntity`-Umbenennung
+    (`upgradeValue`→`skillTreeValue`) ließ Hibernates `ddl-auto=update` an
+    einer bereits befüllten `networth_history`-Tabelle scheitern (`ALTER
+    TABLE ADD COLUMN ... NOT NULL` auf Zeilen mit Bestandsdaten schlägt
+    fehl) — der alle-30s-Snapshot-Job crashte seitdem endlos im Hintergrund.
+    Tabelle ist reine Verlaufshistorie (DB laut Vereinbarung disposable) →
+    einmalig per `DROP TABLE networth_history;` bereinigt, Hibernate legt
+    sie beim nächsten Start korrekt neu an. **Für künftige Spalten-
+    Umbenennungen an schon befüllten Tabellen:** entweder vorher
+    `DROP TABLE`/-Spalte, oder Feld erst mit `@Column(nullable=true)`
+    einführen und in einem zweiten Schritt auf `NOT NULL` umstellen, sonst
+    bricht `ddl-auto=update` an der Bestandsdaten-Migration ab.
+- [x] **HUD-Rechtsseite in Dropdown-Menü zusammengefasst + Admin-Dialog
+  entfernt (2026-08-06).** Die einzelnen HUD-Buttons (DEV-Reset, Admin,
+  Skill-Baum, Rangliste, Avatar/Profil) sind jetzt ein einziger
+  Hamburger-Button (`FarmGridView.vue`), der ein Pixel-Art-Dropdown öffnet:
+  Profil, Skill-Baum, Rangliste, Einstellungen, dazu DEV-Reset nur im
+  Dev-Modus. Schließt bei Klick außerhalb (`mousedown`-Listener auf
+  `document`) oder nach Auswahl eines Eintrags. `AdminDialog.vue` +
+  zugehörige Locale-Dateien (`adminDialog.json` de/en) komplett gelöscht —
+  der Spieler-seitige Zugriff auf Live-Balance-Config/Skill-Node-CRUD war
+  als versehentlich klickbarer Button zu riskant für die Beta.
+  **Bewusst nicht angetastet:** die Backend-Endpunkte selbst
+  (`AdminConfigController`, `AdminController`) bleiben bestehen und weiter
+  per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
+- [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
+  Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
+  Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`
+  vor dem Ansammeln-Redesign weiter unten) automatisch zum aktuellen
+  Marktpreis in Cookies umgewandelt, sobald das Lager voll war — fühlte sich
+  wie ein unsichtbarer Dauer-Verkauf an, nicht wie eine bewusste
+  Spielerentscheidung. Jetzt wird Überschuss schlicht nicht mehr
+  gutgeschrieben (weder Ressource noch Cookies). Frontend-Feedback dazu:
+  Hover-Ring auf Produktionsgebäuden wird rot statt grün
+  (`BuildingFrame.vue`, neuer `blocked`-Prop), kurzes Popover ("Lager voll")
+  beim Hover, Gebäude optisch gedimmt wie bei nicht bezahlbarem Lohn
+  (`.building-idle`, `FarmGridView.vue`s neuer `isStorageFull`-Computed).
+  Alte "Auto-Verkauf"-Beschreibung aus `LagerDialog.vue` und
+  `buildingInfo.js` (Gebäude-Hover-Popup) entfernt, war ohnehin größtenteils
+  nur Text ohne echte Anbindung im letzteren Fall.
+  **Folgearbeit (bewusst zurückgestellt):** ein echter Ausgleich für volles
+  Lager (z. B. Ressourcen-Umwandlung, Lager-Overflow-Puffer, o.ä.) als
+  größere Mechanik im Skill-/Passiv-Baum (Abschnitt 9 im Design-Doc) statt
+  des pauschalen automatischen Verkaufs — noch nicht spezifiziert, Spieler
+  will das gezielt als Skill-Baum-Feature designen statt es hier nebenbei
+  mitzulösen.
+- [x] **Start-Balance-Bug: Lager sofort überfüllt (2026-08-07).** Jeder neue
+  Spieler startete mit 1000 von jeder der 6 Rohstoff-Ressourcen (6000
+  insgesamt) bei nur 1100 Lagerkapazität — schon vor dem ersten Klick 5-fach
+  überfüllt (`player.initial-sugar` etc. in `application.properties` standen
+  auf 1000 statt 0, vermutlich ein Leftover). **Fix:** Startressourcen auf 0,
+  Start-Cookies 100→400 (reicht für genau eines der drei günstigsten
+  Produktionsgebäude, nicht für alle), plus 1 kostenloser Skill-Punkt bei
+  Accounterstellung (`player.initial-skill-points`, neues `PlayerConfig`-
+  Feld) — macht den Skill-Baum von Anfang an Teil der ersten strategischen
+  Entscheidung. Details: `cookie-game-design.md` Abschnitt 4.
+  **Hinweis für den Live-Server:** falls dort `balance.base-storage-cap`
+  jemals per Admin-API auf einen abweichenden Wert gesetzt wurde, überschreibt
+  das die neuen `application.properties`-Defaults erst nach einem Neustart
+  des Backends (der Wert liegt nur im Speicher, nicht in der DB).
+- [x] **Statistik-Dialog (2026-08-07).** Neuer Vollbild-Dialog (Hauptmenü →
+  "Statistiken", `StatsDialog.vue`/`StatsView.vue`) mit Wirtschafts-Übersicht,
+  Produktions-Tabelle + aktiven Skill-Baum-Boni und Lifetime-Zählern
+  (geerntete Menge pro Ressource, Markt-Umsatz gekauft/verkauft). Neue
+  `UserEntity`-Felder + `GET /api/v1/players/{steamId}/stats`. Details:
+  `cookie-game-design.md` Abschnitt 10.
+  **Zurückgestellte Idee aus derselben Session:** Crit-Chance beim Ernten/
+  Backen (Chance auf überproportionalen Bonus-Ertrag) — vom Spieler explizit
+  auf "später" verschoben, noch keine Spezifikation (Chance-Wert, Multiplikator,
+  eigener Skill-Baum-Zweig?). Aufgreifen, wenn die Statistik-Basis (Lifetime-
+  Zähler) schon steht, um Crit-Ausbeute dort mitzuzählen.
+- [x] **Passive Produktion: Ansammeln + manuell einsammeln statt 5s-Server-
+  Tick (2026-08-07).** Bug: `PassiveIncomeScheduler` schrieb alle 5s im
+  Hintergrund direkt in `UserEntity`-Ressourcen, für JEDEN je registrierten
+  Spieler, unabhängig von Aktivität — das Frontend erfuhr davon nichts, bis
+  irgendein anderer API-Call (meist die Hover-Ernte-Sync alle 3s) zufällig
+  einen vollen `UserInformationDto`-Snapshot zurückgab und alle 6 Ressourcen
+  auf einmal überschrieb. Sah für Spieler wie ein Ressourcen-Sprung beim
+  Hovern aus, war aber angesammeltes, unsichtbares Hintergrund-Einkommen.
+  **Fix:** jedes Produktionsgebäude sammelt jetzt selbst an
+  (`PlayerBuildingEntity#pendingAmount`/`lastSettledAt`), gedeckelt durch
+  eine neue gebäudeeigene `storageCapacity` (`BuildingService#BuildingDef`)
+  — bei voller Lagerung stoppt die Produktion, bis eingesammelt wird (wie
+  eine Miete). `PassiveIncomeScheduler` komplett entfernt; Fortschritt wird
+  lazy über `BuildingService#settle()` berechnet, ausgelöst nur bei
+  tatsächlichen Ereignissen (Lesen fürs Anzeigen — ohne Persistieren,
+  Einsammeln, Arbeiter-/Stufen-Änderung, Lohn-Idle-Wechsel im ohnehin
+  laufenden 60s-`WageScheduler`). Einsammeln über neuen Endpoint
+  `POST /api/v1/farm/buildings/collect/{userId}/{buildingId}`
+  (`PassiveIncomeService#collectBuilding`, ersetzt das alte `creditUser`),
+  erreichbar per Klick-Badge direkt auf der Hofkarte (kein Dialog nötig,
+  `BuildingFrame.vue`) oder über einen Button im Gebäude-Dialog
+  (`BuildingDetailDialog.vue`). `GameBalanceConfig#passiveTickSeconds`
+  entfernt (kein fester Tick mehr). Details: `cookie-game-design.md`
+  Abschnitt 5.
+  **Zurückgestellte Idee aus derselben Session:** ein "Alles einsammeln"-
+  Sammel-Button — vom Spieler explizit auf später verschoben, könnte im
+  Rathaus-Dialog (und ggf. anderswo) landen, sobald der Bedarf (viele
+  Gebäude gleichzeitig voll) tatsächlich auftritt.
+- [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
+  (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
+  "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert
+  aus dem Umfang der bisherigen Polish-Arbeit (Pixel-Icons, Sound, Hotkeys,
+  frei verschiebbare Gebäude), nicht explizit vom Dev bestätigt. Falls doch
+  noch PixiJS/Phaser mit freier Kamera geplant ist: Design-Doc Abschnitt 8
+  entsprechend zurückstufen.
+
+---
+
+## 5. Build & Deployment (aus `CLAUDE.md` übernommen, weiter aktuell)
+
+- [ ] **Steam-Upload vorbereiten** — Windows-Build testen
+  (`npm run build:win`), `app_build_2816100.vdf` mit AppID 2816100 und
+  Depots für Windows-Client + Server-Binary anlegen, Upload zuerst auf
+  Steam-Branch "beta"
+- [x] **Server-Deployment** — erledigt 2026-08-03. Backend + PostgreSQL
+  laufen produktiv via Docker Compose hinter einem TLS-terminierenden
+  Reverse Proxy, `app.dev-mode=false`, unter `https://cookie.r3dconcrete.de`.
+  Details, Env-Var-Referenz und Sicherheitshinweise: `docs/DEPLOYMENT.md`.
+- [x] **HTTPS zwischen Client und Server** (Issue #20) — erledigt 2026-08-03,
+  im Rahmen des Server-Deployments oben. Let's-Encrypt-Zertifikat über den
+  Reverse Proxy, `VITE_API_BASE_URL`/`VITE_WS_URL` in
+  `frontend/.env.production` auf `https://`/`wss://` umgestellt.
+
+---
+
+## 6. Kleinkram (aus dieser Session, bereits behoben)
+
+Nur als Gedächtnisstütze, kein offener Task mehr:
+
+- ~~`start.sh` hardcodete einen nicht existenten Linuxbrew-JAVA_HOME-Pfad~~
+  → jetzt Auto-Detect via `which java`
+- ~~`mvnw` hatte kein Ausführungsrecht auf dieser Maschine~~ → `chmod +x`
+  gesetzt (in Git bereits korrekt mit `100755` hinterlegt, war ein rein
+  lokales Checkout-Problem)

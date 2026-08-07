@@ -1,0 +1,18 @@
+{
+  "pond": "SUGAR POND",
+  "ofen": "OVEN",
+  "rathaus": "TOWN HALL",
+  "markt": "MARKET",
+  "lager": "WAREHOUSE",
+  "hof": "FARM",
+  "huhn": "CHICKEN COOP",
+  "butter": "BUTTER CHURN",
+  "kakao": "PLANTATION",
+  "kuh": "COW BARN",
+  "resourceSugar": "Sugar",
+  "resourceFlour": "Flour",
+  "resourceEggs": "Eggs",
+  "resourceButter": "Butter",
+  "resourceChocolate": "Chocolate",
+  "resourceMilk": "Milk"
+}

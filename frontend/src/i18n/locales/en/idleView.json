@@ -1,0 +1,9 @@
+{
+  "resourceSugar": "Sugar",
+  "resourceFlour": "Flour",
+  "resourceEggs": "Eggs",
+  "resourceButter": "Butter",
+  "resourceChocolate": "Chocolate",
+  "resourceMilk": "Milk",
+  "hoverHint": "+1/s on hover"
+}

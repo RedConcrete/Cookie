@@ -3,16 +3,20 @@ package cookie.server.dto;
 public class LeaderboardEntryDto {
     private int rank;
     private String steamId;
+    private String displayName;
     private double netWorth;
     private double cookies;
     private double resourceValue;
-    private double upgradeValue;
+    private double skillTreeValue;
 
     public int getRank() { return rank; }
     public void setRank(int rank) { this.rank = rank; }
 
     public String getSteamId() { return steamId; }
     public void setSteamId(String steamId) { this.steamId = steamId; }
+
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
 
     public double getNetWorth() { return netWorth; }
     public void setNetWorth(double netWorth) { this.netWorth = netWorth; }
@@ -23,6 +27,6 @@ public class LeaderboardEntryDto {
     public double getResourceValue() { return resourceValue; }
     public void setResourceValue(double resourceValue) { this.resourceValue = resourceValue; }
 
-    public double getUpgradeValue() { return upgradeValue; }
-    public void setUpgradeValue(double upgradeValue) { this.upgradeValue = upgradeValue; }
+    public double getSkillTreeValue() { return skillTreeValue; }
+    public void setSkillTreeValue(double skillTreeValue) { this.skillTreeValue = skillTreeValue; }
 }

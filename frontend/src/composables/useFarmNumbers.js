@@ -4,7 +4,7 @@ const numbers  = ref([])
 const stacks   = {}
 let nextId = 0
 
-const COLORS = ['#E24B4A', '#ef9f27', '#D4537E', '#7F77DD', '#1D9E75']
+const COLORS = ['#e67146', '#c78539', '#e67a84', '#6f6e72', '#2a7d75']
 const SIZES  = [14, 16, 18, 20, 22]
 
 const RISE_DURATION  = 0.45
@@ -14,9 +14,9 @@ const TOTAL_DURATION = RISE_DURATION + HOLD_DURATION + FADE_DURATION
 const RISE_PX        = 135
 const STACK_STEP     = 0
 
-export function spawnFarmNumber(value, x, y, { crit = false, color = null } = {}) {
+export function spawnFarmNumber(value, x, y, { crit = false, color = null, icon = null } = {}) {
   const id    = nextId++
-  const c     = crit ? '#E24B4A' : (color ?? COLORS[Math.floor(Math.random() * COLORS.length)])
+  const c     = crit ? '#e67146' : (color ?? COLORS[Math.floor(Math.random() * COLORS.length)])
   const size  = crit ? 24 : SIZES[Math.floor(Math.random() * SIZES.length)]
 
   // Horizontaler Drift: ±60px
@@ -35,6 +35,7 @@ export function spawnFarmNumber(value, x, y, { crit = false, color = null } = {}
   numbers.value.push({
     id, key,
     label: '+' + (Number.isInteger(value) ? value : Number(value).toFixed(1)),
+    icon,
     startX: x, restX,
     startY: y, restY,
     rotate,

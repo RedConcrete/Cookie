@@ -1,0 +1,22 @@
+{
+  "title": "BADGES",
+  "filterAll": "ALL {count}",
+  "filterEvents": "EVENTS {count}",
+  "filterCommunity": "COMMUNITY {count}",
+  "sortHint": "newest first",
+  "dateReceivedLabel": "RECEIVED",
+  "emptyList": "No badges in this category.",
+  "adminTitle": "ADMIN · AWARD BADGES",
+  "adminOnlyBadge": "ADMIN ONLY",
+  "playerLabel": "PLAYER",
+  "playerSearchPlaceholder": "Steam name",
+  "searchBtn": "SEARCH",
+  "templateLabel": "BADGE TEMPLATE",
+  "eventReasonLabel": "EVENT / REASON",
+  "notePlaceholder": "e.g. Summer Sprint · 1st place",
+  "dateFieldLabel": "Date",
+  "dateHint": "shown on the profile",
+  "grantBtn": "AWARD",
+  "revokeBtn": "REVOKE",
+  "adminHint": "Awarded badges show up immediately in the player's display case, with date and event name. Templates can be linked so event winners can be recognized in just a few clicks."
+}

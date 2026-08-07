@@ -1,0 +1,18 @@
+{
+  "pond": "ZUCKERTEICH",
+  "ofen": "BACKOFEN",
+  "rathaus": "RATHAUS",
+  "markt": "MARKT",
+  "lager": "LAGER",
+  "hof": "BAUERNHOF",
+  "huhn": "HÜHNERHOF",
+  "butter": "BUTTEREI",
+  "kakao": "PLANTAGE",
+  "kuh": "KUHSTALL",
+  "resourceSugar": "Zucker",
+  "resourceFlour": "Mehl",
+  "resourceEggs": "Eier",
+  "resourceButter": "Butter",
+  "resourceChocolate": "Schokolade",
+  "resourceMilk": "Milch"
+}

@@ -1,4 +1,4 @@
-const WS_URL = 'ws://localhost:9876/ws-market'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:9876/ws-market'
 const RECONNECT_DELAY_MS = 3000
 
 let socket = null
