@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Build Windows client') {
+            steps {
+                dir('frontend') {
+                    // electron-builder baut win-unpacked/ zuverlaessig, der NSIS-
+                    // Installer-Schritt danach schlaegt in dieser Wine/Xvfb-Umgebung
+                    // aber bekanntermassen fehl (ShellExecuteEx) -- siehe
+                    // docs/DEPLOYMENT.md Abschnitt 5. Fuer Steam wird nur
+                    // win-unpacked/ gebraucht, kein Installer. Deshalb hier den
+                    // Build-Exitcode ignorieren und stattdessen explizit pruefen,
+                    // ob win-unpacked/ tatsaechlich entstanden ist.
+                    sh 'xvfb-run -a npm run build:win || true'
+                    sh '''
+                        if [ ! -d release/win-unpacked ] || [ -z "$(ls -A release/win-unpacked)" ]; then
+                            echo "release/win-unpacked wurde nicht gebaut -- echter Fehler, nicht der bekannte NSIS-Installer-Fail."
+                            exit 1
+                        fi
+                        echo "win-unpacked vorhanden:"
+                        du -sh release/win-unpacked
+                    '''
+                }
+            }
+        }
+
+        stage('Package artifact') {
+            steps {
+                dir('frontend/release') {
+                    sh 'rm -f win-unpacked.zip && zip -qr win-unpacked.zip win-unpacked'
+                }
+                archiveArtifacts artifacts: 'frontend/release/win-unpacked.zip', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'win-unpacked.zip liegt als Build-Artefakt bereit -- Upload auf Steam bleibt manuell (siehe docs/DEPLOYMENT.md Abschnitt 5 / scripts/steam/).'
+        }
+    }
+}
