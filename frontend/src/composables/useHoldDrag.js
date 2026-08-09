@@ -1,12 +1,15 @@
 import { reactive, onUnmounted } from 'vue'
 
 const HOLD_MS = 620
+const TAP_GRACE_MS = 150 // ms -- wait this long before the progress bar even appears, so a quick click never shows it
 const CANCEL_DIST = 6 // px (screen space) — moving this far while still charging aborts the hold
 
 /**
  * Long-press-then-drag mechanic for moving buildings on the Hof grid.
- * Press and hold a building: a progress bar fills over HOLD_MS. Once full,
- * the building is "armed" (green outline) and follows the pointer until release.
+ * Press and hold a building: nothing happens for TAP_GRACE_MS (a plain click
+ * releases inside that window and is treated as a tap, no visible feedback).
+ * Past that, a progress bar fills over HOLD_MS. Once full, the building is
+ * "armed" (green outline) and follows the pointer until release.
  * `dropOk(pos)` decides whether the drop position is valid (bounds / road corridors);
  * an invalid drop snaps back to the last valid position.
  *
@@ -26,6 +29,7 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
   let lastOk = { ...initialPos }
   let raw = { ...initialPos }  // true (unsnapped) cumulative drag position
   let timer = null
+  let graceTimer = null
   let t0 = 0
   let wasArmed = false
   let moved = false
@@ -33,11 +37,13 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
   let downX = 0, downY = 0  // screen-space pointerdown origin, to detect move-away during charge
 
   function clearTimer() { clearInterval(timer); timer = null }
+  function clearGraceTimer() { clearTimeout(graceTimer); graceTimer = null }
 
   // Moving the pointer away while still charging (not armed yet) aborts the
   // hold entirely — it stays aborted even if the button is kept held down.
   function cancelHold() {
     cancelled = true
+    clearGraceTimer()
     clearTimer()
     state.pressing = false
     state.progress = 0
@@ -69,6 +75,7 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
   function onUp() {
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
+    clearGraceTimer()
     clearTimer()
     const ok = dropOk(state.pos)
     if (ok) lastOk = { ...state.pos }
@@ -81,17 +88,11 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
     if (wasTap && onTap) onTap()
   }
 
-  function onPointerDown(e) {
-    e.preventDefault()
+  // Fired after TAP_GRACE_MS if the pointer is still down and hasn't moved
+  // away -- only now does the progress bar appear and the hold-to-arm countdown begin.
+  function startCharging() {
+    graceTimer = null
     state.pressing = true
-    state.progress = 0
-    state.armed = false
-    wasArmed = false
-    moved = false
-    cancelled = false
-    downX = e.clientX
-    downY = e.clientY
-    raw = { ...state.pos }
     t0 = Date.now()
     clearTimer()
     timer = setInterval(() => {
@@ -103,11 +104,28 @@ export function useHoldDrag(dropOk, onTap, onDropped, getZoom = () => 1, initial
         state.pressing = false
       }
     }, 30)
+  }
+
+  function onPointerDown(e) {
+    e.preventDefault()
+    state.pressing = false
+    state.progress = 0
+    state.armed = false
+    wasArmed = false
+    moved = false
+    cancelled = false
+    downX = e.clientX
+    downY = e.clientY
+    raw = { ...state.pos }
+    clearTimer()
+    clearGraceTimer()
+    graceTimer = setTimeout(startCharging, TAP_GRACE_MS)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
 
   onUnmounted(() => {
+    clearGraceTimer()
     clearTimer()
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)

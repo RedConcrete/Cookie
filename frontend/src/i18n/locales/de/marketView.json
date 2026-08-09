@@ -21,5 +21,6 @@
   "costRowQtyPrice": "Menge × Preis",
   "costRowBuy": "Kaufkosten",
   "costRowSell": "Verkauf (−{pct}% Gebühr)",
-  "unknownError": "Unbekannter Fehler"
+  "unknownError": "Unbekannter Fehler",
+  "tradeProcessing": "Auftrag wird ausgeführt"
 }

@@ -30,7 +30,9 @@ async function request(method, path, body) {
     const text = await res.text()
     let message = text
     try { message = JSON.parse(text).error ?? text } catch { /* not JSON, use raw text */ }
-    throw new Error(message)
+    const err = new Error(message)
+    err.status = res.status
+    throw err
   }
   return res.json()
 }

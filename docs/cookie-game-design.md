@@ -71,7 +71,7 @@ alles andere läuft im laufenden Betrieb.
 
 **Sinks (Cookies verschwinden):**
 - Kaufen auf dem Markt (BUY)
-- Marktgebühr auf jeden Verkauf (`sellFeeRate`, Standard 5 %, senkbar über
+- Marktgebühr auf jeden Verkauf (`sellFeeRate`, Standard 15 %, senkbar über
   Markt-Gebäude-Level, siehe Abschnitt 6)
 - Bürger anwerben (Kosten pro Bürger wachsen exponentiell)
 - Gebäude bauen/ausbauen (Kosten wachsen exponentiell pro Stufe)
@@ -118,17 +118,23 @@ cost(level) = baseCost × 2^level
 Ernten (kein Auto-Pflücker-Upgrade mehr nötig, das gab es früher separat und
 ist entfernt).
 
-**Lager voll (2026-08-07):** kein Auto-Verkauf von Überschuss mehr — weder
-bei Hover-Ernte noch bei passiver Produktion. Was über die Gesamtkapazität
-hinausgeht, wird schlicht nicht gutgeschrieben (`UserService#harvest`,
-`PassiveIncomeService#collectBuilding`), keine automatische Umwandlung in Cookies.
-Visuelles Feedback im Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`):
-Hover-Ring wird rot statt grün, ein kurzes Popover erklärt "Lager voll",
-Gebäude werden wie bei nicht bezahlbarem Lohn optisch gedimmt
-(`.building-idle`). Ein sinnvoller Ausgleich für volles Lager (Ressourcen-
-Umwandlung, Lager-Overflow-Puffer o.ä.) ist als größere Mechanik im
-Skill-/Passiv-Baum geplant, siehe `docs/ROADMAP.md` — bis dahin bewusst hart
-gestoppt statt automatisch verkauft.
+**Lager voll (2026-08-07, Deckel pro Rohstoff seit 2026-08-09):** kein
+Auto-Verkauf von Überschuss mehr — weder bei Hover-Ernte noch bei passiver
+Produktion. Was über die Kapazität hinausgeht, wird schlicht nicht
+gutgeschrieben (`UserService#harvest`, `PassiveIncomeService#collectBuilding`,
+`MarketService#trade` beim Markt-Kauf), keine automatische Umwandlung in
+Cookies. Die Kapazität (`totalResourceCap`) gilt **pro Rohstoff einzeln**,
+nicht als gemeinsamer Topf über alle sechs — ein Gebäude wird nur inaktiv,
+wenn genau der Rohstoff voll ist, den es selbst produziert, nicht wenn
+irgendein anderer Rohstoff voll ist (vorher: ein einziger geteilter Topf über
+alle 6 Rohstoffe, dadurch wurden bei vollem Lager alle Gebäude gleichzeitig
+inaktiv, egal welchen Rohstoff sie produzierten). Visuelles Feedback im
+Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`): Hover-Ring wird rot statt
+grün, ein kurzes Popover erklärt "Lager voll", Gebäude werden wie bei nicht
+bezahlbarem Lohn optisch gedimmt (`.building-idle`). Ein sinnvoller Ausgleich
+für volles Lager (Ressourcen-Umwandlung, Lager-Overflow-Puffer o.ä.) ist als
+größere Mechanik im Skill-/Passiv-Baum geplant, siehe `docs/ROADMAP.md` — bis
+dahin bewusst hart gestoppt statt automatisch verkauft.
 
 **Start-Balance (neu austariert 2026-08-07):** vorher startete jeder Spieler
 mit 1000 von JEDER Rohstoff-Ressource (6000 insgesamt) bei nur 1100
@@ -241,12 +247,34 @@ Richtung zieht die Baseline mit und der Markt bleibt entsprechend länger
 verschoben. Reines Hintergrundrauschen ohne jeden Trade bleibt exakt so
 stabil wie vorher (Baseline bleibt bei `initialStock`).
 
-**Marktgebühr:** `sellFeeRate` (Standard 5 %, config `MarketConfig`),
+**Marktgebühr:** `sellFeeRate` (Standard 15 %, config `MarketConfig`),
 reduzierbar durch Markt-Gebäude-Level (Abschnitt 4). Nur beim SELL fällig,
 BUY ist gebührenfrei.
 
+**Markt-Tiefe skaliert mit aktiven Spielern (2026-08-08):** `initialStock`
+(und damit `K`) ist kein fixer Wert mehr, sondern eine Untergrenze —
+tatsächlich verwendet wird
+`max(initialStock, stockPerActivePlayer × aktiveSpielerzahl)`. Grund:
+Freund-Playtest zeigte, dass ein einzelner Spieler den Markt bei
+`initialStock = 1000` innerhalb kurzer Zeit spürbar allein bewegen konnte.
+"Aktiv" zählt, wer innerhalb von `activePlayerWindowDays` (Standard 7 Tage)
+einen Spielstart hatte (`UserEntity.lastActiveAt`, gesetzt in
+`GameController#initializeGame` — bewusst nicht bei jedem beliebigen
+API-Call, sonst würde z. B. das Ansehen eines fremden Profils dessen
+Aktiv-Status verfälschen). Ein Hintergrund-Job
+(`MarketService#recalculateDynamicStockBase`, alle 5 Minuten) zählt aktive
+Spieler neu und skaliert dabei Stock **und** Baseline jeder Ressource um
+denselben Faktor mit — dadurch bleibt der aktuelle Spotpreis beim
+Umschalten unverändert, nur künftige Trades wirken sich absolut gesehen
+schwächer aus (tieferer Pool). Gilt einheitlich für alle sechs Ressourcen,
+kein Ressourcen-spezifischer Faktor. `stockPerActivePlayer` (Startwert
+20000) ist bewusst hoch angesetzt und braucht noch Fein-Tuning mit echten
+Spielerzahlen — siehe `docs/ROADMAP.md` Abschnitt 7.2.
+
 **Admin:** `POST /api/v1/admin/market/reset` setzt Stock+Preise aller
-Ressourcen auf die Ausgangswerte zurück (dev-mode ohne Token nötig).
+Ressourcen auf die aktuellen Ausgangswerte zurück (Preise: Konfig-Werte,
+Stock: aktueller effektiver Wert inkl. Spielerzahl-Skalierung, dev-mode ohne
+Token nötig).
 
 ---
 

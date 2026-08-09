@@ -75,9 +75,10 @@ function buildDatasets(history) {
       })),
       borderColor: COLORS[r],
       backgroundColor: COLORS[r] + '22',
-      borderWidth: 2,
+      borderWidth: 3,
       pointRadius: 0,
-      tension: 0.3,
+      tension: 0,
+      stepped: true,
       hidden: !visible[r],
     }
   })
@@ -170,35 +171,39 @@ function initChart() {
   const minMs     = maxMs - INITIAL_WINDOW_MS
   const oldestMs  = maxMs - 30 * 24 * 60 * 60 * 1000  // 30 Tage zurück als hard limit
 
+  // Zeigt den aktuellen Preis jeder Linie fest an der Y-Achsen-Skala rechts,
+  // auf Hoehe des jeweiligen Werts -- unabhaengig vom Pan/Zoom-Stand des Charts
+  // (anders als eine Beschriftung am letzten sichtbaren Punkt, die beim
+  // Wegscrollen von "jetzt" aus dem sichtbaren Bereich rutscht).
   const tipLabelsPlugin = {
     id: 'tipLabels',
     afterDraw(c) {
       const ctx = c.ctx
       const yScale = c.scales.y
-      // sort datasets by last-point y so labels stack without overlap
       const items = c.data.datasets
-        .map((ds, i) => ({ ds, i, meta: c.getDatasetMeta(i) }))
-        .filter(({ ds, meta }) => !ds.hidden && meta.data.length)
-        .map(({ ds, i, meta }) => {
-          const pt = meta.data[meta.data.length - 1]
+        .filter(ds => !ds.hidden && ds.data.length)
+        .map(ds => {
           const val = ds.data[ds.data.length - 1]?.y
-          return { color: ds.borderColor, label: formatTip(val), x: pt.x, y: pt.y, val }
+          return { color: ds.borderColor, label: formatTip(val), val }
         })
+        .filter(({ val }) => val !== undefined && val !== null)
+        .map(it => ({ ...it, y: yScale.getPixelForValue(it.val) }))
         .sort((a, b) => a.y - b.y)
 
-      // spread labels vertically if they overlap
-      const LINE_H = 14
+      // Badges leicht auseinanderschieben, wenn sich Preise zu nah kommen --
+      // sonst ueberlappt der Text unlesbar.
+      const LINE_H = 13
       for (let k = 1; k < items.length; k++) {
         if (items[k - 1].y + LINE_H > items[k].y)
           items[k].y = items[k - 1].y + LINE_H
       }
 
       ctx.save()
-      ctx.font = 'bold 10px monospace'
-      ctx.textAlign = 'right'
-      for (const { color, label, x, y } of items) {
+      ctx.font = 'bold 10px Silkscreen'
+      ctx.textAlign = 'left'
+      for (const { color, label, y } of items) {
         ctx.fillStyle = color
-        ctx.fillText(label, x - 6, Math.min(y + 4, yScale.bottom - 2))
+        ctx.fillText(label, yScale.right + 4, Math.min(Math.max(y + 4, yScale.top + 10), yScale.bottom))
       }
       ctx.restore()
     },
@@ -219,6 +224,7 @@ function initChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      layout: { padding: { right: 44 } },
       interaction: { mode: 'index', intersect: false },
       onHover: (_e, elements) => {
         if (!elements.length) {
@@ -262,13 +268,13 @@ function initChart() {
               hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.', month: 'MM.yy',
             },
           },
-          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0 },
-          grid:  { color: 'rgba(255,255,255,0.06)' },
+          ticks: { color: '#120e23', maxTicksLimit: 6, maxRotation: 0, font: { family: 'Silkscreen' } },
+          grid:  { color: '#aea47e' },
         },
         y: {
           position: 'right',
-          ticks: { color: '#aea47e', maxTicksLimit: 6 },
-          grid:  { color: 'rgba(255,255,255,0.06)' },
+          ticks: { color: '#120e23', maxTicksLimit: 6, font: { family: 'Silkscreen' } },
+          grid:  { color: '#aea47e' },
         },
       },
     },

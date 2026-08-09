@@ -21,5 +21,6 @@
   "costRowQtyPrice": "Qty × price",
   "costRowBuy": "Buy cost",
   "costRowSell": "Sell (−{pct}% fee)",
-  "unknownError": "Unknown error"
+  "unknownError": "Unknown error",
+  "tradeProcessing": "Processing order"
 }

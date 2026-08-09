@@ -68,6 +68,8 @@ public class AdminConfigController {
         marketConfig.setMinPrice(update.getMinPrice());
         marketConfig.setStockFluctuationRatio(update.getStockFluctuationRatio());
         marketConfig.setSellFeeRate(update.getSellFeeRate());
+        marketConfig.setActivePlayerWindowDays(update.getActivePlayerWindowDays());
+        marketConfig.setStockPerActivePlayer(update.getStockPerActivePlayer());
         marketConfig.setInitialSugarPrice(update.getInitialSugarPrice());
         marketConfig.setInitialFlourPrice(update.getInitialFlourPrice());
         marketConfig.setInitialEggsPrice(update.getInitialEggsPrice());

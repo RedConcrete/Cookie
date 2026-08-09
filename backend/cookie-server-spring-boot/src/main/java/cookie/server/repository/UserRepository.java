@@ -4,7 +4,11 @@ import cookie.server.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDateTime;
+
 public interface UserRepository extends JpaRepository<UserEntity, String> {
+
+    long countByLastActiveAtAfter(LocalDateTime cutoff);
 
     @Query("SELECT COALESCE(SUM(u.sugar), 0) FROM UserEntity u")
     double getTotalSugar();

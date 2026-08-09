@@ -58,9 +58,36 @@ public class MarketConfig {
 
     /**
      * Anteil des Verkaufserlöses, der als Gebühr vernichtet wird.
-     * 0.05 = 5% Gebühr: Spieler erhält 95% des Marktpreises.
+     * 0.15 = 15% Gebühr: Spieler erhält 85% des Marktpreises. Reduzierbar durch
+     * Markt-Gebäude-Level (siehe BuildingService#getEffectiveSellFeeRate).
      */
-    private double sellFeeRate = 0.05;
+    private double sellFeeRate = 0.15;
+
+    /**
+     * Anti-Spam-Sperre nach jedem Trade: Anzahl Preis-Ticks (siehe updateIntervalMs), die ein
+     * Spieler nach einem Kauf/Verkauf abwarten muss, bevor der naechste Trade angenommen wird.
+     * Gilt global pro Spieler (nicht pro Ressource) -- siehe UserEntity#lastMarketTradeAt.
+     * Standard 2 Ticks: verhindert Klick-Spam auf Kaufen/Verkaufen, ohne normales Handeln
+     * spuerbar zu bremsen.
+     */
+    private int tradeCooldownTicks = 2;
+
+    /**
+     * Zeitfenster (Tage), innerhalb dessen ein Spieler als "aktiv" zaehlt fuer die
+     * Markt-Tiefen-Skalierung (siehe stockPerActivePlayer). Standard 7 Tage.
+     */
+    private int activePlayerWindowDays = 7;
+
+    /**
+     * Zusaetzlicher Pool-Tiefe pro aktivem Spieler (siehe UserEntity#lastActiveAt), auf
+     * initialStock aufaddiert -- je mehr Spieler aktiv mitmischen, desto tiefer der Markt,
+     * damit ein einzelner Spieler ihn nicht mehr im Alleingang durchbewegen kann. Wirkt
+     * gleich fuer alle Ressourcen (kein Ressourcen-Faktor). Standard bewusst hoch angesetzt
+     * (nach Freund-Playtest-Feedback reichte initialStock=1000 nicht: schon ein Spieler
+     * alleine erreicht binnen ~1h ein Vielfaches davon an einer Ressource, siehe
+     * docs/ROADMAP.md 7.2) -- braucht noch Fein-Tuning mit echten Spielerzahlen.
+     */
+    private double stockPerActivePlayer = 20000.0;
 
     /**
      * Startpreis für Sugar.
@@ -170,6 +197,35 @@ public class MarketConfig {
 
     public void setSellFeeRate(double sellFeeRate) {
         this.sellFeeRate = sellFeeRate;
+    }
+
+    public int getTradeCooldownTicks() {
+        return tradeCooldownTicks;
+    }
+
+    public void setTradeCooldownTicks(int tradeCooldownTicks) {
+        this.tradeCooldownTicks = tradeCooldownTicks;
+    }
+
+    /** Cooldown in Millisekunden = Anzahl Ticks × Tick-Intervall. */
+    public long getTradeCooldownMs() {
+        return (long) tradeCooldownTicks * updateIntervalMs;
+    }
+
+    public int getActivePlayerWindowDays() {
+        return activePlayerWindowDays;
+    }
+
+    public void setActivePlayerWindowDays(int activePlayerWindowDays) {
+        this.activePlayerWindowDays = activePlayerWindowDays;
+    }
+
+    public double getStockPerActivePlayer() {
+        return stockPerActivePlayer;
+    }
+
+    public void setStockPerActivePlayer(double stockPerActivePlayer) {
+        this.stockPerActivePlayer = stockPerActivePlayer;
     }
 
     public double getInitialSugarPrice() {

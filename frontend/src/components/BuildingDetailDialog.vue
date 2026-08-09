@@ -153,23 +153,24 @@ const storageCapacity = computed(() => ownedData.value?.storageCapacity ?? 0)
 const pendingAmount = computed(() => {
   const d = ownedData.value
   if (!d || !storageCapacity.value) return 0
-  if (playerStore.workersIdle || isStorageFull.value) return d.pendingAmount ?? 0
+  if (playerStore.workersIdle || isResourceFull(props.building.resource)) return d.pendingAmount ?? 0
   const elapsedSeconds = Math.max(0, (nowTick.value - (d.lastSettledAtEpochMs || nowTick.value)) / 1000)
   return Math.min(storageCapacity.value, (d.pendingAmount ?? 0) + (d.passiveRatePerSec ?? 0) * elapsedSeconds)
 })
 const storagePct = computed(() => storageCapacity.value > 0 ? Math.min(100, (pendingAmount.value / storageCapacity.value) * 100) : 0)
 
-// Shared warehouse cap across all 6 resources -- mirrors FarmGridView's isStorageFull.
-// A production building's worker still counts as "assigned" (workerCount/adjustWorkers
-// untouched) but shows idle here, same as the wage-can't-pay case, since there's nowhere
-// left to put what they'd produce (no auto-sell, see docs/ROADMAP.md).
-const totalResources = computed(() =>
-  (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
-  (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
-)
-const isStorageFull = computed(() => totalResources.value >= playerStore.totalResourceCap)
+// Cap gilt pro Rohstoff (nicht als gemeinsamer Topf ueber alle 6) -- mirrors
+// FarmGridView's isResourceFull. A production building's worker still counts as
+// "assigned" (workerCount/adjustWorkers untouched) but shows idle here, same as the
+// wage-can't-pay case, since there's nowhere left to put what it'd produce (no
+// auto-sell, see docs/ROADMAP.md) -- but only when THIS building's own resource is full.
+function isResourceFull(resourceName) {
+  if (!resourceName) return false
+  const amount = playerStore[resourceName.toLowerCase()] ?? 0
+  return amount >= playerStore.totalResourceCap
+}
 const isBuildingIdle = computed(() =>
-  playerStore.workersIdle || (Boolean(props.building.resource) && isStorageFull.value)
+  playerStore.workersIdle || isResourceFull(props.building.resource)
 )
 const storageText = computed(() => {
   const cap = storageCapacity.value

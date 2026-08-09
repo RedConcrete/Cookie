@@ -36,6 +36,7 @@ public class GameController {
             @RequestParam(required = false) String displayName) {
         buildingService.ensurePreBuiltBuildings(userId);
         UserInformationDto user = userService.getUser(userId, displayName);
+        userService.recordLogin(userId);
         double cap = buildingService.getTotalCap(userId);
         user.setTotalResourceCap(cap);
         return ResponseEntity.ok(new UserMarketDataDto(

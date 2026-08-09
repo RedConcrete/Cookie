@@ -30,6 +30,7 @@ import stern  from '../../assets/icons/stern.svg'
 import upgrade from '../../assets/icons/upgrade.svg'
 import zentrieren from '../../assets/icons/zentrieren.svg'
 import check   from '../../assets/icons/check.svg'
+import sanduhr from '../../assets/icons/sanduhr.svg'
 import music   from '../../assets/icons/music.svg'
 import sound   from '../../assets/icons/sound.svg'
 import mute    from '../../assets/icons/mute.svg'
@@ -41,7 +42,7 @@ import discord from '../../assets/icons/discord.svg'
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
-  upgrade, zentrieren, check, music, sound, mute, steam,
+  upgrade, zentrieren, check, sanduhr, music, sound, mute, steam,
   'flag-de': flagDe, 'flag-en': flagEn, discord,
 }
 

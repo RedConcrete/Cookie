@@ -11,6 +11,29 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
 
 ## 0. Sofort (Sicherheit / Datenintegrität)
 
+- [x] **`@Version`-Spalten fehlten/waren NULL, brach "Start Spiel" komplett
+  (2026-08-08).** `MarketStockEntity.version` (primitiv `long`) wurde in
+  einer frueheren Session ergaenzt (Race-Condition-Fix, siehe 7.1), aber
+  Hibernates `ddl-auto=update` generierte
+  `alter table market_stock add column version bigint not null` OHNE
+  Default — schlaegt auf einer Tabelle mit bestehender Zeile IMMER fehl
+  (Postgres verweigert NOT NULL ohne Default bei vorhandenen Zeilen, siehe
+  auch die `lifetime_*`-Felder in `UserEntity` fuer denselben bereits bekannten
+  Fallstrick). Ergebnis: `market_stock` blieb dauerhaft ohne die Spalte,
+  jeder Zufalls-Preis-Tick (alle 2s) warf `column ... does not exist`.
+  Gleiches Muster bei `PlayerBuildingEntity.version` — dort war die Spalte
+  zwar vorhanden, aber alle 21 bestehenden Zeilen hatten `NULL` (primitives
+  `long` kann das nicht aufnehmen → `PropertyAccessException` beim Laden),
+  was `GameController#initializeGame` (`buildingService.ensurePreBuiltBuildings`/
+  `getBuildings`/`getTotalCap`) crashen liess — **"Start Spiel" warf für
+  jeden Spieler mit bestehenden Gebäuden einen 500er.**
+  **Fix (lokal angewendet):** `ALTER TABLE market_stock ADD COLUMN version
+  bigint NOT NULL DEFAULT 0`, `UPDATE player_buildings SET version = 0
+  WHERE version IS NULL` + `ALTER COLUMN version SET NOT NULL`.
+  **Achtung: der Live-Beta-Server hat vermutlich denselben Bug** (gleiche
+  Entity-Historie) — dieselben zwei SQL-Fixes muessen dort manuell nachgezogen
+  werden, ddl-auto=update repariert das nicht von selbst.
+
 - [ ] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
   `app.dev-mode=false` schaltet aktuell NUR die Admin-Token-Pflicht scharf
   (`AdminConfigController`, `AdminController`) sowie Bake-Dauer/Dev-Reset —
@@ -518,6 +541,45 @@ Backlog dokumentiert.
 - [x] Verifiziert, **kein Bug**: Gebäude-Lager bei vollem Hauptlager
   (`PassiveIncomeService.java` kreditiert bereits nur bis zur Kapazität,
   Rest bleibt im Gebäude liegen statt verworfen zu werden).
+- [x] **Markt-Liquiditäts-Tuning.** `initialStock` ist jetzt eine
+  Untergrenze statt eines fixen Werts:
+  `max(initialStock, stockPerActivePlayer × aktiveSpielerzahl)`
+  (`MarketConfig`, Standard `stockPerActivePlayer = 20000`). "Aktiv" =
+  Spielstart innerhalb `activePlayerWindowDays` (Standard 7 Tage,
+  `UserEntity.lastActiveAt`, gesetzt in `GameController#initializeGame`).
+  `MarketService#recalculateDynamicStockBase` (alle 5 Min) zaehlt neu und
+  skaliert Stock+Baseline aller sechs Ressourcen um denselben Faktor mit,
+  damit der Spotpreis beim Umschalten nicht springt. Behebt "ein Spieler
+  bewegt den Markt allein" aus dem Playtest-Feedback. Zusaetzlich:
+  `sellFeeRate`-Doku-Drift gefixt (Code-Default + Design-Doc sagten 5%,
+  live liefen 15% — jetzt ueberall 15% dokumentiert). Startwert fuer
+  `stockPerActivePlayer` ist eine erste Schaetzung, braucht Fein-Tuning
+  mit echten Spielerzahlen (live per Admin-Panel ohne Neustart aenderbar).
+  **Nachtrag (2026-08-09, noch vor jedem Deploy gefangen):**
+  `cachedActivePlayerCount` ist nicht persistiert und startete bei jedem
+  Prozess-Neustart wieder bei 0 -- `recalculateDynamicStockBase`
+  interpretierte das faelschlich als echten "0 -> N aktive Spieler"-Sprung
+  und skalierte den bereits korrekten DB-Stock bei JEDEM Neustart erneut
+  mit dem vollen Faktor (kumulativ). Nach 2-3 Neustarts crashte der Markt
+  auf den Preis-Boden (0.01 ueberall). Fix: erster Lauf nach einem
+  Prozessstart (`stockBaseInitialized`-Flag) uebernimmt die gezaehlte
+  Spielerzahl nur, skaliert aber nichts -- nur echte Aenderungen WAEHREND
+  ein Prozess laeuft loesen noch eine Rescale aus. Lokale Dev-DB war
+  betroffen, per `/api/v1/admin/market/reset` wieder auf saubere Werte
+  gesetzt. War noch nicht deployed, Live-Server also nicht betroffen.
+  **Zweiter Nachtrag (2026-08-09):** Nach dem Fix oben trat bei JEDEM Neustart
+  weiterhin ein kurzer Preis-Einbruch auf (ein einzelner Tick auf 0.01, dann
+  sofortige Selbstkorrektur) -- Ursache war ein Startup-Wettlauf zwischen
+  `MarketScheduler#updateMarketPrices` und `recalculateDynamicStockBase`
+  (beide `@Scheduled` mit `initialDelay=0`, ohne garantierte Reihenfolge).
+  Lief der Preis-Tick zuerst, rechnete er kurz mit `cachedActivePlayerCount`
+  im Default-Zustand (0) gegen den bereits korrekt hochskalierten DB-Stock.
+  Fix: `cachedActivePlayerCount` wird jetzt synchron per `@PostConstruct`
+  (`initializeDynamicStockBaseOnStartup`) initialisiert, bevor Spring
+  ueberhaupt mit dem Ausfuehren von `@Scheduled`-Tasks beginnt --
+  `recalculateDynamicStockBase` startet jetzt mit `initialDelay=300_000`
+  statt `0`. Verifiziert: 10s Preis-Sampling direkt nach Neustart zeigt
+  keinen Einbruch mehr.
 
 ### 7.2 Backlog (noch offen, nicht in dieser Session umgesetzt)
 
@@ -554,6 +616,3 @@ Backlog dokumentiert.
   darf nirgends gelb sein" als generelle Regel braucht es eine visuelle
   Durchsicht im Browser (welche Kombination wirklich unlesbar ist) statt
   blindem Suchen-Ersetzen.
-- [ ] **Markt-Liquiditäts-Tuning** (`initialStock`, `K`-Werte je Ressource)
-  nach dem Lost-Update-Fix aus 7.1 — eigener Balancing-Pass mit echtem
-  Playtest-Feedback statt blindem Hochdrehen.

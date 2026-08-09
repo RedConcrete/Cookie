@@ -99,7 +99,7 @@
         :resource-icon="RESOURCE_ICON[b.resource]"
         :class="{ 'building-idle': (playerStore.workersIdle || isProductionBlocked(b)) && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
-        @harvest-start="b.resource && !isStorageFull && startHarvest(b.id, b.resource)"
+        @harvest-start="b.resource && !isProductionBlocked(b) && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
         @moved="onBuildingMoved(b.id, $event)"
         @collect="onCollectBuilding(b)"
@@ -162,7 +162,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding } from '../services/api.js'
+import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding, getConfig } from '../services/api.js'
 import { fmt, fmt2, fmtBig } from '../utils/formatNumber.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
@@ -333,9 +333,24 @@ const buildings = computed(() =>
 const liveNow = ref(Date.now())
 let liveNowTimer = null
 
+// Serverseitiger Collect-Cooldown gespiegelt (siehe ConfigController/GameBalanceConfig), Fallback
+// falls /api/v1/config noch nicht geladen ist -- lieber einen Tick zu vorsichtig sperren als
+// den echten Wert zu unterschreiten.
+const collectCooldownMs = ref(200)
+getConfig().then(cfg => {
+  if (cfg.collectCooldownMs) collectCooldownMs.value = cfg.collectCooldownMs
+}).catch(() => {})
+
+// Sperrt den Collect-Button pro Gebaeude bis zu diesem Zeitpunkt (siehe onCollectBuilding) --
+// verhindert Spam-Klicks direkt am Button statt sie serverseitig als 400 abzulehnen. Der Button
+// verschwindet dabei komplett (pendingAmount wird waehrend der Sperre auf 0 erzwungen) statt nur
+// deaktiviert zu werden, auf Wunsch: "was nicht da ist, kann man nicht druecken".
+const collectLockedUntil = reactive({})
+
 function livePending(b) {
   if (!b.storageCapacity) return 0
-  if (playerStore.workersIdle || isStorageFull.value) return b.pendingAmount
+  if (Date.now() < (collectLockedUntil[b.id] || 0)) return 0
+  if (playerStore.workersIdle || isResourceFull(b.resource)) return b.pendingAmount
   const elapsedSeconds = Math.max(0, (liveNow.value - (b.lastSettledAtEpochMs || liveNow.value)) / 1000)
   return Math.min(b.storageCapacity, b.pendingAmount + b.passiveRatePerSec * elapsedSeconds)
 }
@@ -348,6 +363,9 @@ const collectingBuildingIds = reactive(new Set())
 async function onCollectBuilding(b) {
   if (collectingBuildingIds.has(b.id)) return
   collectingBuildingIds.add(b.id)
+  // Sofort setzen, nicht erst nach der Antwort -- sonst kann ein zweiter Klick noch vor dem
+  // ersten Response durchrutschen und den Button-Verschwindet-Effekt umgehen.
+  collectLockedUntil[b.id] = Date.now() + collectCooldownMs.value
   const key = b.resource?.toLowerCase()
   const before = key ? (playerStore[key] ?? 0) : 0
   try {
@@ -362,9 +380,15 @@ async function onCollectBuilding(b) {
         if (base) spawnFarmNumber(gained, base.x + off.x + base.w / 2, base.y + off.y + 60, { icon: RESOURCE_ICON[b.resource] })
       }
     }
-  } catch {
+  } catch (e) {
     // Cooldown-Ablehnung (400) oder Optimistic-Lock-Konflikt (409) -- einfach ignorieren,
-    // naechster Klick nach Ablauf des Cooldowns geht wieder durch.
+    // naechster Klick nach Ablauf des Cooldowns geht wieder durch. Alles andere (500 etc.)
+    // vorher unsichtbar verschluckt -- genau das hat den kaputten @Version-Bug (siehe
+    // docs/ROADMAP.md Abschnitt 0) wie "Gebaeude produziert nach dem Einsammeln nicht mehr"
+    // aussehen lassen statt wie den eigentlichen Serverfehler.
+    if (e?.status !== 400 && e?.status !== 409) {
+      console.error('[collectBuilding] unexpected error', b.id, e)
+    }
   } finally {
     collectingBuildingIds.delete(b.id)
   }
@@ -423,15 +447,15 @@ const idleWanderers = computed(() => {
   }))
 })
 
-const totalResources = computed(() =>
-  (playerStore.sugar ?? 0) + (playerStore.flour ?? 0) + (playerStore.eggs ?? 0) +
-  (playerStore.butter ?? 0) + (playerStore.chocolate ?? 0) + (playerStore.milk ?? 0)
-)
-// Shared warehouse cap across all 6 resources -- no auto-sell of overflow anymore
-// (2026-08-07), so once this is true, hover-harvest/passive production simply stops
-// granting anything until the player frees up space (sell, upgrade Lager).
-const isStorageFull = computed(() => totalResources.value >= playerStore.totalResourceCap)
-function isProductionBlocked(b) { return Boolean(b.resource) && isStorageFull.value }
+// Cap gilt pro Rohstoff (nicht mehr als gemeinsamer Topf ueber alle 6) -- kein Auto-Verkauf
+// von Ueberlauf mehr (2026-08-07), sobald der jeweilige Rohstoff voll ist, stoppt nur das
+// Gebaeude, das genau diesen Rohstoff produziert, statt alle Gebaeude gleichzeitig.
+function isResourceFull(resourceName) {
+  if (!resourceName) return false
+  const amount = playerStore[resourceName.toLowerCase()] ?? 0
+  return amount >= playerStore.totalResourceCap
+}
+function isProductionBlocked(b) { return isResourceFull(b.resource) }
 
 const mobileNavItems = [
   { labelKey: 'farmGridView.navHome',        icon: 'haus',  action: () => { dialog.value = null; resetView() } },
@@ -803,14 +827,13 @@ function harvestBonus(resourceName) {
 
 // Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
 // formula, scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
-// No auto-sell of overflow (2026-08-07): once the shared warehouse is full, toAdd
-// caps at 0 and the tick simply grants nothing -- see isStorageFull/ROADMAP.md.
+// No auto-sell of overflow (2026-08-07): once THIS resource's own cap is full, toAdd
+// caps at 0 and the tick simply grants nothing -- cap is per-resource, not shared.
 function localHarvestTick(buildingId, name) {
   const predicted = (1.0 + harvestBonus(name)) * playerStore.prestigeMultiplier
   const key = name.toLowerCase()
   const cap = playerStore.totalResourceCap ?? Infinity
-  const totalRes = RESOURCES.reduce((s, r) => s + (playerStore[r.key] ?? 0), 0)
-  const available = Math.max(0, cap - totalRes)
+  const available = Math.max(0, cap - (playerStore[key] ?? 0))
   const toAdd = Math.min(predicted, available)
   if (toAdd <= 0) return
   playerStore[key] = (playerStore[key] ?? 0) + toAdd

@@ -44,6 +44,18 @@ public class UserEntity {
     // vertrauen" -- CLAUDE.md).
     private LocalDateTime lastHarvestAt;
 
+    // Server-Zeitpunkt des letzten Spielstarts (siehe GameController#initializeGame). Nur
+    // fuer "aktive Spieler in den letzten N Tagen" (Markt-Liquiditaets-Skalierung, siehe
+    // MarketService#recalculateDynamicStockBase) -- deshalb bewusst NICHT bei jedem generischen
+    // getUser()-Aufruf mitgezogen, sonst wuerde blosses Ansehen eines fremden Profils dessen
+    // Aktiv-Status faelschlich auffrischen.
+    private LocalDateTime lastActiveAt;
+
+    // Server-Zeitpunkt des letzten angenommenen Markt-Trades (Kauf/Verkauf) -- Anti-Spam-
+    // Sperre, siehe MarketService#performAction/MarketConfig#getTradeCooldownMs. Gilt global
+    // pro Spieler ueber alle Ressourcen hinweg, nicht pro Ressource.
+    private LocalDateTime lastMarketTradeAt;
+
     // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
     // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
     // und einer der beiden Writes (Lohn-Abzug oder Produktions-Gutschrift) geht stillschweigend
@@ -146,6 +158,22 @@ public class UserEntity {
 
     public void setLastHarvestAt(LocalDateTime lastHarvestAt) {
         this.lastHarvestAt = lastHarvestAt;
+    }
+
+    public LocalDateTime getLastActiveAt() {
+        return lastActiveAt;
+    }
+
+    public void setLastActiveAt(LocalDateTime lastActiveAt) {
+        this.lastActiveAt = lastActiveAt;
+    }
+
+    public LocalDateTime getLastMarketTradeAt() {
+        return lastMarketTradeAt;
+    }
+
+    public void setLastMarketTradeAt(LocalDateTime lastMarketTradeAt) {
+        this.lastMarketTradeAt = lastMarketTradeAt;
     }
 
     public Long getVersion() {

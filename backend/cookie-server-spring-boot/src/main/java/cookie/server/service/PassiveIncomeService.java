@@ -60,9 +60,9 @@ public class PassiveIncomeService {
         buildingService.settle(ent, def, user.isWorkersIdle(), now);
 
         double cap = buildingService.getTotalCap(userId);
-        double total = user.getSugar() + user.getFlour() + user.getEggs()
-                     + user.getButter() + user.getChocolate() + user.getMilk();
-        double available = Math.max(0, cap - total);
+        // Deckel gilt pro Rohstoff, nicht als gemeinsamer Topf ueber alle sechs -- ein
+        // Gebäude wird nur inaktiv, wenn sein eigener Rohstoff voll ist.
+        double available = Math.max(0, cap - getResourceAmount(user, def.passiveResource()));
 
         // No overflow, no auto-sell fürs Lager (siehe docs/ROADMAP.md) -- was wegen vollem
         // Lager nicht reinpasst, bleibt im Gebäude liegen (pendingAmount wird nur um den
@@ -105,5 +105,16 @@ public class PassiveIncomeService {
             case CHOCOLATE -> user.setChocolate(user.getChocolate() + amount);
             case MILK      -> user.setMilk(user.getMilk() + amount);
         }
+    }
+
+    private double getResourceAmount(UserEntity user, ResourceName resource) {
+        return switch (resource) {
+            case SUGAR     -> user.getSugar();
+            case FLOUR     -> user.getFlour();
+            case EGGS      -> user.getEggs();
+            case BUTTER    -> user.getButter();
+            case CHOCOLATE -> user.getChocolate();
+            case MILK      -> user.getMilk();
+        };
     }
 }

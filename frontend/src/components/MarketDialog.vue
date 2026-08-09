@@ -32,5 +32,6 @@ onMounted(() => audio.playBookOpen())
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
 }
 </style>

@@ -14,6 +14,7 @@ import cookie.server.repository.MarketRepository;
 import cookie.server.repository.MarketSnapshotRepository;
 import cookie.server.repository.MarketStockRepository;
 import cookie.server.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -52,6 +54,12 @@ public class MarketService {
     // Sicherheitsbremse gegen Division durch (fast) Null, kein Gameplay-Deckel.
     private static final double STOCK_EPSILON = 0.01;
 
+    // Cache, von getInitialStock() gelesen. Geschrieben unter marketLock von
+    // initializeDynamicStockBaseOnStartup() (einmalig, synchron beim Bean-Start) und danach
+    // von recalculateDynamicStockBase() (alle 5 Min). Zaehlt Aktivitaet in den letzten
+    // marketConfig.getActivePlayerWindowDays() Tagen, siehe UserEntity#lastActiveAt.
+    private volatile long cachedActivePlayerCount = 0;
+
     public MarketService(MarketRepository marketRepository,
                          MarketSnapshotRepository snapshotRepository,
                          MarketStockRepository marketStockRepository,
@@ -65,6 +73,27 @@ public class MarketService {
         this.marketConfig = marketConfig;
         this.webSocketHandler = webSocketHandler;
         this.buildingService = buildingService;
+    }
+
+    /**
+     * Initialisiert cachedActivePlayerCount SYNCHRON beim Bean-Start, bevor irgendein
+     * @Scheduled-Task ueberhaupt laufen kann (Spring startet den TaskScheduler erst nach
+     * Abschluss der Bean-Initialisierung). Ohne das lief hier ein Startup-Wettlauf: sowohl
+     * MarketScheduler#updateMarketPrices als auch recalculateDynamicStockBase hatten
+     * initialDelay=0 und damit KEINE garantierte Reihenfolge -- lief der Preis-Tick zuerst
+     * (haeufig der Fall), rechnete er kurzzeitig mit dem Default-Cache (0 aktive Spieler, also
+     * kleinem K) gegen den bereits korrekt hochskalierten DB-Stock und stuerzte den Preis fuer
+     * einen einzelnen Tick auf den Boden (0.01) ab, bevor der naechste Tick es mit dem dann
+     * korrekten Cache-Wert wieder selbst korrigierte. Sichtbar als kurzer Preis-Einbruch direkt
+     * nach jedem Neustart (2026-08-09). Bewusst KEIN Rescale hier -- der DB-Stock ist zu diesem
+     * Zeitpunkt bereits korrekt (vom letzten Lauf des vorherigen Prozesses), nur der lokale
+     * Cache muss ihn einholen.
+     */
+    @PostConstruct
+    public void initializeDynamicStockBaseOnStartup() {
+        cachedActivePlayerCount = userRepository.countByLastActiveAtAfter(
+                LocalDateTime.now().minusDays(marketConfig.getActivePlayerWindowDays()));
+        logger.info("Market liquidity base initialized before scheduler start: {} active player(s) in the last {} days", cachedActivePlayerCount, marketConfig.getActivePlayerWindowDays());
     }
 
     /** Alle 5 Minuten einen Preis-Snapshot speichern (persistente Langzeit-History). */
@@ -214,6 +243,19 @@ public class MarketService {
             throw new IllegalArgumentException("Amount must be positive: " + amount);
         }
 
+        // Anti-Spam: nach jedem Trade muss der Spieler tradeCooldownTicks Preis-Ticks abwarten,
+        // bevor der naechste Kauf/Verkauf angenommen wird -- gilt global ueber alle Ressourcen
+        // (siehe MarketConfig#getTradeCooldownMs). Frontend spiegelt denselben Wert, um die
+        // Buy/Sell-Buttons waehrend der Sperre client-seitig zu deaktivieren (Pixel-Sanduhr in
+        // MarketView.vue), der eigentliche Schutz bleibt dieser serverseitige Check
+        // (Client-Wert nie vertrauen).
+        LocalDateTime now = LocalDateTime.now();
+        long cooldownMs = marketConfig.getTradeCooldownMs();
+        if (user.getLastMarketTradeAt() != null
+                && Duration.between(user.getLastMarketTradeAt(), now).toMillis() < cooldownMs) {
+            throw new IllegalStateException("Markt gesperrt -- bitte kurz warten.");
+        }
+
         // Kompletter Trade (Stock lesen, Kosten berechnen, Stock/Preis schreiben) laeuft unter
         // demselben marketLock wie createNewMarketEntryAfterTrade/applyRandomPriceFluctuation --
         // vorher wurde der Stock VOR dem Lock gelesen, wodurch zwei schnell aufeinanderfolgende
@@ -232,8 +274,10 @@ public class MarketService {
                 if (amount >= marketStock) {
                     throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
                 }
+                // Deckel gilt pro Rohstoff (nicht als gemeinsamer Topf ueber alle 6), analog zu
+                // UserService#harvest/PassiveIncomeService#collectBuilding.
                 double cap = buildingService.getTotalCap(request.getUserId());
-                double freeSpace = cap - totalUserResources(user);
+                double freeSpace = cap - getResourceFromUser(user, resource);
                 if (amount > freeSpace) {
                     throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
                 }
@@ -256,6 +300,7 @@ public class MarketService {
                 user.setLifetimeCookiesEarnedFromMarket(user.getLifetimeCookiesEarnedFromMarket() + payout);
             }
 
+            user.setLastMarketTradeAt(now);
             userRepository.save(user);
 
             // Preis nach dem Trade anpassen und Stock aktualisieren
@@ -417,9 +462,9 @@ public class MarketService {
     }
 
     /**
-     * Gibt den Initial-Lagerbestand fuer eine Ressource zurueck.
+     * Konfigurierter Basis-Lagerbestand fuer eine Ressource (Untergrenze, siehe getInitialStock).
      */
-    private double getInitialStock(ResourceName resource) {
+    private double getConfiguredInitialStock(ResourceName resource) {
         return switch (resource) {
             case SUGAR -> marketConfig.getInitialSugarStock();
             case FLOUR -> marketConfig.getInitialFlourStock();
@@ -428,6 +473,73 @@ public class MarketService {
             case CHOCOLATE -> marketConfig.getInitialChocolateStock();
             case MILK -> marketConfig.getInitialMilkStock();
         };
+    }
+
+    /**
+     * Effektiver Ausgangsbestand fuer eine Ressource: der konfigurierte Wert als Untergrenze
+     * (z.B. fuer Solo-Tests/frueher Release), waechst aber linear mit der Zahl aktiver Spieler
+     * (cachedActivePlayerCount, siehe recalculateDynamicStockBase). Tieferer Markt bei mehr
+     * Spielern, damit ein Einzelspieler den Preis nicht mehr im Alleingang durchbewegen kann
+     * (Freund-Playtest-Feedback, siehe docs/ROADMAP.md 7.2). Gilt gleich fuer alle sechs
+     * Ressourcen, kein Ressourcen-spezifischer Faktor.
+     */
+    private double getInitialStock(ResourceName resource) {
+        double configured = getConfiguredInitialStock(resource);
+        double dynamic = marketConfig.getStockPerActivePlayer() * cachedActivePlayerCount;
+        return Math.max(configured, dynamic);
+    }
+
+    /**
+     * Zaehlt aktive Spieler (Login innerhalb activePlayerWindowDays, siehe
+     * UserEntity#lastActiveAt) neu und zieht den effektiven Ausgangsbestand (getInitialStock)
+     * nach. Skaliert dabei den tatsaechlichen Stock+Baseline jeder Ressource um denselben
+     * Faktor mit, damit der Spotpreis beim Umschalten nicht springt: price = K/stock^2 mit
+     * K = initialStock^2*initialPrice haengt direkt an initialStock, eine reine K-Aenderung
+     * ohne mitskalierten Stock wuerde den Preis am selben Bestand sofort verschieben. Skaliert
+     * man Stock und initialStock um denselben Faktor, bleibt das Verhaeltnis (und damit der
+     * Preis) unveraendert -- nur zukuenftige Trades wirken sich absolut gesehen schwaecher aus.
+     * Laeuft alle 5 Minuten -- aktive Spielerzahl aendert sich langsam, taegliches Neuzaehlen
+     * per DB-Query alle 2s (Preis-Tick-Intervall) waere unnoetig.
+     *
+     * Die allererste Initialisierung von cachedActivePlayerCount passiert NICHT hier, sondern
+     * synchron in initializeDynamicStockBaseOnStartup() (@PostConstruct) -- siehe dort, warum:
+     * @Scheduled-Methoden mit initialDelay=0 haben untereinander KEINE garantierte Reihenfolge.
+     */
+    @Scheduled(initialDelay = 300_000, fixedDelay = 300_000)
+    @Transactional
+    public void recalculateDynamicStockBase() {
+        long newCount = userRepository.countByLastActiveAtAfter(
+                LocalDateTime.now().minusDays(marketConfig.getActivePlayerWindowDays()));
+
+        marketLock.lock();
+        try {
+            MarketStockEntity stock = getOrCreateMarketStock();
+            ResourceName[] resources = ResourceName.values();
+            double[] oldEffective = new double[resources.length];
+            for (int i = 0; i < resources.length; i++) {
+                oldEffective[i] = getInitialStock(resources[i]);
+            }
+
+            cachedActivePlayerCount = newCount;
+
+            boolean changed = false;
+            for (int i = 0; i < resources.length; i++) {
+                double newEffective = getInitialStock(resources[i]);
+                double ratio = newEffective / oldEffective[i];
+                if (ratio != 1.0) {
+                    setStock(stock, resources[i], getStock(stock, resources[i]) * ratio);
+                    setBaseline(stock, resources[i], getBaseline(stock, resources[i]) * ratio);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                marketStockRepository.save(stock);
+                logger.info("Market liquidity rescaled: {} active player(s) in the last {} days", newCount, marketConfig.getActivePlayerWindowDays());
+            }
+        } finally {
+            marketLock.unlock();
+        }
     }
 
     // ── AMM-Preismodell (constant product, wie Uniswap) ──────────────────────
@@ -517,18 +629,16 @@ public class MarketService {
         return marketConfig.getSellFeeRate();
     }
 
-    /** Setzt Markt-Stock und -Preise alle auf die konfigurierten Ausgangswerte zurueck. */
+    /** Setzt Markt-Stock und -Preise auf die Ausgangswerte zurueck (Preise: Konfig-Werte,
+     *  Stock: aktueller effektiver Wert inkl. Spielerzahl-Skalierung, siehe getInitialStock). */
     @Transactional
     public void resetMarket() {
         marketLock.lock();
         try {
             MarketStockEntity stock = getOrCreateMarketStock();
-            stock.setSugarStock(marketConfig.getInitialSugarStock());
-            stock.setFlourStock(marketConfig.getInitialFlourStock());
-            stock.setEggsStock(marketConfig.getInitialEggsStock());
-            stock.setButterStock(marketConfig.getInitialButterStock());
-            stock.setChocolateStock(marketConfig.getInitialChocolateStock());
-            stock.setMilkStock(marketConfig.getInitialMilkStock());
+            for (ResourceName resource : ResourceName.values()) {
+                setStock(stock, resource, getInitialStock(resource));
+            }
             resetBaselinesToStock(stock);
             marketStockRepository.save(stock);
 
@@ -586,12 +696,9 @@ public class MarketService {
      */
     private MarketStockEntity createInitialMarketStock() {
         MarketStockEntity stock = new MarketStockEntity();
-        stock.setSugarStock(marketConfig.getInitialSugarStock());
-        stock.setFlourStock(marketConfig.getInitialFlourStock());
-        stock.setEggsStock(marketConfig.getInitialEggsStock());
-        stock.setButterStock(marketConfig.getInitialButterStock());
-        stock.setChocolateStock(marketConfig.getInitialChocolateStock());
-        stock.setMilkStock(marketConfig.getInitialMilkStock());
+        for (ResourceName resource : ResourceName.values()) {
+            setStock(stock, resource, getInitialStock(resource));
+        }
         resetBaselinesToStock(stock);
 
         logger.info("Created initial market stock: Sugar={}, Flour={}, Eggs={}, Butter={}, Chocolate={}, Milk={}",
@@ -718,11 +825,6 @@ public class MarketService {
         }
         baseline = baseline + marketConfig.getStockBaselineTradeTransferRatio() * (newStock - oldStock);
         setBaseline(stock, resource, baseline);
-    }
-
-    private double totalUserResources(UserEntity user) {
-        return user.getSugar() + user.getFlour() + user.getEggs()
-             + user.getButter() + user.getChocolate() + user.getMilk();
     }
 
     private double getResourceFromUser(UserEntity user, ResourceName resource) {

@@ -73,6 +73,16 @@ public class UserService {
         return getUser(userId, null);
     }
 
+    // Nur vom Spielstart aus aufrufen (siehe GameController#initializeGame), nicht vom
+    // generischen getUser() -- sonst wuerde jedes Ansehen eines fremden Profils dessen
+    // "aktiv"-Zeitstempel mit auffrischen (siehe UserEntity#lastActiveAt).
+    public void recordLogin(String userId) {
+        userRepository.findById(userId).ifPresent(u -> {
+            u.setLastActiveAt(LocalDateTime.now());
+            userRepository.save(u);
+        });
+    }
+
     // displayName: Steam display name resynced on every login (see GameController#initializeGame).
     // Not trusted for anything beyond cosmetic display -- capped and stored as-is.
     public UserInformationDto getUser(String userId, String displayName) {
@@ -201,9 +211,9 @@ public class UserService {
         // Kein Auto-Verkauf von Ueberlauf mehr (2026-08-07) -- was ueber die Lagerkapazitaet
         // hinausgeht, wird schlicht nicht gutgeschrieben. Ein Ausgleich fuer volles Lager ist
         // als groessere Passiv-Baum-Mechanik geplant, siehe docs/ROADMAP.md.
-        double totalRes = user.getSugar() + user.getFlour() + user.getEggs()
-                        + user.getButter() + user.getChocolate() + user.getMilk();
-        double available = Math.max(0, storageCap - totalRes);
+        // Deckel gilt pro Rohstoff (nicht mehr als gemeinsamer Topf ueber alle sechs) --
+        // ein Gebäude soll nur inaktiv werden, wenn sein eigener Rohstoff voll ist.
+        double available = Math.max(0, storageCap - getResourceAmount(user, resource));
         double toAdd = Math.min(amount, available);
 
         switch (resource) {
@@ -217,6 +227,17 @@ public class UserService {
         user.addLifetimeHarvested(resource, toAdd);
         userRepository.save(user);
         return toDto(user);
+    }
+
+    private double getResourceAmount(UserEntity user, ResourceName resource) {
+        return switch (resource) {
+            case SUGAR     -> user.getSugar();
+            case FLOUR     -> user.getFlour();
+            case EGGS      -> user.getEggs();
+            case BUTTER    -> user.getButter();
+            case CHOCOLATE -> user.getChocolate();
+            case MILK      -> user.getMilk();
+        };
     }
 
     public void deleteUser(String userId) {
