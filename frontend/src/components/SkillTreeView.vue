@@ -117,7 +117,7 @@ function flash(msg, isError = false) {
 const tree = computed(() => playerStore.skillTree)
 const canAfford = computed(() => playerStore.cookies >= tree.value.nextPointCost)
 
-const BRANCH_ICON = { MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw' }
+const BRANCH_ICON = { MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw', DISPO: 'lohn' }
 function branchIcon(n) { return n.root ? 'stern' : (BRANCH_ICON[n.branch] || 'einw') }
 
 

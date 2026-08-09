@@ -109,6 +109,7 @@ import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { fmt } from '../utils/formatNumber.js'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])
@@ -143,8 +144,10 @@ const bodyAnim = computed(() => ({
 
 const crewNames = ['ANNA', 'BEN', 'CLARA', 'DIRK', 'EVA', 'FRANK', 'GRETA', 'HANS']
 
-const wageRow  = computed(() => props.building.rows.find(r => r.k === 'Lohn'))
-const yieldRow = computed(() => props.building.rows.find(r => /Passiv/.test(r.k)))
+// Echte, live berechnete Werte aus dem Store (PlayerBuildingDto) statt der statischen
+// Platzhalter-rows aus buildingInfo.js -- skaliert live mit Stufe/Arbeiterzahl.
+const wageRow  = computed(() => ({ v: `${fmt(ownedData.value?.wagePerMin ?? 0)} C/min` }))
+const yieldRow = computed(() => ({ v: `+${fmt(ownedData.value?.passiveRatePerSec ?? 0)}/s` }))
 
 // This building's own accrued-and-not-yet-collected amount (like a rent bucket), extrapolated
 // locally between building-list refreshes off the last server-settled snapshot -- mirrors

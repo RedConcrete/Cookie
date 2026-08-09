@@ -56,6 +56,16 @@ public class UserEntity {
     // pro Spieler ueber alle Ressourcen hinweg, nicht pro Ressource.
     private LocalDateTime lastMarketTradeAt;
 
+    // Betrag + Zeitpunkt der letzten tatsaechlich abgebuchten Lohnzahlung (WageService --
+    // nur gesetzt, wenn wirklich abgebucht wurde, nicht im Idle-mangels-Cookies-Fall). Das
+    // Frontend pollt das ueber /api/v1/farm/wage-status/{userId} und vergleicht den
+    // Zeitstempel, um die fallende rote Zahl am Cookie-HUD genau einmal pro Abbuchung
+    // auszuloesen (siehe GameController#getWageStatus).
+    @Column(name = "last_wage_amount", columnDefinition = "double precision default 0")
+    private double lastWageAmount = 0;
+    @Column(name = "last_wage_at")
+    private LocalDateTime lastWageAt;
+
     // Optimistic Locking: WageScheduler (60s) und PassiveIncomeScheduler (5s) schreiben
     // beide unabhaengig auf denselben User -- ohne Version-Check gewinnt "last write wins"
     // und einer der beiden Writes (Lohn-Abzug oder Produktions-Gutschrift) geht stillschweigend
@@ -318,4 +328,10 @@ public class UserEntity {
     }
     public int getOwnedCitizens() { return ownedCitizens; }
     public void setOwnedCitizens(int ownedCitizens) { this.ownedCitizens = ownedCitizens; }
+
+    public double getLastWageAmount() { return lastWageAmount; }
+    public void setLastWageAmount(double lastWageAmount) { this.lastWageAmount = lastWageAmount; }
+
+    public LocalDateTime getLastWageAt() { return lastWageAt; }
+    public void setLastWageAt(LocalDateTime lastWageAt) { this.lastWageAt = lastWageAt; }
 }

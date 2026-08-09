@@ -2,10 +2,13 @@ package cookie.server.controller;
 
 import cookie.server.dto.PlayerBuildingDto;
 import cookie.server.dto.UserInformationDto;
+import cookie.server.dto.WageLedgerEntryDto;
+import cookie.server.dto.WageStatusDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.service.BuildingService;
 import cookie.server.service.PassiveIncomeService;
 import cookie.server.service.UserService;
+import cookie.server.service.WageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,17 +23,40 @@ public class BuildingController {
     private final BuildingService buildingService;
     private final UserService userService;
     private final PassiveIncomeService passiveIncomeService;
+    private final WageService wageService;
 
     public BuildingController(BuildingService buildingService, UserService userService,
-                              PassiveIncomeService passiveIncomeService) {
+                              PassiveIncomeService passiveIncomeService, WageService wageService) {
         this.buildingService = buildingService;
         this.userService = userService;
         this.passiveIncomeService = passiveIncomeService;
+        this.wageService = wageService;
     }
 
     @GetMapping("/buildings/{userId}")
     public ResponseEntity<List<PlayerBuildingDto>> getBuildings(@PathVariable String userId) {
         return ResponseEntity.ok(buildingService.getBuildings(userId));
+    }
+
+    // Leichtgewichtiges Polling-Ziel fuers Frontend, um eine neue Lohnabbuchung zu erkennen
+    // (fallende rote Zahl am Cookie-HUD, siehe FarmGridView.vue) -- absichtlich schlanker als
+    // /game/init.
+    @GetMapping("/wage-status/{userId}")
+    public ResponseEntity<WageStatusDto> getWageStatus(@PathVariable String userId) {
+        try {
+            return ResponseEntity.ok(userService.getWageStatus(userId));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Abrechnungshistorie fürs Rathaus (Tab "Abrechnung") -- neueste zuerst, limit gedeckelt
+    // auf balance.wageLedgerMaxEntries (siehe WageService#getWageHistory).
+    @GetMapping("/wage-history/{userId}")
+    public ResponseEntity<List<WageLedgerEntryDto>> getWageHistory(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(wageService.getWageHistory(userId, limit));
     }
 
     @PostMapping("/buildings/buy/{userId}")

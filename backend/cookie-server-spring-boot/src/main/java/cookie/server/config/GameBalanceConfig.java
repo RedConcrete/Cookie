@@ -30,6 +30,12 @@ public class GameBalanceConfig {
     /** Zusätzliche Arbeiter-Slots pro Gebäude-Ausbaustufe über Stufe 1 hinaus. */
     private int workersPerLevel = 1;
 
+    /** Lohn pro zugewiesenem Arbeiter und Minute (Produktionsgebäude). Wert 2.0 reproduziert
+     * exakt die bisherigen pauschalen BuildingDef.wagePerMin-Werte bei Stufe-1-Vollbesatzung
+     * (z.B. Plantage 4 C/min bei 2 Basis-Arbeitern = 2.0/Arbeiter), skaliert ab da aber mit
+     * tatsächlicher Arbeiterzahl statt pauschal pro Gebäude. */
+    private double wagePerMinPerWorker = 2.0;
+
     /** Wachstumsfaktor der Gebäude-Bau-/Ausbaukosten pro Stufe (cost = baseCost × growth^level). */
     private double buildingCostGrowth = 2.0;
 
@@ -60,6 +66,25 @@ public class GameBalanceConfig {
     /** Mindestabstand zwischen zwei Collect-Aufrufen auf dasselbe Gebäude (Anti-Spam). */
     private long collectCooldownMs = 150;
 
+    /** Basis-Zinssatz auf negative Cookies pro Lohn-Tick (Dispo-Kredit statt Idle-Sperre bei
+     * zu wenig Guthaben, siehe WageService#deductWageForUser). Reduzierbar über den DISPO-Zweig
+     * im Skill-Baum (EffectType.WAGE_INTEREST_REDUCTION), aber nie unter debtInterestRateFloor. */
+    private double debtInterestRate = 0.10;
+
+    /** Mindest-Zinssatz auf negative Cookies, auch mit allen DISPO-Skillknoten alloziert --
+     * verhindert, dass der Dispo komplett zinsfrei wird. */
+    private double debtInterestRateFloor = 0.02;
+
+    /** Dispo-Grenze = aktueller Gesamtlohn/Minute × diesen Faktor. Darüber greift wieder die
+     * alte Idle-Sperre (harter Stopp) statt weiter ins Minus zu rutschen -- verhindert eine
+     * endlose Zinsspirale. */
+    private double debtLimitMultiplier = 8.0;
+
+    /** Wie viele Abrechnungshistorie-Einträge (WageLedgerEntity) pro Spieler maximal behalten
+     * werden -- ältere werden bei jeder neuen Abbuchung hart gelöscht (siehe WageService). Bei
+     * einem Eintrag/Minute entsprechen 200 Einträge ca. 3.3 Stunden Historie. */
+    private int wageLedgerMaxEntries = 200;
+
     public double getBaseStorageCap() { return baseStorageCap; }
     public void setBaseStorageCap(double v) { this.baseStorageCap = v; }
 
@@ -77,6 +102,9 @@ public class GameBalanceConfig {
 
     public int getWorkersPerLevel() { return workersPerLevel; }
     public void setWorkersPerLevel(int v) { this.workersPerLevel = v; }
+
+    public double getWagePerMinPerWorker() { return wagePerMinPerWorker; }
+    public void setWagePerMinPerWorker(double v) { this.wagePerMinPerWorker = v; }
 
     public double getBuildingCostGrowth() { return buildingCostGrowth; }
     public void setBuildingCostGrowth(double v) { this.buildingCostGrowth = v; }
@@ -98,4 +126,16 @@ public class GameBalanceConfig {
 
     public long getCollectCooldownMs() { return collectCooldownMs; }
     public void setCollectCooldownMs(long v) { this.collectCooldownMs = v; }
+
+    public int getWageLedgerMaxEntries() { return wageLedgerMaxEntries; }
+    public void setWageLedgerMaxEntries(int v) { this.wageLedgerMaxEntries = v; }
+
+    public double getDebtInterestRate() { return debtInterestRate; }
+    public void setDebtInterestRate(double v) { this.debtInterestRate = v; }
+
+    public double getDebtInterestRateFloor() { return debtInterestRateFloor; }
+    public void setDebtInterestRateFloor(double v) { this.debtInterestRateFloor = v; }
+
+    public double getDebtLimitMultiplier() { return debtLimitMultiplier; }
+    public void setDebtLimitMultiplier(double v) { this.debtLimitMultiplier = v; }
 }

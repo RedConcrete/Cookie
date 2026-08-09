@@ -3,6 +3,7 @@ package cookie.server.service;
 import cookie.server.config.PlayerConfig;
 import cookie.server.dto.UserDto;
 import cookie.server.dto.UserInformationDto;
+import cookie.server.dto.WageStatusDto;
 import cookie.server.entity.UserEntity;
 import cookie.server.enums.EffectType;
 import cookie.server.enums.ResourceName;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -36,16 +38,19 @@ public class UserService {
     private final PrestigeService prestigeService;
     private final SteamAvatarService steamAvatarService;
     private final BuildingService buildingService;
+    private final WageService wageService;
 
     public UserService(UserRepository userRepository, PlayerConfig playerConfig,
                        SkillTreeService skillTreeService, PrestigeService prestigeService,
-                       SteamAvatarService steamAvatarService, BuildingService buildingService) {
+                       SteamAvatarService steamAvatarService, BuildingService buildingService,
+                       WageService wageService) {
         this.userRepository = userRepository;
         this.playerConfig = playerConfig;
         this.skillTreeService = skillTreeService;
         this.steamAvatarService = steamAvatarService;
         this.prestigeService = prestigeService;
         this.buildingService = buildingService;
+        this.wageService = wageService;
     }
 
     public UserInformationDto createUser(String userId, UserDto dto) {
@@ -238,6 +243,22 @@ public class UserService {
             case CHOCOLATE -> user.getChocolate();
             case MILK      -> user.getMilk();
         };
+    }
+
+    // Schlanker Read fuers Frontend-Polling der fallenden Lohn-Zahl am Cookie-HUD -- bewusst
+    // NICHT ueber /game/init (macht mehr, u.a. ensurePreBuiltBuildings), nur die drei Felder,
+    // die zum Erkennen einer neuen Abbuchung noetig sind (siehe WageService#deductWageForUser).
+    public WageStatusDto getWageStatus(String userId) {
+        UserEntity entity = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+        WageStatusDto dto = new WageStatusDto();
+        dto.setCookies(entity.getCookies());
+        dto.setLastWageAmount(entity.getLastWageAmount());
+        dto.setLastWageAtEpochMs(entity.getLastWageAt() != null
+                ? entity.getLastWageAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() : 0);
+        dto.setEffectiveInterestRate(wageService.getEffectiveInterestRate(userId));
+        dto.setDebtLimit(wageService.getDebtLimit(userId));
+        return dto;
     }
 
     public void deleteUser(String userId) {

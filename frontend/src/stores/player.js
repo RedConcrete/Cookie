@@ -21,6 +21,10 @@ export const usePlayerStore = defineStore('player', () => {
   const chocolate  = ref(0)
   const milk       = ref(0)
   const workersIdle      = ref(false)
+  // Dispo-Kredit-Anzeige (Rathaus-Dialog) -- gefüllt vom Wage-Status-Polling in
+  // FarmGridView.vue (pollWageStatus), das ohnehin für die fallende rote Zahl läuft.
+  const debtInterestRate = ref(0.10)
+  const debtLimit        = ref(0)
   const totalResourceCap = ref(100)
   const ownedCitizens    = ref(0)
   // Starts true: App.vue gates RouterView on this (v-if="playerStore.loading"),
@@ -140,7 +144,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     steamId, displayName, avatarUrl, cookies, sugar, flour, eggs, butter, chocolate, milk,
-    workersIdle, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
+    workersIdle, debtInterestRate, debtLimit, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
     netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, serverUnavailable, recipes,

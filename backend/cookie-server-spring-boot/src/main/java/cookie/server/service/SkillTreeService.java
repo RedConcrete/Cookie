@@ -53,12 +53,24 @@ public class SkillTreeService {
         this.balance = balance;
     }
 
+    // Upsert statt "nur wenn komplett leer": erlaubt, buildNodes()/buildEdges() spaeter um
+    // neue Knoten/Zweige zu erweitern (z.B. DISPO), ohne dass sie auf einer bereits befuellten
+    // DB (Dev/Live-Beta) fuer immer fehlen wuerden. Bestehende, bereits allozierte Knoten
+    // bleiben unangetastet -- es werden nur fehlende IDs nachgezogen.
     @PostConstruct
     public void seedTree() {
-        if (skillNodeRepository.count() == 0) {
-            skillNodeRepository.saveAll(buildNodes());
-            skillEdgeRepository.saveAll(buildEdges());
-        }
+        Set<String> existingNodeIds = skillNodeRepository.findAll().stream()
+                .map(SkillNodeEntity::getId).collect(Collectors.toSet());
+        List<SkillNodeEntity> missingNodes = buildNodes().stream()
+                .filter(n -> !existingNodeIds.contains(n.getId())).toList();
+        if (!missingNodes.isEmpty()) skillNodeRepository.saveAll(missingNodes);
+
+        Set<String> existingEdgeIds = skillEdgeRepository.findAll().stream()
+                .map(SkillEdgeEntity::getId).collect(Collectors.toSet());
+        List<SkillEdgeEntity> missingEdges = buildEdges().stream()
+                .filter(e -> !existingEdgeIds.contains(e.getId())).toList();
+        if (!missingEdges.isEmpty()) skillEdgeRepository.saveAll(missingEdges);
+
         refreshCache();
     }
 
@@ -95,7 +107,14 @@ public class SkillTreeService {
             node("core_1", "Fleißige Hände", "+4% Ernte-Ertrag (alle Ressourcen)", "CORE", EffectType.HARVEST_YIELD, null, 0.04, -150, 0, false),
             node("core_2", "Ausdauer", "+1.5% Cookie-Ausbeute beim Backen", "CORE", EffectType.BAKE_OUTPUT, null, 0.015, -300, -100, false),
             node("core_3", "Sparsamkeit", "-0.5% Markt-Verkaufsgebühr", "CORE", EffectType.MARKET_FEE_REDUCTION, null, 0.005, -300, 100, false),
-            node("core_4", "Alleskönner", "+6% Ernte-Ertrag (alle Ressourcen)", "CORE", EffectType.HARVEST_YIELD, null, 0.06, -450, 0, false)
+            node("core_4", "Alleskönner", "+6% Ernte-Ertrag (alle Ressourcen)", "CORE", EffectType.HARVEST_YIELD, null, 0.06, -450, 0, false),
+
+            // Branch DISPO (Nordosten, bisher ungenutztes Feld) -- senkt den Zinssatz auf
+            // negative Cookies (siehe WageService#deductWageForUser, balance.debtInterestRate).
+            node("dispo_1", "Guter Draht zur Bank", "-1% Dispo-Zinsen", "DISPO", EffectType.WAGE_INTEREST_REDUCTION, null, 0.01, 150, -150, false),
+            node("dispo_2", "Bonitätsprüfung bestanden", "-1% Dispo-Zinsen", "DISPO", EffectType.WAGE_INTEREST_REDUCTION, null, 0.01, 300, -300, false),
+            node("dispo_3", "Verhandelter Rahmen", "-1.5% Dispo-Zinsen", "DISPO", EffectType.WAGE_INTEREST_REDUCTION, null, 0.015, 450, -450, false),
+            node("dispo_4", "Goldener Kredit (Keystone)", "-2% Dispo-Zinsen", "DISPO", EffectType.WAGE_INTEREST_REDUCTION, null, 0.02, 600, -600, false)
         );
     }
 
@@ -111,7 +130,10 @@ public class SkillTreeService {
             edge("market_3", "market_4"),
 
             edge(ROOT_ID, "core_1"), edge("core_1", "core_2"), edge("core_1", "core_3"),
-            edge("core_2", "core_4"), edge("core_3", "core_4")
+            edge("core_2", "core_4"), edge("core_3", "core_4"),
+
+            edge(ROOT_ID, "dispo_1"), edge("dispo_1", "dispo_2"), edge("dispo_2", "dispo_3"),
+            edge("dispo_3", "dispo_4")
         );
     }
 

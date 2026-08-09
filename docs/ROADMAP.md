@@ -34,6 +34,53 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
   Entity-Historie) — dieselben zwei SQL-Fixes muessen dort manuell nachgezogen
   werden, ddl-auto=update repariert das nicht von selbst.
 
+- [x] **Neuer `EffectType`-Enum-Wert brach "Dev Start" komplett (2026-08-09).**
+  Gleiche Problemklasse wie die `@Version`-Spalten oben: Hibernates
+  `ddl-auto=update` legt beim ersten Anlegen der Spalte `skill_nodes.effect_type`
+  eine Postgres-CHECK-Constraint an, die nur die zu dem Zeitpunkt bekannten
+  Enum-Werte erlaubt (`skill_nodes_effect_type_check`) — und aktualisiert diese
+  Constraint bei einem späteren `ddl-auto=update`-Lauf NIE, auch wenn
+  `EffectType` neue Werte bekommt (hier: `WAGE_INTEREST_REDUCTION` für den
+  neuen DISPO-Skillzweig). `SkillTreeService#seedTree()` versuchte beim
+  Boot die neuen DISPO-Knoten einzufügen, Postgres lehnte die INSERTs mit
+  `violates check constraint "skill_nodes_effect_type_check"` ab →
+  `skillTreeService`-Bean konnte nicht initialisiert werden, ganzer Boot
+  bricht ab ("Dev Start ... FEHLER").
+  **Fix (lokal angewendet):** `ALTER TABLE skill_nodes DROP CONSTRAINT
+  IF EXISTS skill_nodes_effect_type_check;` (App-seitige Validierung über
+  den Java-Enum reicht, die DB-Constraint war ohnehin nur redundante
+  Absicherung).
+  **Achtung: der Live-Beta-Server hat denselben Bug**, sobald dieses Release
+  dort deployed wird (gleiche Entity-Historie) — denselben SQL-Fix dort
+  manuell nachziehen, ddl-auto=update repariert das nicht von selbst. Bei
+  jedem künftigen neuen `EffectType`-Wert wieder relevant, falls die
+  Constraint zwischenzeitlich (z.B. durch DB-Neuaufsetzen) neu entsteht.
+
+- [x] **Rathaus-Abrechnung zeigte immer "Noch keine Abrechnung", obwohl
+  Lohn abgebucht wurde (2026-08-09).** `WageLedgerEntity#breakdownJson`
+  hatte `@Lob` auf einem `String`-Feld — Hibernate mappt das bei Postgres
+  nicht auf eine normale `text`-Spalte, sondern auf den Large-Object-Typ
+  `oid` (Zeiger auf `pg_largeobject`, ein eigenes Postgres-Subsystem für
+  sehr große Blobs, hier für ein paar hundert Zeichen JSON komplett
+  überdimensioniert). Postgres-Large-Objects dürfen nur innerhalb einer
+  expliziten Transaktion gelesen werden — `WageService#getWageHistory()`
+  ist aber ein reiner, nicht-transaktionaler Read. Jeder Aufruf von
+  `GET /api/v1/farm/wage-history/{userId}` warf serverseitig
+  `PSQLException: Large Objects may not be used in auto-commit mode`
+  (500er), das Frontend (`RathausDialog.vue#selectBillingTab`) fing den
+  Fehler ab und zeigte still den Leer-Zustand — sah für den Spieler aus wie
+  "Feature tut einfach nichts", nicht wie ein Fehler.
+  **Fix:** `@Lob` entfernt, stattdessen `columnDefinition = "text"` (ganz
+  normale Spalte, kein Large-Object-Subsystem). DB-Spalte musste händisch
+  nachgezogen werden (Hibernate `ddl-auto=update` ändert den Typ einer
+  bestehenden Spalte nie): `ALTER TABLE wage_ledger DROP COLUMN
+  breakdown_json; ALTER TABLE wage_ledger ADD COLUMN breakdown_json text;`
+  — vorhandene Test-Einträge verloren dabei ihre Aufschlüsselung (Dev-DB,
+  unkritisch). **Live-Server:** falls dort noch nicht deployed, betrifft es
+  nicht; falls doch, denselben DROP/ADD-Fix nachziehen.
+  **Merke für künftige `String`-Spalten mit viel Text:** nie `@Lob` bei
+  Postgres, immer `columnDefinition = "text"` direkt am `@Column`.
+
 - [ ] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
   `app.dev-mode=false` schaltet aktuell NUR die Admin-Token-Pflicht scharf
   (`AdminConfigController`, `AdminController`) sowie Bake-Dauer/Dev-Reset —
@@ -147,6 +194,12 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
   Neue Referenz-Assets liegen bereits unter
   `frontend/src/assets/buildings/StorageBuildng/` (Lager-Gebäude,
   Testbilder, noch nicht verdrahtet).
+- [ ] **Markt-Hover-Popup zeigt statische 8%-Marktgebühr** (`buildingInfo.js`,
+  `BUILDING_INFO.markt.rows`), obwohl die echte Gebühr mit Markt-Level sinkt
+  (`BuildingService#getEffectiveSellFeeRate`, −2%/Stufe über Stufe 1). Gleiches
+  Bug-Muster wie bei den Produktionsgebäuden (Lohn/Ertrag, 2026-08-09 gefixt) —
+  nur das Markt-Gebäude selbst wurde dabei bewusst ausgeklammert (kein
+  Arbeiter-/Lohn-Bezug, eigenständiges Thema).
 
 ---
 
@@ -431,6 +484,31 @@ spezifiziert ist:
   Sammel-Button — vom Spieler explizit auf später verschoben, könnte im
   Rathaus-Dialog (und ggf. anderswo) landen, sobald der Bedarf (viele
   Gebäude gleichzeitig voll) tatsächlich auftritt.
+- [x] **Lohn skaliert mit Arbeiterzahl + Dispo-Kredit statt Komplett-Idle
+  (2026-08-09).** Zwei Bugs gemeldet: (1) Gebäude-Dialog/Hofkarten-Popup
+  zeigten Lohn/Ertrag/Hover-Rate aus statischen Mockup-Platzhaltern
+  (`buildingInfo.js`), nie an Stufe/Arbeiterzahl gekoppelt — obwohl der
+  Hinweistext im Dialog genau das versprach. (2) Backend-seitig war der Lohn
+  ohnehin pauschal pro Gebäude, unabhängig von Arbeiterzahl. **Fix:**
+  Dialog/Popup lesen jetzt echte Live-Werte aus dem Store,
+  `BuildingService#effectiveWage` skaliert mit `Arbeiterzahl ×
+  wagePerMinPerWorker` (Default 2 C/min, reproduziert die alte Balance bei
+  Stufe-1-Vollbesatzung 1:1). Hover-Rate-Anzeige ebenfalls korrigiert (war
+  frei erfunden pro Ressource, real einheitlich laut `UserService#harvest`).
+  **Zusätzlich vom Spieler gewünscht:** Dispo-Kredit statt sofortigem
+  Komplett-Idle bei zu wenig Cookies (Cookies dürfen ins Minus, 10 %
+  Zinsen/Tick, Dispo-Grenze = Lohn×8 als harter Stopp, neuer DISPO-Skill-
+  Baum-Zweig zur Zinsreduktion), rote fallende Zahl am Cookie-HUD bei jeder
+  Abbuchung, neue Abrechnungshistorie im Rathaus. Details:
+  `cookie-game-design.md` Abschnitt 5 + 9.
+  **Migrations-Falle dabei gefunden und gefixt:** `SkillTreeService#seedTree()`
+  seedete Knoten/Kanten bisher nur `if (count == 0)` — neue Knoten
+  (DISPO-Zweig) wären auf der bereits befüllten Dev-/Live-DB nie
+  angekommen. Auf Upsert (fehlende IDs nachziehen) umgestellt, siehe
+  Abschnitt 0 für den zugehörigen CHECK-Constraint-Bug beim neuen
+  `EffectType`-Wert.
+  **Nicht mit angefasst:** Markt-Hover-Popup zeigt weiterhin eine statische
+  Marktgebühr (siehe Eintrag unter Abschnitt 2, Aufräumarbeiten).
 - [ ] **Pixel-Art-Rework — Entscheidung gegenchecken.** Design-Doc
   (Abschnitt 8, Stand 2026-08-02) führt das DOM+CSS-Ergebnis jetzt als
   "fertig, kein Plan mehr" statt als offene Render-Engine-Frage — inferiert
@@ -580,6 +658,26 @@ Backlog dokumentiert.
   `recalculateDynamicStockBase` startet jetzt mit `initialDelay=300_000`
   statt `0`. Verifiziert: 10s Preis-Sampling direkt nach Neustart zeigt
   keinen Einbruch mehr.
+- [x] **`LagerDialog.vue` überarbeitet (2026-08-09).** Ausgangs-Bugreport:
+  "Hover gibt Ressourcen obwohl Lager voll" — die eigentliche Hover-Ernte-
+  Deckelung (Client + `UserService#harvest`) war bereits korrekt pro
+  Rohstoff gedeckelt, aber die "Gesamtkapazität"-Anzeige im Dialog summierte
+  alle 6 Rohstoffe und verglich das gegen den Deckel EINES Rohstoffs — zeigte
+  "voll" (rot) an, obwohl einzelne Rohstoffe (und damit deren Hover-Ernte)
+  noch lange nicht am Limit waren. Fix: Anzeige-Kapazität ist jetzt
+  Deckel × 6. Zusätzlich auf Nutzerwunsch (Skizze) neu gebaut: oben ein
+  segmentierter Balken zeigt die %-Aufteilung der aktuell gelagerten Menge
+  nach Rohstoff (Farben wie in `MarketView.vue`/`PriceChart.vue`s
+  `RESOURCE_COLORS`), daneben Gesamtmenge/-kapazität + freier Platz in %.
+  Neue Sektion "Gebäude-Lager" listet alle gebauten Produktionsgebäude mit
+  ihrem eigenen (vom Hauptlager unabhängigen) Bestand + Einsammeln-Button
+  pro Zeile (`collectBuilding`-API, bereits vorhanden). Bestätigt beim
+  Nachschauen: Hauptlager und Gebäude-Lager sind bereits im Backend zwei
+  getrennte Speicher (`BuildingService#settle` deckelt nur auf
+  `def.storageCapacity()`, unabhängig vom Hauptlager-Füllstand — siehe auch
+  den bereits vorhandenen Eintrag weiter oben "Verifiziert, kein Bug:
+  Gebäude-Lager bei vollem Hauptlager"), keine Backend-Änderung nötig, nur
+  Frontend/Dialog.
 
 ### 7.2 Backlog (noch offen, nicht in dieser Session umgesetzt)
 

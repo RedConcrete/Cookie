@@ -28,5 +28,9 @@
   "rowCookies": "Cookies",
   "rowResources": "Resources",
   "rowSkillTree": "Skill Tree",
-  "rowTotal": "Total"
+  "rowTotal": "Total",
+  "rowPassive": "Passive · with workers",
+  "rowHover": "Hover · no wage",
+  "rowWorkers": "Workers",
+  "rowWage": "Wage"
 }

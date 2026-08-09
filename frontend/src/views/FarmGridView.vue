@@ -12,7 +12,7 @@
     <div class="hud">
       <div class="hud-chips">
         <PixelInfoPopover :rows="cookieRows" :title="t('farmGridView.cookiesTitle')" side="below-left" :width="272" :z="95">
-          <div class="hud-chip hud-chip-cookie">
+          <div ref="cookieChipEl" class="hud-chip hud-chip-cookie" :class="{ 'hud-chip-debt': playerStore.cookies < 0 }">
             <PixelIcon name="cookie" :size="24" />
             <div class="hud-chip-val">{{ fmt(playerStore.cookies) }}</div>
           </div>
@@ -68,6 +68,9 @@
         </div>
       </div>
     </div>
+    <!-- Fixed screen-space overlay for the falling red wage number -- NOT inside .hof-canvas,
+         since the cookie chip lives in the fixed .hud layer, not the pannable world. -->
+    <WageNumbers />
 <button
           v-if="playerStore.skillTree.skillPoints > 0"
           class="px-btn hud-skillpoint-star"
@@ -88,7 +91,7 @@
         v-for="b in buildings" :key="b.id"
         :building-id="b.id"
         :base="BASE[b.id]" :title="b.title" :icon="b.icon" :rate="b.overlayRate" :workers="b.workers"
-        :rows="buildingRows(b)" :note="b.note" :side="b.side" :scene-height="SCENE_H[b.id]"
+        :rows="b.rows" :note="b.note" :side="b.side" :scene-height="SCENE_H[b.id]"
         :drop-ok="(pos) => dropOk(b.id, pos)"
         :zoom="zoom"
         :offset="buildingOffsets[b.id]"
@@ -162,12 +165,14 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding, getConfig } from '../services/api.js'
+import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding, getConfig, getWageStatus } from '../services/api.js'
 import { fmt, fmt2, fmtBig } from '../utils/formatNumber.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
+import { spawnWageNumber } from '../composables/useWageNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import { useActionHotkeys } from '../composables/useActionHotkeys.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
+import WageNumbers from '../components/WageNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import ShortcutSlot from '../components/pixel/ShortcutSlot.vue'
@@ -314,13 +319,24 @@ const SCENE_COMP = {
   kakao: CocoaScene, kuh: CowScene,
 }
 
+// Produktionsgebäude bekommen ihre Hof-Popup-Zeilen live aus den echten Store-Werten statt
+// den statischen Platzhalter-rows aus BUILDING_INFO (die waren Mockup-Reste, nie an
+// Stufe/Arbeiterzahl gekoppelt -- siehe docs/ROADMAP.md/Plan). Nicht-Produktionsgebäude
+// (rathaus/markt/lager) haben keinen Arbeiter-/Lohn-Bezug und behalten ihre statischen rows.
 const buildings = computed(() =>
   Object.keys(BUILDING_INFO)
     .map(id => {
       const owned = playerStore.ownedBuildings.find(b => b.id === id)
       if (!owned || owned.level === 0) return null
+      const info = BUILDING_INFO[id]
+      const rows = info.resource ? [
+        { k: t('farmGridView.rowPassive'), v: `+${fmt(owned.passiveRatePerSec ?? 0)}/s`, color: 'g' },
+        { k: t('farmGridView.rowHover'), v: `+${fmt(hoverRatePerSec(info.resource))}/s`, color: 'y' },
+        { k: t('farmGridView.rowWorkers'), v: `${owned.workers ?? 0}`, color: 'w' },
+        { k: t('farmGridView.rowWage'), v: `${fmt(owned.wagePerMin ?? 0)} C/min`, color: 'o' },
+      ] : info.rows
       return {
-        id, comp: SCENE_COMP[id], ...BUILDING_INFO[id], title: buildingTitle(id, t), workers: owned.workers ?? 0,
+        id, comp: SCENE_COMP[id], ...info, rows, title: buildingTitle(id, t), workers: owned.workers ?? 0,
         pendingAmount: owned.pendingAmount ?? 0, storageCapacity: owned.storageCapacity ?? 0,
         passiveRatePerSec: owned.passiveRatePerSec ?? 0, lastSettledAtEpochMs: owned.lastSettledAtEpochMs ?? 0,
       }
@@ -332,6 +348,37 @@ const buildings = computed(() =>
 // last server-settled snapshot (owned.pendingAmount/lastSettledAtEpochMs), no extra polling.
 const liveNow = ref(Date.now())
 let liveNowTimer = null
+
+// Poll for wage deductions (WageScheduler runs server-side every 60s, no push to the client)
+// so the falling red number on the cookie chip can fire once per real deduction -- see
+// UserService#getWageStatus. lastSeenWageAt starts null so the very first poll only primes
+// the baseline instead of spawning a number for a deduction that happened before this page load.
+const cookieChipEl = ref(null)
+let lastSeenWageAt = null
+let wagePollTimer = null
+const WAGE_POLL_MS = 15000
+
+async function pollWageStatus() {
+  try {
+    const status = await getWageStatus(playerStore.steamId)
+    // Dispo-Infos (Zinssatz/Grenze) fürs Rathaus-Dialog -- unabhängig von neuen Abbuchungen,
+    // ändern sich z.B. sofort nach einem neuen DISPO-Skillknoten oder Gebäude-Ausbau.
+    playerStore.debtInterestRate = status.effectiveInterestRate
+    playerStore.debtLimit = status.debtLimit
+    if (lastSeenWageAt === null) {
+      lastSeenWageAt = status.lastWageAtEpochMs
+      return
+    }
+    if (status.lastWageAtEpochMs > lastSeenWageAt) {
+      lastSeenWageAt = status.lastWageAtEpochMs
+      playerStore.cookies = status.cookies
+      const rect = cookieChipEl.value?.getBoundingClientRect()
+      if (rect) spawnWageNumber(status.lastWageAmount, rect.left + rect.width / 2, rect.top + rect.height / 2)
+    }
+  } catch (e) {
+    // Poll ist rein kosmetisch -- Fehler (Server kurz weg, o.ä.) einfach beim naechsten Tick erneut versuchen.
+  }
+}
 
 // Serverseitiger Collect-Cooldown gespiegelt (siehe ConfigController/GameBalanceConfig), Fallback
 // falls /api/v1/config noch nicht geladen ist -- lieber einen Tick zu vorsichtig sperren als
@@ -418,12 +465,6 @@ function isBuildingOwned(id) {
   return b ? b.level > 0 : false
 }
 
-// Use real owned-building data for rows if available, else fall back to static BUILDING_INFO
-function buildingRows(b) {
-  const owned = playerStore.ownedBuildings.find(x => x.id === b.id)
-  if (!owned || owned.level === 0) return b.rows
-  return b.rows
-}
 
 const totalWorkers = computed(() => playerStore.assignedCitizens)
 
@@ -825,6 +866,16 @@ function harvestBonus(resourceName) {
     .reduce((s, n) => s + n.effectValue, 0)
 }
 
+// Echte Hover-Ernte-Rate/s für die Hofkarten-Popup-Anzeige -- mirrors localHarvestTick's
+// Formel, nur auf eine Rate/s statt einen Einzeltick umgerechnet. Ersetzt die vorherige,
+// pro Gebäude frei erfundene "Hover"-Platzhalterzahl (siehe buildingInfo.js) -- real ist
+// die Hover-Ernte für alle Ressourcen gleich (UserService#harvest), unterscheidet sich nur
+// durch den ressourcenspezifischen Skill-Bonus.
+function hoverRatePerSec(resourceName) {
+  if (!resourceName) return 0
+  return (1.0 + harvestBonus(resourceName)) * playerStore.prestigeMultiplier / (HARVEST_MS / 1000)
+}
+
 // Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
 // formula, scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
 // No auto-sell of overflow (2026-08-07): once THIS resource's own cap is full, toAdd
@@ -880,6 +931,8 @@ onMounted(() => {
   // Drives livePending()'s local fill-bar extrapolation only -- no network call, just
   // re-renders the badge from the last server-settled snapshot (see buildings computed).
   liveNowTimer = setInterval(() => { liveNow.value = Date.now() }, 500)
+  pollWageStatus()
+  wagePollTimer = setInterval(pollWageStatus, WAGE_POLL_MS)
   viewEl.value.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('keyup', onKeyup)
@@ -889,6 +942,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   clearInterval(liveNowTimer)
+  clearInterval(wagePollTimer)
   Object.values(harvestDelays).forEach(clearTimeout)
   Object.values(harvestIntervals).forEach(clearInterval)
   Object.values(harvestSyncTimers).forEach(clearInterval)
@@ -957,6 +1011,7 @@ onUnmounted(() => {
 .hud-chip-cookie { padding: 5px 12px; background: var(--px-wood-lt); box-shadow: inset -2px -2px 0 var(--px-wood2), inset 2px 2px 0 var(--px-wood3); }
 .hud-chip-val   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 .hud-chip-cookie .hud-chip-val { font-size: 13px; color: var(--px-gold-txt); }
+.hud-chip-debt .hud-chip-val { color: var(--px-red); }
 .hud-chip-label { font-size: 11px; color: #aea47e; line-height: 1; }
 
 .hud-networth-wrap { flex: 0 0 auto; margin-left: 16px; max-width: 160px; }

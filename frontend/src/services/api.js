@@ -198,6 +198,17 @@ export function buyCitizens(steamId, count = 1) {
   return request('POST', `/api/v1/farm/citizens/buy/${steamId}`, { count })
 }
 
+// Lightweight poll target for the falling wage number on the cookie HUD -- only cookies +
+// last wage deduction timestamp/amount, not the full building list.
+export function getWageStatus(steamId) {
+  return request('GET', `/api/v1/farm/wage-status/${steamId}`)
+}
+
+// Wage deduction history for the Rathaus billing tab, newest first.
+export function getWageHistory(steamId, limit = 50) {
+  return request('GET', `/api/v1/farm/wage-history/${steamId}?limit=${limit}`)
+}
+
 // Reset player data (dev mode only, no token needed for DEV_PLAYER_001).
 export function adminResetPlayer(steamId) {
   return request('POST', `/api/v1/admin/reset/${steamId}`)

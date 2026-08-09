@@ -40,7 +40,7 @@ alles andere läuft im laufenden Betrieb.
 | Ernten (Hover-Sammeln) | ✅ | ✅ | spielbar |
 | Bürger-System (anwerben, Gebäuden zuweisen) | ✅ | ✅ | spielbar |
 | Gebäude-Ausbau (mehr Bürger-Slots) | ✅ | ✅ | spielbar |
-| Lohn / Idle-Mechanik | ✅ | ✅ | spielbar |
+| Lohn / Dispo-Mechanik (2026-08-09) | ✅ | ✅ | spielbar |
 | Markt (AMM-Preismodell, Angebot/Nachfrage) | ✅ | ✅ | spielbar |
 | Live-Preise via WebSocket | ✅ | ✅ | spielbar |
 | Rezept-Varianten + Bake-Timer | ✅ | ✅ | spielbar (3 Rezepte) |
@@ -130,8 +130,9 @@ irgendein anderer Rohstoff voll ist (vorher: ein einziger geteilter Topf über
 alle 6 Rohstoffe, dadurch wurden bei vollem Lager alle Gebäude gleichzeitig
 inaktiv, egal welchen Rohstoff sie produzierten). Visuelles Feedback im
 Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`): Hover-Ring wird rot statt
-grün, ein kurzes Popover erklärt "Lager voll", Gebäude werden wie bei nicht
-bezahlbarem Lohn optisch gedimmt (`.building-idle`). Ein sinnvoller Ausgleich
+grün, ein kurzes Popover erklärt "Lager voll", Gebäude werden optisch gedimmt
+(`.building-idle`), derselbe visuelle Zustand wie bei überzogener
+Dispo-Grenze (Abschnitt 5). Ein sinnvoller Ausgleich
 für volles Lager (Ressourcen-Umwandlung, Lager-Overflow-Puffer o.ä.) ist als
 größere Mechanik im Skill-/Passiv-Baum geplant, siehe `docs/ROADMAP.md` — bis
 dahin bewusst hart gestoppt statt automatisch verkauft.
@@ -185,10 +186,42 @@ Fassung) vollständig.
   (`POST /api/v1/farm/buildings/collect/{userId}/{buildingId}`,
   `PassiveIncomeService#collectBuilding`). Was wegen vollem gemeinsamem Lager
   nicht reinpasst, bleibt im Gebäude liegen statt verworfen zu werden.
-- **Lohn:** jede Minute wird die Summe aller Gebäude-Löhne (`wagePerMin`)
-  vom Cookie-Konto abgebucht. Reicht das Guthaben nicht, werden **alle**
-  Bürger auf `idle` gesetzt — passive Produktion pausiert komplett, bis
-  wieder genug Cookies da sind (kein Teilausfall, alles oder nichts).
+- **Lohn (2026-08-09 neu: pro Arbeiter statt pauschal pro Gebäude):** jede
+  Minute wird die Summe aller Gebäude-Löhne vom Cookie-Konto abgebucht
+  (`WageScheduler`, 60s-Takt, `WageService#deductWageForUser`). Jedes
+  Produktionsgebäude kostet `zugewiesene Arbeiter × wagePerMinPerWorker`
+  (Default 2 C/min/Arbeiter, `balance.wage-per-min-per-worker`) — skaliert
+  also mit tatsächlicher Arbeiterzahl und indirekt mit Gebäude-Stufe (mehr
+  Stufen = mehr Arbeiter-Slots = mehr potenzieller Lohn, wenn auch besetzt).
+  Lager ist eine Ausnahme: dort kostet weiterhin jede Stufe über Stufe 1
+  einen festen Betrag (kein Arbeiter-Bezug, siehe Abschnitt 4).
+- **Dispo-Kredit statt Komplett-Idle (2026-08-09):** reicht das
+  Cookie-Guthaben für den fälligen Lohn nicht, gehen die Cookies ins Minus
+  statt dass sofort alle Bürger auf `idle` gesetzt werden — Produktion läuft
+  normal weiter. Auf ein bestehendes Minus fallen **10 % Zinsen pro
+  Lohn-Tick** an (`balance.debt-interest-rate`), reduzierbar über den
+  DISPO-Skill-Baum-Zweig (Abschnitt 9) bis auf einen Mindestsatz von 2 %
+  (`balance.debt-interest-rate-floor`). Zinsen laufen jeden Tick, auch wenn
+  gerade kein Lohn fällig ist (z. B. keine Arbeiter zugewiesen) — wer einmal
+  im Minus ist, muss aktiv gegensteuern (verkaufen, backen, ernten), sonst
+  wächst die Schuld exponentiell weiter.
+  **Dispo-Grenze:** `aktueller Gesamtlohn/Minute × debtLimitMultiplier`
+  (Default ×8, `balance.debt-limit-multiplier`) — würde die nächste
+  Lohnabbuchung diese Grenze überschreiten, greift die alte Komplett-Idle-
+  Sperre als harter Stopp (alle Bürger `idle`, passive Produktion pausiert
+  komplett), bis das Guthaben wieder unter der Grenze liegt. Verhindert eine
+  endlose Zins-Spirale ohne Ausweg.
+  **Sichtbar für den Spieler:** Cookie-Zahl im HUD färbt sich rot bei
+  negativem Kontostand, Rathaus-Dialog zeigt eine "Schulden"-Kachel mit
+  aktuellem Zinssatz und Dispo-Grenze, jede tatsächliche Abbuchung lässt eine
+  rote Zahl am Cookie-HUD nach unten wegfallen (`WageNumbers.vue`).
+  **Abrechnungshistorie:** jede tatsächliche Lohnabbuchung (nicht die
+  Zinsen — die sind konzeptionell eine separate Bank-Transaktion, keine
+  Gebäude-Ausgabe) landet als Eintrag im Rathaus-Tab "Abrechnung"
+  (Zeitpunkt, Summe, Aufschlüsselung pro Gebäude), gespeist aus
+  `WageLedgerEntity`. Pro Spieler werden nur die neuesten 200 Einträge
+  behalten (`balance.wage-ledger-max-entries`), ältere werden bei jeder neuen
+  Abbuchung hart gelöscht statt die Granularität zu vergröbern.
 
 ---
 
@@ -382,14 +415,15 @@ gehalten (siehe unten) — der Baum lebt vom Sammeln vieler Punkte über
 längere Spielzeit, nicht von 2–3 Käufen mit riesigem Einzeleffekt.
 
 **Effekt-Typen** (`enums/EffectType`): `HARVEST_YIELD`, `BAKE_OUTPUT`,
-`MARKET_FEE_REDUCTION`. `HARVEST_YIELD`-Knoten haben ein optionales
+`MARKET_FEE_REDUCTION`, `WAGE_INTEREST_REDUCTION` (2026-08-09, senkt den
+Dispo-Zinssatz, Abschnitt 5). `HARVEST_YIELD`-Knoten haben ein optionales
 `targetResource` (z. B. `MILK`) — `null` heißt global (gilt für jede
 Ressource), gesetzt heißt nur für diese eine Ressource. Alle Effekte eines
 Typs (+ passender Ressource) addieren sich; zentral aufgelöst über
 `SkillTreeService#getEffectTotal(userId, type, targetResource)` statt
 verstreuter Einzel-Lookups wie im alten System.
 
-**V1-Baum:** 18 Knoten + Wurzel in 4 Zweigen (Seed in
+**V1-Baum:** 22 Knoten + Wurzel in 5 Zweigen (Seed in
 `SkillTreeService#buildNodes/buildEdges`, admin-editierbar zur Laufzeit):
 - **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
   +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
@@ -401,6 +435,10 @@ verstreuter Einzel-Lookups wie im alten System.
   global) → `core_2` (+0.015 Backen) **und** `core_3` (−0.5% Markt) →
   `core_4` (+0.06 Ernte, global, konvergierender Fork mit 2 eingehenden
   Kanten, testet Mehrfach-Eltern-Konnektivität)
+- **DISPO** (global, Dispo-Zinsreduktion, 2026-08-09): `dispo_1`…`dispo_4`
+  linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, Gesamt-Reduktion 5.5
+  Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum, harter
+  Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
 
 Effektwerte bewusst klein (siehe Kostenkurve oben) — aktuelle Zahlen per
 Admin-API live nachgezogen 2026-08-06, ursprüngliche Erstwerte lagen beim
@@ -428,16 +466,29 @@ sind über die Admin-API überhaupt nicht editierbar.
   effectValue, x, y, isRoot)`
 - Kanten: `SkillTreeService#buildEdges()` — welcher Knoten an welchen
   angrenzt (PoE-Konnektivitätsregel)
-- Danach `skill_nodes`/`skill_edges`-Tabellen leeren (DB ist disposable) —
-  `seedTree()` (`@PostConstruct`) seeded nur `if (count == 0)`, sonst wird
-  die Code-Änderung beim nächsten Start ignoriert
-- Neuer Knoten mit **bestehendem** Effekt-Typ: reicht der Eintrag oben. Ein
-  komplett **neuer** Effekt-Typ braucht zusätzlich einen neuen
-  `EffectType`-Enum-Wert plus Code an der Auswertungsstelle
-  (`SkillTreeService#getEffectTotal()`, aufgerufen aus `UserService#harvest`,
-  der Backen-Logik und `MarketService`)
+- `seedTree()` (`@PostConstruct`, seit 2026-08-09 Upsert statt reinem
+  `count == 0`-Check) zieht beim nächsten Start automatisch nur die
+  **fehlenden** IDs aus `buildNodes()`/`buildEdges()` nach — kein DB-Reset
+  mehr nötig, bestehende Spieler-Allokationen (`PlayerSkillNodeEntity`)
+  bleiben unangetastet. Vorher (bis 2026-08-08) musste dafür die komplette
+  `skill_nodes`/`skill_edges`-Tabelle geleert werden, sonst wurden
+  Code-Änderungen an einer bereits befüllten DB stillschweigend ignoriert.
+- **Achtung bei einem komplett neuen `EffectType`-Wert:** Postgres legt beim
+  ersten Anlegen der `effect_type`-Spalte eine CHECK-Constraint mit den zu
+  dem Zeitpunkt bekannten Enum-Werten an und aktualisiert sie bei
+  `ddl-auto=update` **nie** von selbst — ein neuer Enum-Wert lässt jeden
+  Insert mit `violates check constraint "skill_nodes_effect_type_check"`
+  scheitern und den kompletten Boot abbrechen (traf 2026-08-09 beim
+  Hinzufügen von `WAGE_INTEREST_REDUCTION` zu). Fix: `ALTER TABLE
+  skill_nodes DROP CONSTRAINT IF EXISTS skill_nodes_effect_type_check;` von
+  Hand ausführen (lokal **und** auf dem Live-Server bei Deploy) — Details
+  und genaue Fehlermeldung in `docs/ROADMAP.md` Abschnitt 0.
+- Neuer Knoten mit **bestehendem** Effekt-Typ: reicht der Eintrag oben, kein
+  Enum-/Constraint-Thema.
 - Frontend (`SkillTreeDialog.vue`/`SkillTreeView.vue`) zeichnet den Baum
-  automatisch aus den Backend-Daten, braucht für neue Knoten keine Änderung.
+  automatisch aus den Backend-Daten, braucht für neue Knoten keine Änderung
+  — außer das Branch-Icon (`BRANCH_ICON`-Map in `SkillTreeView.vue`) für
+  einen komplett neuen Branch-Namen.
 
 **Bewusst nicht gebaut (v1):**
 - Kein Respec/Un-Allocate-Endpoint (einfacher Folge-Ausbau).
@@ -552,8 +603,13 @@ UserEntity            steamId, token, cookies, sugar, flour, eggs, butter,
                        chocolate, milk, lifetimeCookiesBaked, prestigeLevel,
                        totalPrestiges, workersIdle, ownedCitizens,
                        skillPoints, totalSkillPointsBought,
-                       totalSkillPointCookiesSpent
-PlayerBuildingEntity   userId, buildingId, level, workers
+                       totalSkillPointCookiesSpent, lastWageAmount,
+                       lastWageAt (2026-08-09, Dispo-Abbuchungs-Historie)
+PlayerBuildingEntity   userId, buildingId, level, version, workers,
+                       pendingAmount, lastSettledAt, lastCollectedAt
+WageLedgerEntity       id, userId, totalAmount, breakdownJson
+                       (buildingId→Betrag), createdAt — Abrechnungshistorie
+                       fürs Rathaus, max. 200 Einträge/Spieler (2026-08-09)
 SkillNodeEntity        id, name, description, branch, effectType,
                        targetResource, effectValue, isRoot, x, y
 SkillEdgeEntity        id, fromNode, toNode (eine gerichtete Zeile pro Paar,
@@ -594,6 +650,9 @@ SeasonResultEntity     seasonId, userId, finalNetWorth, finalRank,
 | GET | `/api/v1/farm/buildings/{userId}` | Gebäudeliste + Status |
 | POST | `/api/v1/farm/buildings/buy/{userId}` | Gebäude bauen/ausbauen |
 | POST | `/api/v1/farm/buildings/workers/{userId}` | Bürger zuweisen/entfernen |
+| POST | `/api/v1/farm/buildings/collect/{userId}/{buildingId}` | Passive Produktion eines Gebäudes einsammeln |
+| GET | `/api/v1/farm/wage-status/{userId}` | Cookies, letzte Lohnabbuchung, effektiver Dispo-Zinssatz + -grenze (Polling für die fallende rote HUD-Zahl, 2026-08-09) |
+| GET | `/api/v1/farm/wage-history/{userId}?limit=` | Abrechnungshistorie, neueste zuerst (Rathaus-Tab, 2026-08-09) |
 | POST | `/api/v1/farm/citizens/buy/{userId}` | Bürger anwerben |
 | GET | `/api/v1/skilltree?userId=` | Skill-Baum (Knoten+Kanten) + Spielerstatus |
 | POST | `/api/v1/skilltree/buy-point/{userId}` | 1 Skill-Punkt kaufen |

@@ -98,6 +98,10 @@ public class AdminConfigController {
         balanceConfig.setCitizenBaseCost(update.getCitizenBaseCost());
         balanceConfig.setCitizenCostGrowth(update.getCitizenCostGrowth());
         balanceConfig.setWorkersPerLevel(update.getWorkersPerLevel());
+        balanceConfig.setWagePerMinPerWorker(update.getWagePerMinPerWorker());
+        balanceConfig.setDebtInterestRate(update.getDebtInterestRate());
+        balanceConfig.setDebtInterestRateFloor(update.getDebtInterestRateFloor());
+        balanceConfig.setDebtLimitMultiplier(update.getDebtLimitMultiplier());
         balanceConfig.setBuildingCostGrowth(update.getBuildingCostGrowth());
         balanceConfig.setPrestigeBaseThreshold(update.getPrestigeBaseThreshold());
         balanceConfig.setPrestigeThresholdGrowth(update.getPrestigeThresholdGrowth());

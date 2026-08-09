@@ -203,18 +203,33 @@ public class BuildingService {
     }
 
     public double getTotalWage(String userId) {
-        Map<String, PlayerBuildingEntity> owned = ownedMap(userId);
-        return BUILDINGS.stream()
-                .filter(def -> owned.containsKey(def.id()))
-                .mapToDouble(def -> effectiveWage(def, owned.get(def.id())))
-                .sum();
+        return getWageBreakdown(userId).values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
+    /** Lohnanteil pro Gebäude (nur Gebäude mit Lohn > 0) -- Grundlage für getTotalWage()
+     * und die Abrechnungshistorie (WageService#deductWageForUser). */
+    public Map<String, Double> getWageBreakdown(String userId) {
+        Map<String, PlayerBuildingEntity> owned = ownedMap(userId);
+        Map<String, Double> breakdown = new LinkedHashMap<>();
+        for (BuildingDef def : BUILDINGS) {
+            PlayerBuildingEntity ent = owned.get(def.id());
+            double wage = effectiveWage(def, ent);
+            if (wage > 0) breakdown.put(def.id(), wage);
+        }
+        return breakdown;
+    }
+
+    // Lohn skaliert mit tatsächlich zugewiesenen Arbeitern (nicht mehr pauschal pro Gebäude,
+    // siehe balance.wagePerMinPerWorker) -- macht den Hinweistext im Gebäude-Dialog wahr
+    // ("Jeder zusätzliche Einwohner erhöht ... den Lohn"). def.wagePerMin() bleibt für die
+    // 6 Produktionsgebäude nur noch als Referenzwert für die Shop-Vorschau (Frontend,
+    // korrekt bei Stufe-1-Vollbesatzung) übrig, hier ungenutzt.
     private double effectiveWage(BuildingDef def, PlayerBuildingEntity ent) {
         if (ent == null) return 0;
         // Lager: free at level 1, +wagePerMin for each level above 1
         if (def.id().equals("lager")) return Math.max(0, ent.getLevel() - 1) * def.wagePerMin();
-        return def.wagePerMin();
+        if (def.maxWorkers() <= 0) return 0; // ofen, rathaus, markt — kein Lohn
+        return ent.getWorkers() * balance.getWagePerMinPerWorker();
     }
 
     public int getMaxCitizens(String userId) {

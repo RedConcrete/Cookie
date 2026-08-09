@@ -34,14 +34,18 @@ Bei jeder Aufgabe zuerst dieses Dokument lesen, besonders Abschnitt
   außerhalb der Palette, exit 1 bei Verstoß). Bestehende Gebäude-SVGs sind
   Platzhalter und davon ausgenommen (siehe `docs/ROADMAP.md`).
 
-## Aktueller Stand (2026-08-06)
+## Aktueller Stand (2026-08-09)
 
-Implementiert: Hof-Grid, Gebäude, Upgrades, Prestige, Backsystem, Rangliste,
+Implementiert: Hof-Grid, Gebäude, Skill-Baum (Path-of-Exile-artiger Passiv-
+Baum, ersetzt altes Upgrade-System), Prestige, Backsystem, Rangliste,
 Net-Worth-Dialog mit Verlaufsgraph (Zoom/Pan, Toggle, Live-Updates alle 10s/30s),
 Markt-Preisgraph mit %-Modus und Zoom, Season-Reset (manuell via Admin-Endpoint),
 Lokalisierung DE/EN (vue-i18n, Sprachumschalter in den Einstellungen), custom
 Pixel-Scrollbar (`PixelScrollBox.vue`) + animierte Lade-Anzeige
-(`LoadingIndicator.vue`) in allen scrollenden Dialogen.
+(`LoadingIndicator.vue`) in allen scrollenden Dialogen. Lohn skaliert live mit
+Arbeiterzahl, Dispo-Kredit statt Komplett-Idle bei zu wenig Cookies (Zinsen,
+reduzierbar über Skill-Baum-Zweig DISPO) + Abrechnungshistorie im Rathaus —
+Details `docs/cookie-game-design.md` Abschnitt 5 + 9.
 
 ## Lokalisierung (i18n)
 
