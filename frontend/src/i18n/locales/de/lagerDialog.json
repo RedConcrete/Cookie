@@ -10,7 +10,7 @@
   "resMilk": "Milch",
   "buildingsTitle": "GEBÄUDE-LAGER",
   "noBuildings": "Noch keine Produktionsgebäude gebaut.",
-  "collectBtn": "LEEREN",
+  "mainStorageFull": "Hauptlager ist voll",
   "errorCollecting": "Einsammeln fehlgeschlagen.",
   "wageLine": "Stufe {level} Lohn: {wage} C/MIN",
   "free": "(kostenlos)",

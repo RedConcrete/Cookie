@@ -274,10 +274,11 @@ public class MarketService {
                 if (amount >= marketStock) {
                     throw new IllegalArgumentException("Market out of stock for " + resource + ". Available: " + marketStock + ", Requested: " + amount);
                 }
-                // Deckel gilt pro Rohstoff (nicht als gemeinsamer Topf ueber alle 6), analog zu
-                // UserService#harvest/PassiveIncomeService#collectBuilding.
+                // Hauptlager ist ein gemeinsamer Topf ueber alle 6 Rohstoffe (analog zu
+                // UserService#harvest/PassiveIncomeService#collectBuilding) -- ein einzelner
+                // Rohstoff darf ihn komplett fuellen.
                 double cap = buildingService.getTotalCap(request.getUserId());
-                double freeSpace = cap - getResourceFromUser(user, resource);
+                double freeSpace = cap - user.getTotalResources();
                 if (amount > freeSpace) {
                     throw new IllegalArgumentException("Lager voll. Frei: " + freeSpace + ", Angefragt: " + amount);
                 }

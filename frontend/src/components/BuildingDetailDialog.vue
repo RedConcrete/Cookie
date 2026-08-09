@@ -153,27 +153,25 @@ const yieldRow = computed(() => ({ v: `+${fmt(ownedData.value?.passiveRatePerSec
 // locally between building-list refreshes off the last server-settled snapshot -- mirrors
 // FarmGridView's livePending().
 const storageCapacity = computed(() => ownedData.value?.storageCapacity ?? 0)
+// Friert nur bei workersIdle ein (keine Loehne mehr zahlbar) -- NICHT beim vollen
+// Hauptlager, das eigene Gebaeude-Lager sammelt unabhaengig davon weiter (bis
+// storageCapacity, das deckelt der Math.min unten selbst). Mirrors FarmGridView's
+// livePending().
 const pendingAmount = computed(() => {
   const d = ownedData.value
   if (!d || !storageCapacity.value) return 0
-  if (playerStore.workersIdle || isResourceFull(props.building.resource)) return d.pendingAmount ?? 0
+  if (playerStore.workersIdle) return d.pendingAmount ?? 0
   const elapsedSeconds = Math.max(0, (nowTick.value - (d.lastSettledAtEpochMs || nowTick.value)) / 1000)
   return Math.min(storageCapacity.value, (d.pendingAmount ?? 0) + (d.passiveRatePerSec ?? 0) * elapsedSeconds)
 })
 const storagePct = computed(() => storageCapacity.value > 0 ? Math.min(100, (pendingAmount.value / storageCapacity.value) * 100) : 0)
 
-// Cap gilt pro Rohstoff (nicht als gemeinsamer Topf ueber alle 6) -- mirrors
-// FarmGridView's isResourceFull. A production building's worker still counts as
-// "assigned" (workerCount/adjustWorkers untouched) but shows idle here, same as the
-// wage-can't-pay case, since there's nowhere left to put what it'd produce (no
-// auto-sell, see docs/ROADMAP.md) -- but only when THIS building's own resource is full.
-function isResourceFull(resourceName) {
-  if (!resourceName) return false
-  const amount = playerStore[resourceName.toLowerCase()] ?? 0
-  return amount >= playerStore.totalResourceCap
-}
+// "Produziert dieses Gebaeude gerade wirklich nichts mehr?" -- eigenes Lager voll ODER
+// keine Loehne zahlbar. NICHT das Hauptlager (das ist ein gemeinsamer Topf ueber alle 6
+// Rohstoffe, siehe player.js' totalResources, und betrifft nur die Hover-Ernte, die
+// direkt ins Hauptlager schreibt -- mirrors FarmGridView's isPassiveIdle).
 const isBuildingIdle = computed(() =>
-  playerStore.workersIdle || isResourceFull(props.building.resource)
+  playerStore.workersIdle || pendingAmount.value >= storageCapacity.value
 )
 const storageText = computed(() => {
   const cap = storageCapacity.value

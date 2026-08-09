@@ -10,37 +10,43 @@
       <div class="ld-body">
         <!-- Hauptlager: Gesamtkapazitaet, segmentiert nach Anteil je Rohstoff am
              aktuell gelagerten Gesamtbestand. Nur aus diesem Bestand kann verkauft
-             werden -- Gebaeude-Lager (unten) ist ein davon getrennter Speicher. -->
-        <div class="ld-total-row">
-          <div class="ld-total-bar-col">
-            <div class="ld-cap-label">{{ t('lagerDialog.capacityLabel') }}</div>
-            <div class="ld-seg-bar">
-              <div
-                v-for="r in resourceRows" :key="r.key"
-                class="ld-seg"
-                :style="{ width: r.sharePct + '%', background: r.color }"
-                :title="`${r.label}: ${r.amount.toFixed(0)}`"
-              ></div>
-            </div>
-          </div>
-          <div class="ld-total-side">
-            <div class="ld-total-val">{{ fmtK(totalResources) }} / {{ fmtK(totalCapacity) }}</div>
-            <div class="ld-total-free">{{ t('lagerDialog.freeLabel') }}: {{ freePct.toFixed(0) }}%</div>
-          </div>
+             werden -- Gebaeude-Lager (unten) ist ein davon getrennter Speicher.
+             Ersetzt die vorherige separate Pro-Rohstoff-Liste komplett -- die
+             Aufteilung steckt jetzt direkt im Balken (Playtest-Feedback: die Liste
+             war redundant, der Balken zeigt "wieviel wovon" schon selbst). -->
+        <div class="ld-total-head">
+          <div class="ld-cap-label">{{ t('lagerDialog.capacityLabel') }}</div>
+          <div class="ld-total-val">{{ fmtK(totalResources) }} / {{ fmtK(totalCapacity) }}</div>
         </div>
-
-        <!-- Per-resource rows -->
-        <div class="ld-resources">
-          <div v-for="r in resourceRows" :key="r.key" class="ld-res-row">
-            <PixelIcon :name="r.icon" :size="16" />
-            <div class="ld-res-name">{{ r.label }}</div>
-            <div class="ld-res-bar-wrap">
-              <div class="ld-res-bar">
-                <div class="ld-res-fill" :style="{ width: r.pct + '%' }"></div>
-              </div>
+        <div class="ld-seg-bar">
+          <!-- Pro Segment: eigene Zahl/Prozent nur wenn das Segment breit genug ist
+               (Container-Query auf .ld-seg statt JS-Breitenmessung), Icon zusaetzlich
+               nur ab 10% Anteil (sonst wird's im Segment selbst zu eng). Zu schmal fuer
+               auch nur die Zahl -> nur noch ueber den kleinen Hover-Tip erreichbar (wie
+               ueberall sonst im Spiel, siehe PixelTip/MarketView -- kein natives title=,
+               kein grosses PixelInfoPopover fuer sowas Kleines). Klick auf ein Segment
+               (oder den Frei-Wert rechts) schaltet fuer den ganzen Balken zwischen % und
+               absoluter Menge um, mirrors MarketView's %-Modus-Toggle. -->
+          <div
+            v-for="r in resourceRows" :key="r.key"
+            class="ld-seg-wrap"
+            :style="{ width: r.sharePct + '%', borderRight: r.sharePct > 0 ? '2px solid var(--px-ink)' : 'none' }"
+          >
+            <div
+              class="ld-seg" :ref="el => segEls[r.key] = el"
+              :style="{ background: r.color }"
+              @click="showAmounts = !showAmounts"
+              @mouseenter="hoverSegKey = r.key" @mouseleave="hoverSegKey = null"
+            >
+              <span class="ld-seg-label">
+                <PixelIcon v-if="r.sharePct >= 10" :name="r.icon" :size="10" />
+                {{ showAmounts ? fmtK(r.amount) : Math.round(r.sharePct) + '%' }}
+              </span>
             </div>
-            <div class="ld-res-val">{{ r.amount.toFixed(1) }}</div>
-            <div class="ld-res-price">{{ fmt2(r.price) }} C</div>
+            <PixelTip :anchor="segEls[r.key]" :text="segTipText(r)" :visible="hoverSegKey === r.key" />
+          </div>
+          <div class="ld-seg-free" @click="showAmounts = !showAmounts">
+            {{ t('lagerDialog.freeLabel') }} {{ showAmounts ? fmtK(totalCapacity - totalResources) : freePct.toFixed(0) + '%' }}
           </div>
         </div>
 
@@ -60,10 +66,18 @@
             </div>
             <div class="ld-res-val">{{ fmt(b.pending) }} / {{ fmtK(b.cap) }}</div>
             <button
-              class="px-btn px-btn-accent ld-bres-collect"
-              :disabled="b.pending <= 0 || collectingIds.has(b.id)"
+              class="px-btn px-btn-accent ld-bres-collect" :class="{ full: b.resourceFull }"
+              :ref="el => collectEls[b.id] = el"
+              :disabled="b.pending <= 0 || b.resourceFull || collectingIds.has(b.id)"
               @click="collectBuildingRow(b)"
-            >{{ t('lagerDialog.collectBtn') }}</button>
+              @mouseenter="hoverCollectKey = b.id" @mouseleave="hoverCollectKey = null"
+            >{{ fmt(b.pending) }}</button>
+            <PixelTip
+              v-if="b.resourceFull"
+              :anchor="collectEls[b.id]" variant="sell"
+              :text="t('lagerDialog.mainStorageFull')"
+              :visible="hoverCollectKey === b.id"
+            />
           </div>
         </div>
 
@@ -103,6 +117,7 @@ import { fmt, fmt2 } from '../utils/formatNumber.js'
 import { useAudio } from '../composables/useAudio.js'
 import { BUILDING_INFO, buildingTitle } from './buildings/buildingInfo.js'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelTip from './pixel/PixelTip.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const emit = defineEmits(['close'])
@@ -116,6 +131,9 @@ onMounted(() => audio.playBookOpen())
 const upgrading   = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
+// Balken-weiter Umschalter % <-> absolute Menge (Klick auf ein Segment oder den
+// Frei-Wert), statt pro Segment einzeln -- ein Zustand fuer den ganzen Balken.
+const showAmounts = ref(false)
 
 const lagerData    = computed(() => playerStore.ownedBuildings.find(b => b.id === 'lager'))
 const lagerLevel   = computed(() => lagerData.value?.level ?? 1)
@@ -134,27 +152,39 @@ const RESOURCES = [
   { key: 'milk',      labelKey: 'lagerDialog.resMilk',      icon: 'milch',  name: 'MILK',      color: '#6f6e72' },
 ]
 
-const totalResources = computed(() =>
-  RESOURCES.reduce((s, r) => s + (playerStore[r.key] ?? 0), 0)
-)
+const totalResources = computed(() => playerStore.totalResources)
 
-const resourceRows = computed(() => RESOURCES.map(r => {
-  const amount = playerStore[r.key] ?? 0
-  return {
-    ...r,
-    label: t(r.labelKey),
-    amount,
-    pct: Math.min(100, (amount / playerStore.totalResourceCap) * 100),
-    sharePct: totalResources.value > 0 ? (amount / totalResources.value) * 100 : 0,
-    price: marketStore.priceOf(r.name),
-  }
-}))
+// sharePct ist der Anteil an der GESAMTKAPAZITAET (nicht am aktuell gehaltenen Bestand!)
+// -- sonst fuellt eine einzelne Ressource optisch immer den ganzen Balken (100% von sich
+// selbst), egal wie leer das Lager tatsaechlich ist. So summieren die Segmentbreiten sich
+// zu totalPct auf, der Rest des Balkens bleibt sichtbar leer (deckt sich mit "FREI X%").
+const resourceRows = computed(() => {
+  const cap = playerStore.totalResourceCap
+  return RESOURCES.map(r => {
+    const amount = playerStore[r.key] ?? 0
+    return {
+      ...r,
+      label: t(r.labelKey),
+      amount,
+      sharePct: cap > 0 ? (amount / cap) * 100 : 0,
+      price: marketStore.priceOf(r.name),
+    }
+  })
+})
 
-// Cap gilt pro Rohstoff, nicht als gemeinsamer Topf (siehe UserService#harvest) -- die
-// Gesamtkapazitaet fuer diese Uebersicht ist deshalb der Deckel mal Rohstoffanzahl, sonst
-// zeigt der Balken "voll" schon bei einem Bruchteil der echten Kapazitaet, obwohl einzelne
-// Rohstoffe (und damit deren Hover-Ernte) noch laengst nicht am Limit sind.
-const totalCapacity = computed(() => playerStore.totalResourceCap * RESOURCES.length)
+// Kleiner Hover-Tip pro Segment (PixelTip, wie MarketView's Icon-/Max-Buttons) statt
+// des grossen PixelInfoPopover -- fuer den Fall, dass ein Segment zu schmal fuer die
+// eigene Zahl ist (siehe @container-Regel im Style). Ein Tip-Text/Anker-Paar reicht,
+// da immer nur ein Segment gleichzeitig gehovert werden kann.
+const segEls = reactive({})
+const hoverSegKey = ref(null)
+function segTipText(r) {
+  return `${r.label}: ${fmt(r.amount)} · ${r.sharePct.toFixed(1)}% · ${fmt2(r.price)} C`
+}
+
+// Hauptlager ist ein gemeinsamer Topf ueber alle sechs Rohstoffe (siehe
+// UserEntity#getTotalResources) -- ein einzelner Rohstoff darf ihn komplett fuellen.
+const totalCapacity = computed(() => playerStore.totalResourceCap)
 const totalPct = computed(() =>
   totalCapacity.value > 0 ? Math.min(100, (totalResources.value / totalCapacity.value) * 100) : 0
 )
@@ -167,9 +197,12 @@ let tickTimer = null
 onMounted(() => { tickTimer = setInterval(() => { nowTick.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(tickTimer))
 
+// Hauptlager ist ein gemeinsamer Topf -- "voll" gilt fuer alle Rohstoffe gleichzeitig,
+// nicht nur fuer den uebergebenen (der Parameter bleibt fuer Aufrufer wie BuildingFrame's
+// harvestBlocked, die "hat dieses Gebaeude ueberhaupt einen Rohstoff" pruefen wollen).
 function isResourceFull(resourceName) {
   if (!resourceName) return false
-  return (playerStore[resourceName.toLowerCase()] ?? 0) >= playerStore.totalResourceCap
+  return totalResources.value >= playerStore.totalResourceCap
 }
 
 function livePending(owned, resourceName) {
@@ -180,7 +213,9 @@ function livePending(owned, resourceName) {
 }
 
 // Produktionsgebaeude (die 6 mit eigenem Rohstoff) mit ihrem jeweils eigenen, vom
-// Hauptlager unabhaengigen Bestand -- siehe ld-buildings im Template.
+// Hauptlager unabhaengigen Bestand -- siehe ld-buildings im Template. resourceFull:
+// das Hauptlager (gemeinsamer Topf) ist bereits komplett voll -- Einsammeln wuerde
+// serverseitig 0 gutschreiben (PassiveIncomeService#collectBuilding).
 const buildingRows = computed(() => Object.entries(BUILDING_INFO)
   .filter(([, def]) => def.resource)
   .map(([id, def]) => {
@@ -191,13 +226,17 @@ const buildingRows = computed(() => Object.entries(BUILDING_INFO)
     return {
       id, icon: def.icon, title: buildingTitle(id, t),
       pending, cap, pct: cap > 0 ? Math.min(100, (pending / cap) * 100) : 0,
+      resourceFull: isResourceFull(def.resource),
     }
   })
   .filter(Boolean))
 
+const collectEls = reactive({})
+const hoverCollectKey = ref(null)
+
 const collectingIds = reactive(new Set())
 async function collectBuildingRow(b) {
-  if (collectingIds.has(b.id) || b.pending <= 0) return
+  if (collectingIds.has(b.id) || b.pending <= 0 || b.resourceFull) return
   collectingIds.add(b.id)
   try {
     const updated = await collectBuilding(playerStore.steamId, b.id)
@@ -257,23 +296,53 @@ async function upgradeLager() {
 
 .ld-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 
-.ld-total-row { display: flex; align-items: flex-end; gap: 12px; }
-.ld-total-bar-col { flex: 1; min-width: 0; }
-.ld-cap-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); margin-bottom: 4px; }
-.ld-seg-bar { height: 14px; background: var(--px-ink); border: 3px solid var(--px-ink); display: flex; overflow: hidden; }
-.ld-seg { height: 100%; }
-.ld-total-side { flex-shrink: 0; text-align: right; }
-.ld-total-val  { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
-.ld-total-free { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-green-txt); margin-top: 2px; }
+.ld-total-head { display: flex; align-items: baseline; justify-content: space-between; }
+.ld-cap-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
+.ld-total-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
 
-.ld-resources { display: flex; flex-direction: column; gap: 6px; }
-.ld-res-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
+/* Voller Breite -- Aufteilung nach Rohstoff steckt direkt im Balken (siehe
+   .ld-seg-label), keine separate Liste mehr daneben oder darunter. Heller Track
+   (--px-cream, hellster Ton der Palette, von keiner der 6 Rohstofffarben belegt)
+   statt dunklem -- "leer" soll wie leer aussehen, nicht wie ein weiteres dunkles
+   Segment (siehe auch MILCH-Kontrast-Fix per Trenner-Border unten). */
+.ld-seg-bar {
+  position: relative; height: 26px; background: var(--px-cream);
+  border: 3px solid var(--px-ink); display: flex; overflow: hidden;
+}
+/* box-sizing:border-box, damit der Trenner-Border (siehe Template) die Segmentbreite
+   nicht ueber die deklarierten sharePct-Prozente hinaus aufblaeht -- ohne sichtbare
+   Trennlinie waren z.B. MILCH (grau) und der leere Rest (dunkel) kaum zu unterscheiden. */
+.ld-seg-wrap { flex-shrink: 0; box-sizing: border-box; }
+.ld-seg {
+  height: 100%; width: 100%; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; cursor: pointer;
+  container-type: inline-size;
+}
+/* Zahl/Prozent nur einblenden, wenn das Segment (Container) dafuer breit genug ist --
+   sonst bleibt das Hover-Popover der einzige Weg, den Wert zu sehen. */
+.ld-seg-label {
+  display: none; align-items: center; gap: 3px;
+  font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-ink);
+  white-space: nowrap;
+}
+@container (min-width: 34px) {
+  .ld-seg-label { display: flex; }
+}
+/* Dunkler Text mit hellem Halo statt umgekehrt -- sitzt jetzt meist auf dem hellen
+   Cream-Track (siehe .ld-seg-bar), der Halo haelt es zusaetzlich lesbar, falls bei
+   fast vollem Lager kaum noch Platz bleibt und das Label ueber ein Farbsegment ragt. */
+.ld-seg-free {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink);
+  text-shadow: 1px 0 var(--px-cream), -1px 0 var(--px-cream), 0 1px var(--px-cream), 0 -1px var(--px-cream);
+  cursor: pointer; z-index: 2;
+}
+
 .ld-res-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); min-width: 68px; }
 .ld-res-bar-wrap { flex: 1; }
 .ld-res-bar { height: 8px; background: var(--px-ink); border: 2px solid var(--px-ink); }
 .ld-res-fill { height: 100%; background: var(--px-gold); }
-.ld-res-val   { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold-txt); min-width: 48px; text-align: right; }
-.ld-res-price { font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-muted); min-width: 52px; text-align: right; }
+.ld-res-val   { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-ink); min-width: 48px; text-align: right; }
 
 .ld-buildings { display: flex; flex-direction: column; gap: 6px; }
 .ld-section-title { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
@@ -282,6 +351,10 @@ async function upgradeLager() {
 .ld-bres-collect {
   font-family: 'Silkscreen', monospace; font-size: 8px; padding: 5px 8px; flex-shrink: 0;
 }
+/* Eigener Rohstoff im Hauptlager schon voll -- Einsammeln würde 0 gutschreiben, siehe
+   buildingRows/resourceFull. Rot statt nur ausgegraut, damit "blockiert" (koennte
+   theoretisch, aber Lager ist voll) sich vom normalen "nichts da" (pending<=0) unterscheidet. */
+.ld-bres-collect.full { border-color: var(--px-red); background: var(--px-wood); color: #e67a84; }
 
 .ld-info { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
 .ld-info-text  { font-size: 12px; }

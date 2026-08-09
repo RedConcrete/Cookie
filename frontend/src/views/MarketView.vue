@@ -273,9 +273,10 @@ function onQtyBlur(res) {
 }
 
 // ── Trade ───────────────────────────────────────────────
-// Deckel gilt pro Rohstoff (nicht als gemeinsamer Topf ueber alle 6), analog zu
-// MarketService#trade/UserService#harvest.
-function freeStorageFor(res) { return Math.max(0, playerStore.totalResourceCap - (playerStore[res.key] ?? 0)) }
+// Hauptlager ist ein gemeinsamer Topf ueber alle 6 Rohstoffe (analog zu
+// UserService#harvest) -- der freie Platz fuer einen Kauf haengt vom Gesamtbestand ab,
+// nicht nur vom aktuellen Stand dieses einen Rohstoffs.
+function freeStorageFor(res) { return Math.max(0, playerStore.totalResourceCap - playerStore.totalResources) }
 
 function canBuy(res) {
   return !isTradeLocked.value && amounts[res.name] > 0 && playerStore.cookies >= buyCost(res) && amounts[res.name] <= freeStorageFor(res)

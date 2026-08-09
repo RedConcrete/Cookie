@@ -49,6 +49,14 @@ export const usePlayerStore = defineStore('player', () => {
 
   const marketStore = useMarketStore()
 
+  // Hauptlager ist ein gemeinsamer Topf ueber alle sechs Rohstoffe (siehe
+  // UserEntity#getTotalResources auf dem Server) -- ein einzelner Rohstoff darf ihn
+  // komplett fuellen. Zentral hier statt in jedem Consumer einzeln nachgebaut (Hover-
+  // Ernte-Gating in FarmGridView/BuildingDetailDialog, Lager-Uebersicht in LagerDialog).
+  const totalResources = computed(() =>
+    sugar.value + flour.value + eggs.value + butter.value + chocolate.value + milk.value
+  )
+
   const ownedOnly      = computed(() => ownedBuildings.value.filter(b => b.level > 0))
   const totalWage      = computed(() => ownedOnly.value.reduce((s, b) => s + (b.wagePerMin ?? 0), 0))
   const assignedCitizens = computed(() => ownedOnly.value.reduce((s, b) => s + (b.workers ?? 0), 0))
@@ -144,7 +152,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     steamId, displayName, avatarUrl, cookies, sugar, flour, eggs, butter, chocolate, milk,
-    workersIdle, debtInterestRate, debtLimit, totalResourceCap, ownedBuildings, ownedOnly, totalWage,
+    workersIdle, debtInterestRate, debtLimit, totalResourceCap, totalResources, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
     netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, serverUnavailable, recipes,

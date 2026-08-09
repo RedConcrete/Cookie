@@ -678,6 +678,29 @@ Backlog dokumentiert.
   den bereits vorhandenen Eintrag weiter oben "Verifiziert, kein Bug:
   Gebäude-Lager bei vollem Hauptlager"), keine Backend-Änderung nötig, nur
   Frontend/Dialog.
+- [x] **Hauptlager-Deckel zurück auf gemeinsamen Topf (2026-08-09, noch
+  selber Tag wie der Eintrag oben).** Der Lager-Dialog-Umbau oben nahm den
+  Deckel-pro-Rohstoff aus dem 2026-08-07-Eintrag ("Auto-Verkauf bei vollem
+  Lager entfernt") als gegeben an und baute die neue Balken-Anzeige darauf
+  auf (Deckel × 6 als Anzeige-Kapazität). Spieler-Feedback beim Testen:
+  "es gibt keine Deckelung, das Lager kann auch ganz voll mit Schokolade
+  sein" — der Deckel-pro-Rohstoff sollte gar nicht gelten, das Hauptlager
+  soll ein einziger gemeinsamer Topf über alle 6 Rohstoffe sein (das war
+  tatsächlich das *ursprüngliche* Verhalten vor dem 2026-08-07-Umbau, der
+  hatte das Gegenteil dokumentiert). Zurückgerollt: `UserEntity` bekommt
+  `getTotalResources()` (Summe aller 6), `UserService#harvest`,
+  `PassiveIncomeService#collectBuilding` und `MarketService#performAction`
+  (BUY-Zweig, dort war der Deckel-pro-Rohstoff-Check bisher gar nicht
+  erwähnt gewesen — beim Suchen mit auf gefallen) prüfen jetzt alle gegen
+  `getTotalResources()` statt gegen den einzelnen Rohstoff. Frontend:
+  neuer `playerStore.totalResources`-Computed (Summe der 6 Ressourcen-Refs,
+  zentral statt in jedem Consumer einzeln nachgebaut) in `player.js`,
+  `isResourceFull()` in `FarmGridView.vue`/`BuildingDetailDialog.vue`/
+  `LagerDialog.vue` sowie `localHarvestTick()` (Client-Vorhersage) und
+  `MarketView.vue#freeStorageFor` (Max-Kauf-Menge) darauf umgestellt.
+  `LagerDialog`s Anzeige-Kapazität ist jetzt `totalResourceCap` direkt
+  (nicht mehr × 6). Design-Doc (Abschnitt 4) und Code-Kommentare
+  entsprechend nachgezogen.
 
 ### 7.2 Backlog (noch offen, nicht in dieser Session umgesetzt)
 

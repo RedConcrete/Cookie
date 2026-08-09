@@ -254,6 +254,12 @@ public class UserEntity {
         this.milk = milk;
     }
 
+    /** Summe aller sechs Rohstoffe -- das Hauptlager ist ein gemeinsamer Topf (ein
+     * einzelner Rohstoff darf ihn komplett fuellen), kein Deckel pro Rohstoff. */
+    public double getTotalResources() {
+        return sugar + flour + eggs + butter + chocolate + milk;
+    }
+
     public double getLifetimeCookiesBaked() {
         return lifetimeCookiesBaked;
     }

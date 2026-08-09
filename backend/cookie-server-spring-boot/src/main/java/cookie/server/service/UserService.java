@@ -216,9 +216,10 @@ public class UserService {
         // Kein Auto-Verkauf von Ueberlauf mehr (2026-08-07) -- was ueber die Lagerkapazitaet
         // hinausgeht, wird schlicht nicht gutgeschrieben. Ein Ausgleich fuer volles Lager ist
         // als groessere Passiv-Baum-Mechanik geplant, siehe docs/ROADMAP.md.
-        // Deckel gilt pro Rohstoff (nicht mehr als gemeinsamer Topf ueber alle sechs) --
-        // ein Gebäude soll nur inaktiv werden, wenn sein eigener Rohstoff voll ist.
-        double available = Math.max(0, storageCap - getResourceAmount(user, resource));
+        // Hauptlager ist ein gemeinsamer Topf ueber alle sechs Rohstoffe (Reversion 2026-08-09
+        // -- der Deckel galt zwischenzeitlich pro Rohstoff, das sollte aber weiterhin erlauben,
+        // das ganze Lager mit nur einem Rohstoff zu fuellen).
+        double available = Math.max(0, storageCap - user.getTotalResources());
         double toAdd = Math.min(amount, available);
 
         switch (resource) {
@@ -232,17 +233,6 @@ public class UserService {
         user.addLifetimeHarvested(resource, toAdd);
         userRepository.save(user);
         return toDto(user);
-    }
-
-    private double getResourceAmount(UserEntity user, ResourceName resource) {
-        return switch (resource) {
-            case SUGAR     -> user.getSugar();
-            case FLOUR     -> user.getFlour();
-            case EGGS      -> user.getEggs();
-            case BUTTER    -> user.getButter();
-            case CHOCOLATE -> user.getChocolate();
-            case MILK      -> user.getMilk();
-        };
     }
 
     // Schlanker Read fuers Frontend-Polling der fallenden Lohn-Zahl am Cookie-HUD -- bewusst

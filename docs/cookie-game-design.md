@@ -118,19 +118,23 @@ cost(level) = baseCost × 2^level
 Ernten (kein Auto-Pflücker-Upgrade mehr nötig, das gab es früher separat und
 ist entfernt).
 
-**Lager voll (2026-08-07, Deckel pro Rohstoff seit 2026-08-09):** kein
-Auto-Verkauf von Überschuss mehr — weder bei Hover-Ernte noch bei passiver
-Produktion. Was über die Kapazität hinausgeht, wird schlicht nicht
-gutgeschrieben (`UserService#harvest`, `PassiveIncomeService#collectBuilding`,
+**Lager voll (2026-08-07, kurzzeitig Deckel pro Rohstoff 2026-08-09,
+zurückgerollt auf gemeinsamen Topf noch am selben Tag):** kein Auto-Verkauf
+von Überschuss mehr — weder bei Hover-Ernte noch bei passiver Produktion. Was
+über die Kapazität hinausgeht, wird schlicht nicht gutgeschrieben
+(`UserService#harvest`, `PassiveIncomeService#collectBuilding`,
 `MarketService#trade` beim Markt-Kauf), keine automatische Umwandlung in
-Cookies. Die Kapazität (`totalResourceCap`) gilt **pro Rohstoff einzeln**,
-nicht als gemeinsamer Topf über alle sechs — ein Gebäude wird nur inaktiv,
-wenn genau der Rohstoff voll ist, den es selbst produziert, nicht wenn
-irgendein anderer Rohstoff voll ist (vorher: ein einziger geteilter Topf über
-alle 6 Rohstoffe, dadurch wurden bei vollem Lager alle Gebäude gleichzeitig
-inaktiv, egal welchen Rohstoff sie produzierten). Visuelles Feedback im
-Hof-Grid (`FarmGridView.vue`/`BuildingFrame.vue`): Hover-Ring wird rot statt
-grün, ein kurzes Popover erklärt "Lager voll", Gebäude werden optisch gedimmt
+Cookies. Die Kapazität (`totalResourceCap`) gilt als **gemeinsamer Topf über
+alle sechs Rohstoffe** (`UserEntity#getTotalResources`) — ein einzelner
+Rohstoff darf das Lager komplett füllen, und sobald der Topf insgesamt voll
+ist, werden alle Produktionsgebäude gleichzeitig inaktiv, unabhängig davon,
+welchen Rohstoff sie selbst produzieren. (Zwischenzeitlich lief kurz ein
+Modell mit Deckel pro Rohstoff einzeln — das machte zwar Sinn für "Gebäude X
+wird nur inaktiv, wenn Rohstoff X voll ist", aber der Spieler wollte
+ausdrücklich die Möglichkeit behalten, das ganze Lager mit einem einzigen
+Rohstoff zu füllen; explizit zurückgerollt.) Visuelles Feedback im Hof-Grid
+(`FarmGridView.vue`/`BuildingFrame.vue`): Hover-Ring wird rot statt grün, ein
+kurzes Popover erklärt "Lager voll", Gebäude werden optisch gedimmt
 (`.building-idle`), derselbe visuelle Zustand wie bei überzogener
 Dispo-Grenze (Abschnitt 5). Ein sinnvoller Ausgleich
 für volles Lager (Ressourcen-Umwandlung, Lager-Overflow-Puffer o.ä.) ist als

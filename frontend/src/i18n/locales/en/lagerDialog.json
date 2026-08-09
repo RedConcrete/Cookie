@@ -10,7 +10,7 @@
   "resMilk": "Milk",
   "buildingsTitle": "BUILDING STORAGE",
   "noBuildings": "No production buildings built yet.",
-  "collectBtn": "COLLECT",
+  "mainStorageFull": "Main storage is full",
   "errorCollecting": "Failed to collect.",
   "wageLine": "Level {level} wage: {wage} C/MIN",
   "free": "(free)",

@@ -97,10 +97,11 @@
         :offset="buildingOffsets[b.id]"
         :ref="(el) => onBuildingFrameRef(b.id, el)"
         :harvest-blocked="isProductionBlocked(b)"
+        :passive-idle="isPassiveIdle(b)"
         :pending-amount="livePending(b)"
         :storage-capacity="b.storageCapacity"
         :resource-icon="RESOURCE_ICON[b.resource]"
-        :class="{ 'building-idle': (playerStore.workersIdle || isProductionBlocked(b)) && isBuildingOwned(b.id) }"
+        :class="{ 'building-idle': isPassiveIdle(b) && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
         @harvest-start="b.resource && !isProductionBlocked(b) && startHarvest(b.id, b.resource)"
         @harvest-stop="b.resource && stopHarvest(b.resource)"
@@ -108,7 +109,7 @@
         @collect="onCollectBuilding(b)"
       >
         <component
-          :is="b.comp" :workers="b.workers" :idle="isProductionBlocked(b)"
+          :is="b.comp" :workers="b.workers" :idle="isPassiveIdle(b)"
           v-bind="b.id === 'rathaus' ? { idleCount: playerStore.idleCitizens, idleWarn: playerStore.workersIdle } : {}"
         />
       </BuildingFrame>
@@ -394,10 +395,14 @@ getConfig().then(cfg => {
 // deaktiviert zu werden, auf Wunsch: "was nicht da ist, kann man nicht druecken".
 const collectLockedUntil = reactive({})
 
+// Extrapolierter Live-Wert von pendingAmount seit dem letzten Server-Snapshot. Friert nur
+// bei workersIdle ein (keine Loehne mehr zahlbar -- BuildingService#settle stoppt dann
+// wirklich) -- NICHT bei vollem Hauptlager, das eigene Gebaeude-Lager sammelt unabhaengig
+// davon weiter (bis storageCapacity, siehe Math.min unten -- der deckelt das selbst).
 function livePending(b) {
   if (!b.storageCapacity) return 0
   if (Date.now() < (collectLockedUntil[b.id] || 0)) return 0
-  if (playerStore.workersIdle || isResourceFull(b.resource)) return b.pendingAmount
+  if (playerStore.workersIdle) return b.pendingAmount
   const elapsedSeconds = Math.max(0, (liveNow.value - (b.lastSettledAtEpochMs || liveNow.value)) / 1000)
   return Math.min(b.storageCapacity, b.pendingAmount + b.passiveRatePerSec * elapsedSeconds)
 }
@@ -488,15 +493,32 @@ const idleWanderers = computed(() => {
   }))
 })
 
-// Cap gilt pro Rohstoff (nicht mehr als gemeinsamer Topf ueber alle 6) -- kein Auto-Verkauf
-// von Ueberlauf mehr (2026-08-07), sobald der jeweilige Rohstoff voll ist, stoppt nur das
-// Gebaeude, das genau diesen Rohstoff produziert, statt alle Gebaeude gleichzeitig.
+// Hauptlager ist ein gemeinsamer Topf ueber alle 6 Rohstoffe (siehe player.js'
+// totalResources) -- ein einzelner Rohstoff darf ihn komplett fuellen. Betrifft NUR die
+// Hover-Ernte (die schreibt direkt ins Hauptlager, siehe localHarvestTick) -- die passive
+// Gebaeude-Produktion ist davon unabhaengig, siehe isPassiveIdle/isBuildingStorageFull
+// unten (BuildingService#settle deckelt serverseitig nur auf storageCapacity, nie auf
+// den Hauptlager-Fuellstand).
 function isResourceFull(resourceName) {
   if (!resourceName) return false
-  const amount = playerStore[resourceName.toLowerCase()] ?? 0
-  return amount >= playerStore.totalResourceCap
+  return playerStore.totalResources >= playerStore.totalResourceCap
 }
 function isProductionBlocked(b) { return isResourceFull(b.resource) }
+
+// Eigenes Gebaeude-Lager (pendingAmount, siehe BuildingService#settle) ist voll --
+// unabhaengig vom Hauptlager. Nutzt livePending() (extrapolierter Live-Wert), nicht das
+// rohe b.pendingAmount, sonst wuerde die Anzeige kurz "aktiv" bleiben, bis der naechste
+// Server-Snapshot eintrifft, obwohl der Balken lokal schon sichtbar voll waere.
+function isBuildingStorageFull(b) {
+  if (!b.storageCapacity) return false
+  return livePending(b) >= b.storageCapacity
+}
+// "Produziert dieses Gebaeude gerade wirklich nichts mehr?" -- fuer INAKTIV-Badge,
+// Abdunkeln und die Arbeiter-Leerlauf-Animation in der Szene. Zwei unabhaengige Gruende:
+// keine Loehne mehr zahlbar (workersIdle, global) ODER dieses eine Gebaeude ist mit
+// seinem eigenen Lager am Anschlag -- NICHT das Hauptlager (siehe isProductionBlocked
+// oben, das ist nur fuer die Hover-Ernte relevant).
+function isPassiveIdle(b) { return playerStore.workersIdle || isBuildingStorageFull(b) }
 
 const mobileNavItems = [
   { labelKey: 'farmGridView.navHome',        icon: 'haus',  action: () => { dialog.value = null; resetView() } },
@@ -878,15 +900,19 @@ function hoverRatePerSec(resourceName) {
 
 // Local prediction for one visual tick -- mirrors UserService#harvest's per-tick
 // formula, scoped to a single HARVEST_MS tick instead of a full elapsed-time batch.
-// No auto-sell of overflow (2026-08-07): once THIS resource's own cap is full, toAdd
-// caps at 0 and the tick simply grants nothing -- cap is per-resource, not shared.
+// No auto-sell of overflow (2026-08-07): once the shared pot (all 6 resources
+// combined) is full, toAdd caps at 0 and the tick simply grants nothing.
 function localHarvestTick(buildingId, name) {
   const predicted = (1.0 + harvestBonus(name)) * playerStore.prestigeMultiplier
   const key = name.toLowerCase()
   const cap = playerStore.totalResourceCap ?? Infinity
-  const available = Math.max(0, cap - (playerStore[key] ?? 0))
+  const available = Math.max(0, cap - playerStore.totalResources)
   const toAdd = Math.min(predicted, available)
-  if (toAdd <= 0) return
+  // NOT "toAdd <= 0" -- comparisons against NaN are always false, so that check lets a
+  // NaN toAdd (e.g. transient bad data from playerStore) slip through, get written into
+  // playerStore[key] and permanently poison it (every future tick reads NaN back out and
+  // stays NaN) and shows as "+NaN" via spawnFarmNumber. This form catches NaN too.
+  if (!(toAdd > 0)) return
   playerStore[key] = (playerStore[key] ?? 0) + toAdd
   const off = buildingOffsets[buildingId] || { x: 0, y: 0 }
   // Hover-Ernte-Zahl bewusst immer im selben, NICHT-gelben Ton -- Gold/Gelb (#ebb85b/#fff1a9/

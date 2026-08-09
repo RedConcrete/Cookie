@@ -47,7 +47,7 @@
       </div>
       <div class="bf-overlay-right">
         <!--<span class="bf-rate">{{ rate }}</span>-->
-        <span v-if="harvestBlocked && Number(workers) > 0" class="bf-idle-tag">{{ t('buildingFrame.idleBadge') }}</span>
+        <span v-if="passiveIdle && Number(workers) > 0" class="bf-idle-tag">{{ t('buildingFrame.idleBadge') }}</span>
         <span v-if="workers !== null" class="bf-workers">
           <PixelIcon name="einw" :size="12" />{{ workers }}
         </span>
@@ -92,8 +92,15 @@ const props = defineProps({
   // grants nothing. Purely visual here (red ring + notice); FarmGridView owns the
   // actual gating of whether harvest-start does anything. Named distinctly from the
   // pre-existing local `blocked` computed below (invalid-drag-drop-position), which
-  // a same-named prop would silently shadow in the template.
+  // a same-named prop would silently shadow in the template. Tied to the shared main
+  // storage (hover-harvest writes straight into it) -- NOT the same thing as
+  // passiveIdle below, this building's own local storage can still have room even
+  // while the main storage (and therefore hover-harvest) is full.
   harvestBlocked: { type: Boolean, default: false },
+  // This building's own passive/worker production isn't accumulating anything right
+  // now (its own local storage is full, or wages can't be paid) -- drives the
+  // INAKTIV badge. Independent of harvestBlocked/the main storage.
+  passiveIdle: { type: Boolean, default: false },
   // Collect-badge (accrued passive resource, collectible without opening the dialog).
   pendingAmount:   { type: Number, default: 0 },
   storageCapacity: { type: Number, default: 0 },
