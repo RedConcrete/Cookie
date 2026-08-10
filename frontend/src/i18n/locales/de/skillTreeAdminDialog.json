@@ -1,0 +1,11 @@
+{
+  "title": "SKILL-BAUM ADMIN",
+  "connectModeLabel": "Verbinden",
+  "connectHintFrom": "Ersten Knoten wählen",
+  "connectHintPick": "Zweiten Knoten wählen",
+  "branchLabel": "Branch",
+  "tierLabel": "Tier",
+  "positionSavedNotice": "Position gespeichert",
+  "edgeCreatedNotice": "Verbindung erstellt",
+  "edgeDeletedNotice": "Verbindung gelöscht"
+}

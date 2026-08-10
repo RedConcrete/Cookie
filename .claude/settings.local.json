@@ -17,7 +17,8 @@
       "Bash(docker info:*)",
       "Bash(docker compose:*)",
       "Bash(/tmp/kill_ports.bat:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(PGPASSWORD=1234 psql -h localhost -U postgres -d cookie -c \"ALTER TABLE skill_nodes ADD COLUMN IF NOT EXISTS requires_all_prereqs boolean DEFAULT false; UPDATE skill_nodes SET requires_all_prereqs=false WHERE requires_all_prereqs IS NULL; ALTER TABLE skill_nodes ALTER COLUMN requires_all_prereqs SET NOT NULL;\")"
     ]
   }
 }

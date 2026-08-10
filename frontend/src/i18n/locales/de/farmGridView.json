@@ -6,6 +6,7 @@
   "netWorthHint": "Gesamtwert-Verlauf",
   "devResetTitle": "DEV: Reset",
   "devResetLabel": "DEV",
+  "skillTreeAdminLabel": "SKILL-BAUM ADMIN",
   "menuTitle": "Menü",
   "skillTreeLabel": "SKILL-BAUM",
   "skillPointsAvailable": "{count} Skillpunkt(e) verfügbar",

@@ -4,10 +4,12 @@ import cookie.server.config.AppConfig;
 import cookie.server.config.GameBalanceConfig;
 import cookie.server.config.MarketConfig;
 import cookie.server.entity.RecipeEntity;
+import cookie.server.entity.SkillEdgeEntity;
 import cookie.server.entity.SkillNodeEffectEntity;
 import cookie.server.entity.SkillNodeEntity;
 import cookie.server.enums.EffectType;
 import cookie.server.repository.RecipeRepository;
+import cookie.server.repository.SkillEdgeRepository;
 import cookie.server.repository.SkillNodeRepository;
 import cookie.server.service.SkillTreeService;
 import org.springframework.http.HttpStatus;
@@ -31,18 +33,21 @@ public class AdminConfigController {
     private final MarketConfig marketConfig;
     private final GameBalanceConfig balanceConfig;
     private final SkillNodeRepository skillNodeRepository;
+    private final SkillEdgeRepository skillEdgeRepository;
     private final SkillTreeService skillTreeService;
     private final RecipeRepository recipeRepository;
 
     public AdminConfigController(AppConfig appConfig, MarketConfig marketConfig,
                                   GameBalanceConfig balanceConfig,
                                   SkillNodeRepository skillNodeRepository,
+                                  SkillEdgeRepository skillEdgeRepository,
                                   SkillTreeService skillTreeService,
                                   RecipeRepository recipeRepository) {
         this.appConfig = appConfig;
         this.marketConfig = marketConfig;
         this.balanceConfig = balanceConfig;
         this.skillNodeRepository = skillNodeRepository;
+        this.skillEdgeRepository = skillEdgeRepository;
         this.skillTreeService = skillTreeService;
         this.recipeRepository = recipeRepository;
     }
@@ -153,6 +158,7 @@ public class AdminConfigController {
         existing.setNodeTier(update.getNodeTier());
         existing.setX(update.getX());
         existing.setY(update.getY());
+        existing.setRequiresAllPrereqs(update.isRequiresAllPrereqs());
         if (update.getEffects() != null) {
             existing.getEffects().clear();
             existing.getEffects().addAll(update.getEffects());
@@ -160,6 +166,50 @@ public class AdminConfigController {
         SkillNodeEntity saved = skillNodeRepository.save(existing);
         skillTreeService.refreshCache();
         return ResponseEntity.ok(saved);
+    }
+
+    // ── Skill Tree: Kanten (nur vom Positions-/Verbindungs-Editor genutzt, kein
+    // Einfluss auf seedTree() -- die laesst bestehende Kanten unangetastet) ──
+
+    @GetMapping("/skilltree/edges")
+    public ResponseEntity<?> listSkillEdgesAdmin(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        return ResponseEntity.ok(skillEdgeRepository.findAll());
+    }
+
+    @PostMapping("/skilltree/edges")
+    public ResponseEntity<?> createSkillEdge(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token,
+            @RequestBody SkillEdgeEntity edge) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        String from = edge.getFromNode();
+        String to = edge.getToNode();
+        if (from == null || to == null || from.equals(to)) {
+            return ResponseEntity.badRequest().body("fromNode/toNode fehlen oder sind identisch");
+        }
+        if (!skillNodeRepository.existsById(from) || !skillNodeRepository.existsById(to)) {
+            return ResponseEntity.badRequest().body("fromNode/toNode: unbekannte Node-ID");
+        }
+        String id = from + "-" + to;
+        if (skillEdgeRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Kante existiert bereits: " + id);
+        }
+        SkillEdgeEntity toSave = new SkillEdgeEntity();
+        toSave.setId(id);
+        toSave.setFromNode(from);
+        toSave.setToNode(to);
+        return ResponseEntity.ok(skillEdgeRepository.save(toSave));
+    }
+
+    @DeleteMapping("/skilltree/edges/{id}")
+    public ResponseEntity<?> deleteSkillEdge(
+            @PathVariable String id,
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        if (!skillEdgeRepository.existsById(id)) return ResponseEntity.notFound().build();
+        skillEdgeRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("deleted", id));
     }
 
     // ── Rezepte ──────────────────────────────────────────────────────

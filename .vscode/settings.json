@@ -46,5 +46,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Cookie.sln"
+    "dotnet.defaultSolution": "Cookie.sln",
+    "java.compile.nullAnalysis.mode": "automatic"
 }

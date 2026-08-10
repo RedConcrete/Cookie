@@ -420,6 +420,38 @@ spezifiziert ist:
   **Bewusst nicht angetastet:** die Backend-Endpunkte selbst
   (`AdminConfigController`, `AdminController`) bleiben bestehen und weiter
   per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
+- [x] **Skill-Baum Admin-Editor: Nodes draggen + Verbindungen setzen/löschen
+  (2026-08-10).** Neuer `isDev`-Menüpunkt "SKILL-BAUM ADMIN" im
+  Hamburger-Menü öffnet `SkillTreeAdminDialog.vue` (eigenständige
+  Fullscreen-Canvas, Pan/Zoom wie der Spieler-Baum). Node per Drag
+  verschieben speichert x/y sofort per `PUT /admin/skilltree/nodes/{id}`;
+  "Verbinden"-Modus + Klick auf zwei Nodes erstellt eine Kante per neuem
+  `POST /admin/skilltree/edges`; Klick auf eine Kante löscht sie per
+  neuem `DELETE /admin/skilltree/edges/{id}`. Details/Plan:
+  `docs/plans/2026-08-10-open-skillbaum-admin-editor.md`.
+  **Offene Erweiterungen fürs Tool** (noch nicht gebaut):
+  - [ ] **Werte-Editor** — bestehende Nodes im Tool selbst umbenennen/
+    Effekte anpassen/Branch+Tier ändern, statt Java-Seed-Code editieren zu
+    müssen. Backend kann das schon (`PUT /skilltree/nodes/{id}` nimmt
+    bereits Name/Beschreibung/Effekte/Branch/Tier entgegen), fehlt nur die
+    UI (Formular im selben Dialog, z. B. im Info-Panel bei ausgewähltem
+    Node).
+  - [ ] **Neue Nodes erstellen/löschen** — aktuell kann der Editor nur
+    bestehende (geseedete) Nodes verschieben/verbinden, keine komplett
+    neuen anlegen. Bräuchte einen neuen `POST /admin/skilltree/nodes`-
+    Endpoint (frei wählbare ID) + `DELETE` + Klick-auf-leere-Fläche-
+    erstellt-Node o.ä. im Frontend.
+  - [ ] **Ganzen Baum als JSON exportieren/importieren** — damit sich ein
+    Skill-Baum für die nächste Season vorab (lokal, ohne Live-Server)
+    planen und danach vor Season-Start auf den Server hochladen lässt,
+    statt live am Produktiv-Baum rumzuklicken. Export: ein Endpoint, der
+    alle Nodes+Edges als ein JSON-Dokument liefert (Snapshot). Import:
+    Gegenstück, das dieses JSON in `skill_nodes`/`skill_edges` einspielt
+    (vermutlich: vorhandene Zeilen ersetzen statt nur upsert-missing wie
+    `seedTree()`, sonst kommen alte Nodes nie raus — braucht eigene
+    Transaktion/Validierung, nicht einfach `seedTree()` wiederverwenden).
+    Passt zeitlich am besten neben den Season-Reset-Admin-Endpoint (siehe
+    `docs/cookie-game-design.md` Abschnitt 9).
 - [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
   Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
   Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`

@@ -1,0 +1,11 @@
+{
+  "title": "SKILL TREE ADMIN",
+  "connectModeLabel": "Connect",
+  "connectHintFrom": "Pick the first node",
+  "connectHintPick": "Pick the second node",
+  "branchLabel": "Branch",
+  "tierLabel": "Tier",
+  "positionSavedNotice": "Position saved",
+  "edgeCreatedNotice": "Connection created",
+  "edgeDeletedNotice": "Connection deleted"
+}

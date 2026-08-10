@@ -214,3 +214,20 @@ export function adminResetPlayer(steamId) {
   return request('POST', `/api/v1/admin/reset/${steamId}`)
 }
 
+// Skill-Baum-Admin-Editor (dev mode only, no token needed -- siehe adminResetPlayer).
+export function adminListSkillNodes() {
+  return request('GET', '/api/v1/admin/skilltree/nodes')
+}
+export function adminListSkillEdges() {
+  return request('GET', '/api/v1/admin/skilltree/edges')
+}
+export function adminUpdateSkillNode(id, node) {
+  return request('PUT', `/api/v1/admin/skilltree/nodes/${id}`, node)
+}
+export function adminCreateSkillEdge(fromNode, toNode) {
+  return request('POST', '/api/v1/admin/skilltree/edges', { fromNode, toNode })
+}
+export function adminDeleteSkillEdge(id) {
+  return request('DELETE', `/api/v1/admin/skilltree/edges/${id}`)
+}
+

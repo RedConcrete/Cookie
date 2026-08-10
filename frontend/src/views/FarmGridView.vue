@@ -63,6 +63,7 @@
             <button class="hud-menu-item" @click="selectMenu('stats')">{{ t('farmGridView.statsLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}<ShortcutSlot /></button>
+            <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectMenu('skilltreeadmin')">{{ t('farmGridView.skillTreeAdminLabel') }}<ShortcutSlot /></button>
             <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectDevReset">{{ t('farmGridView.devResetLabel') }}</button>
           </div>
         </div>
@@ -158,6 +159,7 @@
     <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
+    <SkillTreeAdminDialog v-if="dialog === 'skilltreeadmin'" @close="dialog = null" />
   </div>
 </template>
 
@@ -254,6 +256,7 @@ import BuildShopDialog from '../components/BuildShopDialog.vue'
 import CitizenDialog from '../components/CitizenDialog.vue'
 import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
+import SkillTreeAdminDialog from '../components/SkillTreeAdminDialog.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
