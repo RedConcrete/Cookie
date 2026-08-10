@@ -14,5 +14,7 @@
   "effectBakeOutput": "Cookie-Ausbeute",
   "effectMarketFeeReduction": "Markt-Gebühr",
   "effectWageInterestReduction": "Dispo-Zinsen",
-  "effectResourceWageReduction": "Gebäude-Lohn"
+  "effectResourceWageReduction": "Gebäude-Lohn",
+  "effectStorageCapBonus": "Hauptlager-Kapazität",
+  "effectBuildingBufferBonus": "Gebäude-Zwischenspeicher"
 }

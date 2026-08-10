@@ -94,7 +94,7 @@ public class BuildingService {
         // buyOrUpgrade/Idle-Wechsel (siehe settle()).
         return BUILDINGS.stream().map(def -> {
             PlayerBuildingEntity ent = owned.get(def.id());
-            if (ent != null) settle(ent, def, idle, now);
+            if (ent != null) settle(ent, def, idle, now, userId);
             return toDto(def, ent, userId);
         }).toList();
     }
@@ -134,7 +134,7 @@ public class BuildingService {
             ent.setLastSettledAt(LocalDateTime.now());
         } else {
             // Vor der Stufenänderung settlen, damit die bis hierhin angesammelte Menge nicht verloren geht.
-            settle(ent, def, user.isWorkersIdle(), LocalDateTime.now());
+            settle(ent, def, user.isWorkersIdle(), LocalDateTime.now(), userId);
         }
         ent.setLevel(currentLevel + 1);
         buildingRepo.save(ent);
@@ -152,7 +152,7 @@ public class BuildingService {
             if (available <= 0) throw new IllegalStateException("No available citizens");
         }
         // Vor der Arbeiter-Änderung settlen (alte Arbeiterzahl gilt noch für die vergangene Zeit).
-        settle(ent, def, user.isWorkersIdle(), LocalDateTime.now());
+        settle(ent, def, user.isWorkersIdle(), LocalDateTime.now(), userId);
         int newCount = Math.max(0, Math.min(effectiveMaxWorkers(def, ent.getLevel()), ent.getWorkers() + delta));
         ent.setWorkers(newCount);
         buildingRepo.save(ent);
@@ -193,13 +193,16 @@ public class BuildingService {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     public double getTotalCap(String userId) {
-        return getTotalCap(ownedMap(userId));
+        return getTotalCap(ownedMap(userId), userId);
     }
 
-    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
-    public double getTotalCap(Map<String, PlayerBuildingEntity> owned) {
+    /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. Floor -0.5 verhindert,
+     * dass ein Keystone-Downside (siehe Lager-Branch-Plan) das Lager auf 0/negativ druecken kann. */
+    public double getTotalCap(Map<String, PlayerBuildingEntity> owned, String userId) {
         int lagerLevel = owned.containsKey("lager") ? owned.get("lager").getLevel() : 0;
-        return balance.getBaseStorageCap() + lagerLevel * balance.getStoragePerLevel();
+        double base = balance.getBaseStorageCap() + lagerLevel * balance.getStoragePerLevel();
+        double bonus = skillTreeService.getEffectTotal(userId, EffectType.STORAGE_CAP_BONUS, null);
+        return base * (1 + Math.max(-0.5, bonus));
     }
 
     public double getTotalWage(String userId) {
@@ -272,13 +275,15 @@ public class BuildingService {
      */
     // Package-private (statt private) -- PassiveIncomeService (collectBuilding) und WageService
     // (Idle-Übergänge) rufen das direkt auf, beide im selben Package.
-    void settle(PlayerBuildingEntity ent, BuildingDef def, boolean idle, LocalDateTime now) {
+    void settle(PlayerBuildingEntity ent, BuildingDef def, boolean idle, LocalDateTime now, String userId) {
         LocalDateTime last = ent.getLastSettledAt() != null ? ent.getLastSettledAt() : now;
         if (!idle && ent.getWorkers() > 0 && def.passiveResource() != null && def.storageCapacity() > 0
                 && now.isAfter(last)) {
             double elapsedSeconds = ChronoUnit.MILLIS.between(last, now) / 1000.0;
             double produced = def.passiveRatePerSecPerWorker() * ent.getWorkers() * elapsedSeconds;
-            ent.setPendingAmount(Math.min(def.storageCapacity(), ent.getPendingAmount() + produced));
+            double bufferBonus = skillTreeService.getEffectTotal(userId, EffectType.BUILDING_BUFFER_BONUS, null);
+            double effectiveCap = def.storageCapacity() * (1 + Math.max(0, bufferBonus));
+            ent.setPendingAmount(Math.min(effectiveCap, ent.getPendingAmount() + produced));
         }
         ent.setLastSettledAt(now);
     }
@@ -295,7 +300,7 @@ public class BuildingService {
         for (PlayerBuildingEntity ent : buildingRepo.findByUserId(userId)) {
             BuildingDef def = DEF_MAP.get(ent.getBuildingId());
             if (def == null || def.passiveResource() == null) continue;
-            settle(ent, def, oldIdle, now);
+            settle(ent, def, oldIdle, now, userId);
             buildingRepo.save(ent);
         }
     }

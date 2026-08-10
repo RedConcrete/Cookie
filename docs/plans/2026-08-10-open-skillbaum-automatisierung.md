@@ -33,18 +33,23 @@ Bool statt addiert. Kein Schema-Umbau nötig, nur eine Lese-Konvention.
 ohne CHECK-Constraint-Falle). Reine Neustart-Sensivität: `settle(...)` in
 `BuildingService.java` bekommt hier eine neue `String userId`-Signatur —
 **[[2026-08-10-open-skillbaum-crit-system]]** und
-**[[2026-08-10-open-skillbaum-lager-branch]]** wollen dieselbe Änderung an
-derselben Stelle. Wer von den dreien zuerst gebaut wird, fügt `userId`
-hinzu; die anderen beiden finden den Parameter dann bereits vor (bereits so
-in beiden Nachbar-Plänen vermerkt).
+**[[2026-08-10-open-skillbaum-lager-branch]]** wollten dieselbe Änderung an
+derselben Stelle — Lager-Branch wurde 2026-08-10 zuerst gebaut, `settle(...)`
+hat den `String userId`-Parameter also bereits (siehe aktueller
+`BuildingService.java`-Quelltext beim Bauen prüfen, dieser Plan hier war
+zuerst geschrieben und ist auf diesem Punkt jetzt überholt).
 
 Alle vier Features hängen sich als **zusätzliche Endknoten an bereits
-bestehende bzw. bereits geplante Branches**, statt einen eigenen neuen Arm
-zu bauen — passt thematisch 1:1 (Lager→Storage, Verkauf→Market,
-Backen→Baking, Hover-Tempo→Core/generalistisch) und vermeidet das
-Platz-Problem, das die Rohstoff-Branches schon gezeigt haben (10 Arme sind
-das Maximum, das ohne Kollisionen/Kreuzungen ins aktuelle Radial-Layout
-passt, siehe `docs/cookie-game-design.md` §9 "Radiales 10-Branch-Layout").
+bestehende Branches**, statt einen eigenen neuen Arm zu bauen — passt
+thematisch 1:1 (Lager→Storage, Verkauf→Market, Backen→Baking,
+Hover-Tempo→Core/generalistisch). Der Baum steht nach dem Lager-Branch-Pass
+bei **11** Branches (STORAGE als 11. Arm, Layout dafür bereits ein zweites
+Mal auf 360°/11 ≈ 32.7° umverteilt, siehe `docs/cookie-game-design.md` §9
+"Radiales 11-Branch-Layout") — **kein hartes Maximum bei 10** wie ursprünglich
+hier vermutet, radiales Neuverteilen aller Branch-Bearings auf 360°/n ist die
+etablierte Vorgehensweise für jeden weiteren Branch. Die vier Features hier
+brauchen trotzdem keinen 12. Arm, da sie bewusst an vorhandene Branches
+anknüpfen statt eigene zu werden.
 **Neue Koordinaten müssen wie beim Cross-Branch-Wheel gegen alle
 bestehenden Knoten/Kanten geprüft werden, bevor sie ins Backend wandern**
 (Kollisions-/Kreuzungs-Skript, siehe Verifikationsplan).

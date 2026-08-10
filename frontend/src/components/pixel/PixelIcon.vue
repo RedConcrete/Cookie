@@ -48,6 +48,7 @@ import keystoneFlour4 from '../../assets/icons/keystone_flour4.svg'
 import keystoneEggs4 from '../../assets/icons/keystone_eggs4.svg'
 import keystoneButter4 from '../../assets/icons/keystone_butter4.svg'
 import keystoneChocolate4 from '../../assets/icons/keystone_chocolate4.svg'
+import keystoneStorage4 from '../../assets/icons/keystone_storage4.svg'
 
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
@@ -56,6 +57,7 @@ const ICONS = {
   'flag-de': flagDe, 'flag-en': flagEn, discord,
   keystoneMilk4, keystoneBake4, keystoneMarket4, keystoneDispo4, keystoneAlleskoenner,
   keystoneSugar4, keystoneFlour4, keystoneEggs4, keystoneButter4, keystoneChocolate4,
+  keystoneStorage4,
 }
 
 // Echte Marken-Logos (unveraendertes Original-SVG, kein 8x8-Pixel-Raster) --

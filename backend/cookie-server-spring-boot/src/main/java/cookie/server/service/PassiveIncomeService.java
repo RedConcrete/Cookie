@@ -57,7 +57,7 @@ public class PassiveIncomeService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
 
-        buildingService.settle(ent, def, user.isWorkersIdle(), now);
+        buildingService.settle(ent, def, user.isWorkersIdle(), now, userId);
 
         double cap = buildingService.getTotalCap(userId);
         // Hauptlager ist ein gemeinsamer Topf ueber alle sechs Rohstoffe (siehe

@@ -433,7 +433,12 @@ verstreuter Einzel-Lookups wie im alten System.
 userId)` ausgewertet (nur für Gebäude mit `def.passiveResource() != null`,
 d. h. die 6 Produktionsgebäude — Lager/Ofen/Rathaus/Markt bleiben
 unberührt), mit Floor/Cap `[-0.5, 0.9]` (kann durch Keystone-Downsides auch
-negativ werden, siehe unten).
+negativ werden, siehe unten). `STORAGE_CAP_BONUS`/`BUILDING_BUFFER_BONUS`
+(2026-08-10, Lager-Branch) wirken auf `BuildingService#getTotalCap(...)`
+(Hauptlager-Cap, Floor `-0.5`) bzw. `#settle(...)` (Pro-Gebäude-
+Zwischenspeicher `storageCapacity`, Floor `0`) — beide global
+(`targetResource=null`), da ein Lager-Bonus einheitlich für alle
+Ressourcen/Gebäude gilt statt pro Ressource zu variieren.
 
 **Mehrfach-Effekte pro Knoten (seit 2026-08-10):** ein Knoten kann mehrere
 `SkillNodeEffectEntity`-Zeilen haben (Tabelle `skill_node_effects`, FK
@@ -472,22 +477,29 @@ admin-editierbarer DB-Content, kein statischer UI-Text, deshalb **kein**
 wählt reaktiv nach `locale` (`nodeName()`/`nodeDesc()` in
 `SkillTreeView.vue`) — kein Tree-Refetch beim Sprachwechsel nötig.
 
-**V1-Baum:** 50 Knoten (Wurzel + 49) in 10 Zweigen + 1 Cross-Branch-Wheel-
+**V1-Baum:** 55 Knoten (Wurzel + 54) in 11 Zweigen + 1 Cross-Branch-Wheel-
 Beispiel (Seed in `SkillTreeService#buildNodes/buildEdges`,
 admin-editierbar zur Laufzeit).
 
-**Radiales 10-Branch-Layout (2026-08-10):** alle Zweige liegen gleichmäßig
-alle 36° auf einem Kreis um `root` (Kompass-Bearing, 0°=Norden=−y,
-90°=Osten=+x), Radius 150/300/450/600 pro Tier. Reihenfolge im Kreis:
-MILK(0°) SUGAR(36°) DISPO(72°) FLOUR(108°) BAKING(144°) MARKET(180°)
-EGGS(216°) BUTTER(252°) CORE(288°) CHOCOLATE(324°). Die 5 ursprünglichen
-Zweige (MILK/BAKING/MARKET/CORE/DISPO) wurden dafür **neu positioniert** —
-`x`/`y` ist reiner Anzeigewert ohne Spiellogik-Bezug (Allokation läuft
+**Radiales 11-Branch-Layout (2026-08-10, zweite Fassung):** alle Zweige
+liegen gleichmäßig alle 360°/11 ≈ 32.7° auf einem Kreis um `root`
+(Kompass-Bearing, 0°=Norden=−y, 90°=Osten=+x), Radius 150/300/450/600 pro
+Tier. Reihenfolge im Kreis: MILK(0°) SUGAR(32.7°) DISPO(65.5°)
+FLOUR(98.2°) BAKING(130.9°) MARKET(163.6°) EGGS(196.4°) BUTTER(229.1°)
+CORE(261.8°) CHOCOLATE(294.5°) STORAGE(327.3°). **Alle** bereits
+bestehenden Zweige wurden dafür ein zweites Mal neu positioniert (erste
+Fassung war 36°-Abstand für 10 Zweige beim Rohstoff-Branches-Pass) — `x`/`y`
+ist reiner Anzeigewert ohne Spiellogik-Bezug (Allokation läuft
 ausschließlich über Kanten), Repositionieren bestehender Knoten-IDs ist
-also unkritisch. Grund: die alten 5 Arme ließen nur 2 schmale Lücken frei,
-zu wenig für 5 neue volle Zweige ohne Knoten-Kollisionen/Kanten-Kreuzungen
-(erst per Skript simuliert, dann gegen die Live-API verifiziert — 0 Treffer
-bei Kollisions- und Kreuzungs-Check über alle 50 Knoten × 51 Kanten).
+also unkritisch. Grund: 10 Zweige belegten bereits jeden 36°-Slot, für den
+neuen STORAGE-Zweig (Lager-Branch-Plan) war kein Platz mehr — radiales
+Neuverteilen auf 360°/n ist ab jetzt die Standard-Vorgehensweise bei jedem
+weiteren Branch, nicht das Suchen einer Lücke (das hatte beim
+Cross-Branch-Wheel schon zu einer Kollision mit DISPO geführt). Vor jeder
+Layout-Änderung: Kollisions-/Kreuzungs-Skript (Python, Node-Boxen als
+Kreise mit Radius 28/34/40 je Tier, Kantensegmente auf Schnitt) erst lokal
+simuliert, dann gegen die Live-API verifiziert — 0 Treffer über alle 55
+Knoten × 56 Kanten.
 
 - **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
   +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
@@ -515,6 +527,13 @@ bei Kollisions- und Kreuzungs-Check über alle 50 Knoten × 51 Kanten).
   linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, kein Fork, Gesamt-
   Reduktion 5.5 Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum,
   harter Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
+- **STORAGE** (global, Lager-Branch, 2026-08-10): `storage_1` (+0.05
+  `STORAGE_CAP_BONUS`) → `storage_2` (+0.10 `BUILDING_BUFFER_BONUS`) →
+  `storage_3` (+0.08 `STORAGE_CAP_BONUS`, Tier `NOTABLE`) → `storage_4`
+  (**KEYSTONE mit 2 Effekten**: `BUILDING_BUFFER_BONUS` +0.25 **und**
+  `STORAGE_CAP_BONUS` −0.10 — Gebäude sammeln deutlich länger ungestört
+  weiter, das Hauptlager selbst schrumpft aber, echter Tradeoff) +
+  `storage_5` als Fork ab `storage_2` (+0.10 `STORAGE_CAP_BONUS`)
 - **Cross-Branch-Wheel (2026-08-10):** `bridge_bake_market` (Tier `NOTABLE`,
   +0.03 Ernte global) verbindet `bake_3` und `market_3` und verlangt
   **beide** alloziert (AND statt der sonst üblichen OR-Konnektivität, Feld

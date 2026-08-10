@@ -435,12 +435,11 @@ spezifiziert ist:
   Alte "Auto-Verkauf"-Beschreibung aus `LagerDialog.vue` und
   `buildingInfo.js` (Gebäude-Hover-Popup) entfernt, war ohnehin größtenteils
   nur Text ohne echte Anbindung im letzteren Fall.
-  **Folgearbeit (bewusst zurückgestellt):** ein echter Ausgleich für volles
-  Lager (z. B. Ressourcen-Umwandlung, Lager-Overflow-Puffer, o.ä.) als
-  größere Mechanik im Skill-/Passiv-Baum (Abschnitt 9 im Design-Doc) statt
-  des pauschalen automatischen Verkaufs — jetzt spezifiziert in
-  `docs/plans/2026-08-10-open-skillbaum-lager-branch.md` (siehe
-  Skillbaum-Ausbau-Eintrag weiter oben).
+  **Folgearbeit:** ein echter Ausgleich für volles Lager als größere
+  Mechanik im Skill-/Passiv-Baum (Abschnitt 9 im Design-Doc) statt des
+  pauschalen automatischen Verkaufs — umgesetzt 2026-08-10 als
+  STORAGE-Branch, `docs/plans/2026-08-10-open-skillbaum-lager-branch.md`
+  (noch nicht committed).
 - [x] **Start-Balance-Bug: Lager sofort überfüllt (2026-08-07).** Jeder neue
   Spieler startete mit 1000 von jeder der 6 Rohstoff-Ressourcen (6000
   insgesamt) bei nur 1100 Lagerkapazität — schon vor dem ersten Klick 5-fach
@@ -747,7 +746,10 @@ Backlog dokumentiert.
   `2026-08-10-open-skillbaum-crit-system.md` (Krit bei Ernte/Passiv-
   Produktion/Backen), `2026-08-10-open-skillbaum-lager-branch.md`
   (STORAGE-Branch, löst den "Ausgleich für volles Lager"-Punkt weiter unten
-  ab), `2026-08-10-open-skillbaum-bau-buerger-branch.md`
+  ab), umgesetzt 2026-08-10 (noch nicht committed — Layout dabei ein
+  zweites Mal auf 11 gleichmäßig verteilte Branches umgestellt, siehe
+  `docs/cookie-game-design.md` §9),
+  `2026-08-10-open-skillbaum-bau-buerger-branch.md`
   (CONSTRUCTION-Branch, Gebäudekosten/Lohn),
   `2026-08-10-open-skillbaum-respec.md` (Punkte gegen Cookies zurückgeben,
   fixer Preis, konnektivitäts-sicher),

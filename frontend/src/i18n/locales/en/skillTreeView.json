@@ -14,5 +14,7 @@
   "effectBakeOutput": "Cookie Yield",
   "effectMarketFeeReduction": "Market Fee",
   "effectWageInterestReduction": "Overdraft Interest",
-  "effectResourceWageReduction": "Building Wage"
+  "effectResourceWageReduction": "Building Wage",
+  "effectStorageCapBonus": "Main Storage Capacity",
+  "effectBuildingBufferBonus": "Building Buffer"
 }
