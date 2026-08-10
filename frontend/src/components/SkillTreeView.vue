@@ -24,7 +24,7 @@
 
           <PixelInfoPopover
             v-for="n in tree.nodes" :key="n.id"
-            :rows="nodeRows(n)" :title="n.name" :note="n.description" :width="240"
+            :rows="nodeRows(n)" :title="nodeName(n)" :note="nodeDesc(n)" :width="290"
             :style="nodeWrapStyle(n)"
           >
             <button
@@ -33,11 +33,13 @@
                 `stv-node-${nodeState(n)}`,
                 `stv-branch-${(n.branch || '').toLowerCase()}`,
                 { 'stv-node-nopoints': nodeState(n) === 'allocatable' && tree.skillPoints < 1 },
+                { 'stv-node-keystone': n.nodeTier === 'KEYSTONE' },
+                { 'stv-node-notable': n.nodeTier === 'NOTABLE' },
               ]"
               :disabled="!n.root && (!canAllocate(n) || allocating)"
               @click="onNodeClick(n)"
             >
-              <PixelIcon :name="branchIcon(n)" :size="22" />
+              <PixelIcon :name="nodeIcon(n)" :size="iconSize(n)" />
             </button>
           </PixelInfoPopover>
         </div>
@@ -93,12 +95,13 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buySkillPoint, allocateSkillNode, getPlayer } from '../services/api.js'
 import { fmt2 as fmt } from '../utils/formatNumber.js'
+import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const playerStore = usePlayerStore()
 
 const loading   = ref(true)
@@ -118,8 +121,51 @@ const tree = computed(() => playerStore.skillTree)
 const canAfford = computed(() => playerStore.cookies >= tree.value.nextPointCost)
 
 const BRANCH_ICON = { MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw', DISPO: 'lohn' }
-function branchIcon(n) { return n.root ? 'stern' : (BRANCH_ICON[n.branch] || 'einw') }
+// Nur Keystones bekommen ein eigenes Icon pro Knoten -- Notables/Passives bleiben auf dem
+// Branch-Icon, sonst braeuchte jeder kuenftige Notable eines (siehe Plan Fundament, Abschnitt
+// Frontend-Aenderungen).
+const KEYSTONE_ICON = {
+  milk_4: 'keystoneMilk4',
+  bake_4: 'keystoneBake4',
+  market_4: 'keystoneMarket4',
+  dispo_4: 'keystoneDispo4',
+  keystone_alleskoenner: 'keystoneAlleskoenner',
+}
+function nodeIcon(n) {
+  if (n.root) return 'stern'
+  if (n.nodeTier === 'KEYSTONE') return KEYSTONE_ICON[n.id] || BRANCH_ICON[n.branch] || 'einw'
+  return BRANCH_ICON[n.branch] || 'einw'
+}
+function iconSize(n) {
+  if (n.nodeTier === 'KEYSTONE') return 28
+  if (n.nodeTier === 'NOTABLE') return 24
+  return 22
+}
 
+// Knoteninhalt ist admin-editierbarer DB-Content, kein statischer UI-Text -- daher kein
+// vue-i18n-JSON-Key, sondern beide Sprachen im DTO, hier reaktiv nach locale ausgewaehlt.
+function nodeName(n) { return locale.value === 'de' ? n.nameDe : n.nameEn }
+function nodeDesc(n) { return locale.value === 'de' ? n.descriptionDe : n.descriptionEn }
+
+const EFFECT_LABEL_KEY = {
+  HARVEST_YIELD: 'skillTreeView.effectHarvestYield',
+  BAKE_OUTPUT: 'skillTreeView.effectBakeOutput',
+  MARKET_FEE_REDUCTION: 'skillTreeView.effectMarketFeeReduction',
+  WAGE_INTEREST_REDUCTION: 'skillTreeView.effectWageInterestReduction',
+}
+function effectLabel(e) {
+  const base = t(EFFECT_LABEL_KEY[e.effectType] || e.effectType)
+  return e.targetResource ? `${base} (${resourceLabel(e.targetResource, t)})` : base
+}
+// Downsides sind einfach ein zweiter Effekt mit negativem effectValue (siehe Backend) --
+// hier nur farblich unterschieden (Vorteil gruen, Nachteil rot), kein eigener Mechanismus.
+function effectRows(n) {
+  return (n.effects || []).map(e => ({
+    k: effectLabel(e),
+    v: `${e.effectValue >= 0 ? '+' : ''}${(e.effectValue * 100).toFixed(2).replace(/\.?0+$/, '')}%`,
+    color: e.effectValue >= 0 ? 'b' : 'r',
+  }))
+}
 
 function nodeState(n) {
   if (n.allocated) return 'allocated'
@@ -137,14 +183,16 @@ function canAllocate(n) {
 
 function nodeRows(n) {
   if (n.root) return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.rootBuyHint'), color: 'y' }]
+  const rows = effectRows(n)
   const state = nodeState(n)
-  if (state === 'allocated') return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' }]
+  if (state === 'allocated') { rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' }); return rows }
   if (state === 'allocatable') {
-    const rows = [{ k: t('skillTreeView.costLabel'), v: t('skillTreeView.costOnePoint'), color: 'y' }]
+    rows.push({ k: t('skillTreeView.costLabel'), v: t('skillTreeView.costOnePoint'), color: 'y' })
     if (tree.value.skillPoints < 1) rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.noPointsLeft'), color: 'w' })
     return rows
   }
-  return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusLocked'), color: 'w' }]
+  rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusLocked'), color: 'w' })
+  return rows
 }
 
 async function buyPoint() {
@@ -182,6 +230,14 @@ async function allocate(n) {
 const WORLD_SIZE = 1500
 const CENTER = WORLD_SIZE / 2
 const NODE_SIZE = 56
+const NOTABLE_SIZE = 68
+const KEYSTONE_SIZE = 80
+
+function nodeSize(n) {
+  if (n.nodeTier === 'KEYSTONE') return KEYSTONE_SIZE
+  if (n.nodeTier === 'NOTABLE') return NOTABLE_SIZE
+  return NODE_SIZE
+}
 
 // PixelInfoPopover's own root element ("pip-wrap") is what the tooltip
 // positions itself against (getBoundingClientRect() on that element) -- it
@@ -189,12 +245,13 @@ const NODE_SIZE = 56
 // child, or every tooltip anchors to wherever pip-wrap happens to land in
 // normal document flow instead of the hovered node.
 function nodeWrapStyle(n) {
+  const size = nodeSize(n)
   return {
     position: 'absolute',
-    left: (CENTER + n.x - NODE_SIZE / 2) + 'px',
-    top:  (CENTER + n.y - NODE_SIZE / 2) + 'px',
-    width: NODE_SIZE + 'px',
-    height: NODE_SIZE + 'px',
+    left: (CENTER + n.x - size / 2) + 'px',
+    top:  (CENTER + n.y - size / 2) + 'px',
+    width: size + 'px',
+    height: size + 'px',
   }
 }
 
@@ -376,5 +433,23 @@ onMounted(async () => {
 .stv-node-allocated {
   background: var(--px-green);
   box-shadow: inset -2px -2px 0 var(--px-green-dk), inset 2px 2px 0 var(--px-green-lt);
+}
+
+/* Tier-Optik: Rahmenstaerke/-farbe kommt NACH den Status-Klassen, ueberschreibt also nur
+   border/box-shadow (Glow), nicht die Hintergrundfarbe -- Status (gruen/gold/grau) bleibt
+   bei jedem Tier weiterhin erkennbar. */
+.stv-node-notable {
+  border-width: 4px;
+  border-color: var(--px-gold-lt);
+  box-shadow: 0 0 0 2px var(--px-gold), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25);
+}
+.stv-node-keystone {
+  border-width: 5px;
+  border-color: var(--px-red-lt);
+  animation: stv-keystone-glow 2s ease-in-out infinite;
+}
+@keyframes stv-keystone-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--px-red), 0 0 10px 2px var(--px-red-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+  50%      { box-shadow: 0 0 0 3px var(--px-gold), 0 0 18px 4px var(--px-gold-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
 }
 </style>

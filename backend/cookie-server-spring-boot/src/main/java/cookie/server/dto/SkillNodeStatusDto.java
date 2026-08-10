@@ -1,13 +1,16 @@
 package cookie.server.dto;
 
+import java.util.List;
+
 public class SkillNodeStatusDto {
     private String id;
-    private String name;
-    private String description;
+    private String nameDe;
+    private String nameEn;
+    private String descriptionDe;
+    private String descriptionEn;
     private String branch;
-    private String effectType;
-    private String targetResource;
-    private double effectValue;
+    private String nodeTier;
+    private List<SkillEffectDto> effects;
     private int x;
     private int y;
     private boolean isRoot;
@@ -17,23 +20,26 @@ public class SkillNodeStatusDto {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getNameDe() { return nameDe; }
+    public void setNameDe(String nameDe) { this.nameDe = nameDe; }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getNameEn() { return nameEn; }
+    public void setNameEn(String nameEn) { this.nameEn = nameEn; }
+
+    public String getDescriptionDe() { return descriptionDe; }
+    public void setDescriptionDe(String descriptionDe) { this.descriptionDe = descriptionDe; }
+
+    public String getDescriptionEn() { return descriptionEn; }
+    public void setDescriptionEn(String descriptionEn) { this.descriptionEn = descriptionEn; }
 
     public String getBranch() { return branch; }
     public void setBranch(String branch) { this.branch = branch; }
 
-    public String getEffectType() { return effectType; }
-    public void setEffectType(String effectType) { this.effectType = effectType; }
+    public String getNodeTier() { return nodeTier; }
+    public void setNodeTier(String nodeTier) { this.nodeTier = nodeTier; }
 
-    public String getTargetResource() { return targetResource; }
-    public void setTargetResource(String targetResource) { this.targetResource = targetResource; }
-
-    public double getEffectValue() { return effectValue; }
-    public void setEffectValue(double effectValue) { this.effectValue = effectValue; }
+    public List<SkillEffectDto> getEffects() { return effects; }
+    public void setEffects(List<SkillEffectDto> effects) { this.effects = effects; }
 
     public int getX() { return x; }
     public void setX(int x) { this.x = x; }

@@ -55,6 +55,16 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
   manuell nachziehen, ddl-auto=update repariert das nicht von selbst. Bei
   jedem künftigen neuen `EffectType`-Wert wieder relevant, falls die
   Constraint zwischenzeitlich (z.B. durch DB-Neuaufsetzen) neu entsteht.
+  **Strukturell erledigt (2026-08-10):** `SkillNodeEffectEntity.effectType`
+  ist im Zuge des Skillbaum-Fundament-Umbaus auf einen reinen `String` ohne
+  `@Enumerated` umgestellt — Postgres legt für diese Spalte nie wieder eine
+  CHECK-Constraint an, dieser Fallstrick kann für `effectType` nicht mehr
+  auftreten (Details `docs/cookie-game-design.md` §9). `nodeTier`
+  (`PASSIVE`/`NOTABLE`/`KEYSTONE`) ist bewusst weiter ein typed Enum mit
+  demselben einmaligen Constraint-Risiko, dort aber unkritisch (stabiles
+  3-Werte-Set). Live-Server-Nachzug für den *alten* `skill_nodes.effect_type`
+  bleibt trotzdem nötig, falls dort noch nicht deployed — siehe
+  `docs/plans/2026-08-10-done-skillbaum-wheel-keystones.md`.
 
 - [x] **Rathaus-Abrechnung zeigte immer "Noch keine Abrechnung", obwohl
   Lohn abgebucht wurde (2026-08-09).** `WageLedgerEntity#breakdownJson`

@@ -4,7 +4,9 @@ import cookie.server.config.AppConfig;
 import cookie.server.config.GameBalanceConfig;
 import cookie.server.config.MarketConfig;
 import cookie.server.entity.RecipeEntity;
+import cookie.server.entity.SkillNodeEffectEntity;
 import cookie.server.entity.SkillNodeEntity;
+import cookie.server.enums.EffectType;
 import cookie.server.repository.RecipeRepository;
 import cookie.server.repository.SkillNodeRepository;
 import cookie.server.service.SkillTreeService;
@@ -130,14 +132,31 @@ public class AdminConfigController {
         SkillNodeEntity existing = skillNodeRepository.findById(id).orElseThrow(
                 () -> new java.util.NoSuchElementException("Skill node not found: " + id));
 
-        existing.setName(update.getName());
-        existing.setDescription(update.getDescription());
+        // effectType kommt hier als externer String rein (kein @Enumerated mehr, siehe
+        // SkillNodeEffectEntity) -- das ist die einzige Stelle, die ihn validieren muss, der
+        // Seed-Pfad (buildNodes()) kommt immer aus kompiliertem Enum-Code.
+        if (update.getEffects() != null) {
+            for (SkillNodeEffectEntity e : update.getEffects()) {
+                try {
+                    EffectType.valueOf(e.getEffectType());
+                } catch (IllegalArgumentException | NullPointerException ex) {
+                    return ResponseEntity.badRequest().body("Unbekannter effectType: " + e.getEffectType());
+                }
+            }
+        }
+
+        existing.setNameDe(update.getNameDe());
+        existing.setNameEn(update.getNameEn());
+        existing.setDescriptionDe(update.getDescriptionDe());
+        existing.setDescriptionEn(update.getDescriptionEn());
         existing.setBranch(update.getBranch());
-        existing.setEffectType(update.getEffectType());
-        existing.setTargetResource(update.getTargetResource());
-        existing.setEffectValue(update.getEffectValue());
+        existing.setNodeTier(update.getNodeTier());
         existing.setX(update.getX());
         existing.setY(update.getY());
+        if (update.getEffects() != null) {
+            existing.getEffects().clear();
+            existing.getEffects().addAll(update.getEffects());
+        }
         SkillNodeEntity saved = skillNodeRepository.save(existing);
         skillTreeService.refreshCache();
         return ResponseEntity.ok(saved);

@@ -38,12 +38,18 @@ import steam   from '../../assets/icons/steam.svg'
 import flagDe  from '../../assets/icons/flag-de.svg'
 import flagEn  from '../../assets/icons/flag-en.svg'
 import discord from '../../assets/icons/discord.svg'
+import keystoneMilk4 from '../../assets/icons/keystone_milk4.svg'
+import keystoneBake4 from '../../assets/icons/keystone_bake4.svg'
+import keystoneMarket4 from '../../assets/icons/keystone_market4.svg'
+import keystoneDispo4 from '../../assets/icons/keystone_dispo4.svg'
+import keystoneAlleskoenner from '../../assets/icons/keystone_alleskoenner.svg'
 
 const ICONS = {
   cookie, zucker, mehl, eier, butter, schoko, milch, haus, stand,
   ofen, shop, pokal, einw, lohn, lager, medal, krone, stern,
   upgrade, zentrieren, check, sanduhr, music, sound, mute, steam,
   'flag-de': flagDe, 'flag-en': flagEn, discord,
+  keystoneMilk4, keystoneBake4, keystoneMarket4, keystoneDispo4, keystoneAlleskoenner,
 }
 
 // Echte Marken-Logos (unveraendertes Original-SVG, kein 8x8-Pixel-Raster) --

@@ -26,16 +26,15 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PixelIcon from './PixelIcon.vue'
 import { useHoverReveal } from '../../composables/useHoverReveal.js'
-import { useClickOutside } from '../../composables/useClickOutside.js'
 
 const { t } = useI18n()
 
 const props = defineProps({
-  rows:  { type: Array, default: () => [] },   // [{ k, v, color }]  color: g|y|w|o|m|b
+  rows:  { type: Array, default: () => [] },   // [{ k, v, color }]  color: g|y|w|o|m|b|r
   title: { type: String, default: '' },
   icon:  { type: String, default: '' },
   note:  { type: String, default: '' },
@@ -54,17 +53,21 @@ const { state, onEnter, onLeave, pinned, forceClose } = useHoverReveal()
 function handleEnter() { onEnter(); emit('enter') }
 function handleLeave() { onLeave(); emit('leave') }
 
-const COLORS = { g: '#aea47e', y: '#ebb85b', w: '#fff1a9', o: '#c78539', m: '#6f6e72', b: '#6dba79' }
+const COLORS = { g: '#aea47e', y: '#ebb85b', w: '#fff1a9', o: '#c78539', m: '#6f6e72', b: '#6dba79', r: '#e67a84' }
 function colorFor(c) { return COLORS[c] || COLORS.w }
 
 const panelRef = ref(null)
 const wrapRef  = ref(null)
 const posStyle = ref({})
 
-// Klick irgendwo weg schliesst das Popover sofort, statt auf den Auto-Drain zu warten
-// (Playtest-Feedback: "Popups mit Klick weg machen koennen"). Ein Klick auf den Trigger
-// selbst oder das teleportierte Panel zaehlt nicht als "aussen".
-useClickOutside([wrapRef, panelRef], forceClose, () => state.visible)
+// JEDER Linksklick schliesst das Popover sofort, egal wohin -- auch auf den Trigger
+// selbst oder das Panel (Playtest-Feedback: nicht erst auf Auto-Drain oder "wirklich
+// aussen" warten muessen). Absichtlich kein Ziel-Check mehr (siehe alte useClickOutside).
+function onDocumentMousedown() {
+  if (state.visible) forceClose()
+}
+onMounted(() => document.addEventListener('mousedown', onDocumentMousedown))
+onUnmounted(() => document.removeEventListener('mousedown', onDocumentMousedown))
 
 // Panel wird per Teleport nach <body> gehaengt (sonst schneidet ein Dialog mit
 // overflow:auto/hidden das Panel ab) -- Position daher ueber getBoundingClientRect
@@ -117,8 +120,11 @@ watch(() => state.visible, async (vis) => {
 .pip-title  { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); }
 
 .pip-rows { display: flex; flex-direction: column; gap: 5px; }
-.pip-row  { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; color: #fff1a9; white-space: nowrap; }
-.pip-row span:last-child { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
+/* Kein white-space:nowrap mehr auf der ganzen Zeile -- laengere Labels (z.B. Skill-Effekte
+   mit Ressourcen-Suffix) sollen umbrechen statt ueber den Panel-Rand hinauszulaufen. Der Wert
+   (kurz, z.B. "+10%") bleibt einzeilig und behaelt seine Breite (flex-shrink:0). */
+.pip-row  { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; color: #fff1a9; }
+.pip-row span:last-child { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
 
 .pip-note { margin-top: 9px; padding-top: 8px; border-top: 3px solid #402e2b; font-size: 13px; line-height: 1.5; color: #aea47e; }
 .pip-pin  { margin-top: 8px; font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-green-txt); }

@@ -427,8 +427,46 @@ Typs (+ passender Ressource) addieren sich; zentral aufgelöst über
 `SkillTreeService#getEffectTotal(userId, type, targetResource)` statt
 verstreuter Einzel-Lookups wie im alten System.
 
-**V1-Baum:** 22 Knoten + Wurzel in 5 Zweigen (Seed in
-`SkillTreeService#buildNodes/buildEdges`, admin-editierbar zur Laufzeit):
+**Mehrfach-Effekte pro Knoten (seit 2026-08-10):** ein Knoten kann mehrere
+`SkillNodeEffectEntity`-Zeilen haben (Tabelle `skill_node_effects`, FK
+`nodeId → skill_nodes.id`, eager als `SkillNodeEntity#effects` geladen).
+`getEffectTotal` iteriert flach über alle Effekte aller alloziierten Knoten.
+Ein Keystone-**Nachteil** ist schlicht ein zweiter Effekt mit negativem
+`effectValue` auf demselben Knoten, kein eigener Mechanismus — z. B. eine
+negative `WAGE_INTEREST_REDUCTION` erhöht effektiv den Zinssatz. **Harte
+Regel:** Nachteile wirken ausschließlich auf den eigenen Account (analog
+`BuildingService#getEffectiveSellFeeRate`), nie auf `MarketService`s
+gemeinsamen AMM-Pool (shared state).
+
+`SkillNodeEffectEntity.effectType` ist bewusst ein **reiner String**, kein
+`@Enumerated`-Feld — dadurch legt Postgres für diese Spalte **nie** eine
+CHECK-Constraint an, ein neuer `EffectType`-Enum-Wert braucht seither keinen
+manuellen `ALTER TABLE ... DROP CONSTRAINT`-Schritt mehr (vorher, bis
+2026-08-10: traf beim Hinzufügen von `WAGE_INTEREST_REDUCTION` zu, Details
+noch in `docs/ROADMAP.md` Abschnitt 0 als historische Notiz). Validierung
+passiert nur an der einen Stelle mit echtem externen Input, dem Admin-PUT
+(`EffectType.valueOf(...)`, 400 bei unbekanntem Wert) — der Seed-Pfad kommt
+immer aus kompiliertem Enum-Code und braucht keine Prüfung.
+
+**Node-Tiers:** `SkillNodeEntity.nodeTier` (`PASSIVE`/`NOTABLE`/`KEYSTONE`,
+typed Enum mit `@Enumerated` — anders als `effectType` ein kleines, stabiles
+3-Werte-Set, der einmalige CHECK-Constraint-Drop nach dem allerersten Boot
+ist hier unkritisch). Frontend zeigt Tiers über Knotengröße + Rahmen/Glow
+(`NODE_SIZE`/`NOTABLE_SIZE`/`KEYSTONE_SIZE`, CSS-Klassen
+`.stv-node-notable`/`.stv-node-keystone` in `SkillTreeView.vue`) — pro neuem
+Branch üblich: 1 Notable (mittelstark, kein eigenes Icon) + höchstens 1–2
+Keystones (starker Effekt, eigenes 8×8-Icon über die `KEYSTONE_ICON`-Map).
+
+**Zweisprachige Knoteninhalte:** `nameDe`/`nameEn`/`descriptionDe`/
+`descriptionEn` statt `name`/`description` — Knoteninhalt ist
+admin-editierbarer DB-Content, kein statischer UI-Text, deshalb **kein**
+`vue-i18n`-JSON-Key-Pattern. Backend liefert beide Sprachen im DTO, Frontend
+wählt reaktiv nach `locale` (`nodeName()`/`nodeDesc()` in
+`SkillTreeView.vue`) — kein Tree-Refetch beim Sprachwechsel nötig.
+
+**V1-Baum:** 25 Knoten (Wurzel + 24) in 5 Zweigen + 1 Cross-Branch-Wheel-
+Beispiel (Seed in `SkillTreeService#buildNodes/buildEdges`,
+admin-editierbar zur Laufzeit):
 - **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
   +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
 - **BAKING** (global): `bake_1`…`bake_4` linear (+0.02/+0.02/+0.03/+0.05) +
@@ -438,11 +476,32 @@ verstreuter Einzel-Lookups wie im alten System.
 - **CORE** (generalistisch, günstige Früh-Picks): `core_1` (+0.04 Ernte,
   global) → `core_2` (+0.015 Backen) **und** `core_3` (−0.5% Markt) →
   `core_4` (+0.06 Ernte, global, konvergierender Fork mit 2 eingehenden
-  Kanten, testet Mehrfach-Eltern-Konnektivität)
+  Kanten, testet Mehrfach-Eltern-Konnektivität, Tier `NOTABLE`)
 - **DISPO** (global, Dispo-Zinsreduktion, 2026-08-09): `dispo_1`…`dispo_4`
   linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, Gesamt-Reduktion 5.5
   Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum, harter
   Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
+- **Cross-Branch-Wheel (2026-08-10):** `bridge_bake_market` (Tier `NOTABLE`,
+  +0.03 Ernte global) verbindet `bake_3` und `market_3` und verlangt
+  **beide** alloziert (AND statt der sonst üblichen OR-Konnektivität, Feld
+  `SkillNodeEntity.requiresAllPrereqs` + Sonderfall in
+  `SkillTreeService#isAdjacentToAllocated`). **Nicht** MILK-BAKING (die
+  ursprüngliche Wahl) — deren gemeinsame NO-Diagonale ist bereits von DISPO
+  belegt (`dispo_1`…`dispo_4` laufen exakt `y=-x`), jede direkte Verbindung
+  zwischen den beiden Ästen hätte zwangsläufig DISPO-Kanten gekreuzt bzw.
+  Knoten überlappt (per Spielertest 2026-08-10 gefunden). Der SO-Quadrant
+  zwischen BAKING/MARKET ist dagegen komplett frei. Dahinter der generelle
+  Keystone `keystone_alleskoenner` (+0.05 Ernte, global, keine Nachteile) —
+  nur erreichbar, wenn in **beiden** angrenzenden Branches vorgearbeitet
+  wurde. Neue Brücken **vor dem Festlegen der Koordinaten** gegen alle
+  bestehenden Node-Positionen und Kanten prüfen (Kollision: Abstand zweier
+  Knotenmittelpunkte < Summe ihrer halben Kantenlängen je Tier — PASSIVE 28,
+  NOTABLE 34, KEYSTONE 40; Kreuzung: Kantensegmente auf Schnitt prüfen, nicht
+  nur Endpunkte) — bei einer erwartbar langen Verbindung (deutlich über der
+  üblichen Schrittweite von 150/212) den Brücken-Knoten als `NOTABLE` statt
+  `PASSIVE` anlegen, das macht die Zwischenstation optisch/mechanisch
+  bewusst statt wie ein Artefakt. Weitere Brücken sind pro künftigem
+  Content-Plan optional ergänzbar.
 
 Effektwerte bewusst klein (siehe Kostenkurve oben) — aktuelle Zahlen per
 Admin-API live nachgezogen 2026-08-06, ursprüngliche Erstwerte lagen beim
@@ -457,42 +516,49 @@ siehe Abschnitt 10.
 
 **Anpassen bestehender Werte (live, ohne Neustart):** `GET
 /api/v1/admin/skilltree/nodes` (Liste) + `PUT
-/api/v1/admin/skilltree/nodes/{id}` (Name/Beschreibung/Branch/Effekt-Typ/
-Zielressource/Effektwert/Position editierbar, Cache wird nach jedem Edit
-aktualisiert), plus `skillPointBaseCost`/`skillPointCostGrowth` über `PUT
-/api/v1/admin/config/balance`. **Kein volles CRUD** (2026-08-07 korrigiert) —
-es gibt kein `POST` (neuer Knoten) und kein `DELETE`, Kanten (`SkillEdgeEntity`)
-sind über die Admin-API überhaupt nicht editierbar.
+/api/v1/admin/skilltree/nodes/{id}` — Body ist seit 2026-08-10 `SkillNodeEntity`
+mit `nameDe`/`nameEn`/`descriptionDe`/`descriptionEn`/`branch`/`nodeTier`/`x`/`y`
+plus einer `effects`-Liste (`effectType`/`targetResource`/`effectValue` je
+Eintrag, komplett ersetzt statt gemerged). Server validiert jeden
+`effectType`-String gegen `EffectType.valueOf(...)` und antwortet mit 400 bei
+unbekanntem Wert, Cache wird nach jedem Edit aktualisiert. Plus
+`skillPointBaseCost`/`skillPointCostGrowth` über `PUT
+/api/v1/admin/config/balance`. **Kein volles CRUD** — es gibt kein `POST`
+(neuer Knoten) und kein `DELETE`, Kanten (`SkillEdgeEntity`) sind über die
+Admin-API überhaupt nicht editierbar.
 
 **Erweitern (neue Knoten/Branches/Kanten) — nur im Code:**
 - Knoten: `SkillTreeService#buildNodes()` — Liste von
-  `node(id, name, beschreibung, branch, effectType, targetResource,
-  effectValue, x, y, isRoot)`
+  `node(id, nameDe, nameEn, descDe, descEn, branch, nodeTier, x, y, isRoot,
+  effects)`, wobei `effects` eine `List<Effect>` ist (`Effect` = lokaler
+  Record `(EffectType type, String targetResource, double value)`, ein
+  Eintrag pro Effekt/Downside). Ein achter Parameter `requiresAllPrereqs`
+  (Overload) markiert Cross-Branch-Brücken, die alle eingehenden Kanten
+  statt nur einer alloziert brauchen.
 - Kanten: `SkillTreeService#buildEdges()` — welcher Knoten an welchen
-  angrenzt (PoE-Konnektivitätsregel)
-- `seedTree()` (`@PostConstruct`, seit 2026-08-09 Upsert statt reinem
-  `count == 0`-Check) zieht beim nächsten Start automatisch nur die
-  **fehlenden** IDs aus `buildNodes()`/`buildEdges()` nach — kein DB-Reset
-  mehr nötig, bestehende Spieler-Allokationen (`PlayerSkillNodeEntity`)
-  bleiben unangetastet. Vorher (bis 2026-08-08) musste dafür die komplette
-  `skill_nodes`/`skill_edges`-Tabelle geleert werden, sonst wurden
-  Code-Änderungen an einer bereits befüllten DB stillschweigend ignoriert.
-- **Achtung bei einem komplett neuen `EffectType`-Wert:** Postgres legt beim
-  ersten Anlegen der `effect_type`-Spalte eine CHECK-Constraint mit den zu
-  dem Zeitpunkt bekannten Enum-Werten an und aktualisiert sie bei
-  `ddl-auto=update` **nie** von selbst — ein neuer Enum-Wert lässt jeden
-  Insert mit `violates check constraint "skill_nodes_effect_type_check"`
-  scheitern und den kompletten Boot abbrechen (traf 2026-08-09 beim
-  Hinzufügen von `WAGE_INTEREST_REDUCTION` zu). Fix: `ALTER TABLE
-  skill_nodes DROP CONSTRAINT IF EXISTS skill_nodes_effect_type_check;` von
-  Hand ausführen (lokal **und** auf dem Live-Server bei Deploy) — Details
-  und genaue Fehlermeldung in `docs/ROADMAP.md` Abschnitt 0.
-- Neuer Knoten mit **bestehendem** Effekt-Typ: reicht der Eintrag oben, kein
-  Enum-/Constraint-Thema.
+  angrenzt (PoE-Konnektivitätsregel; bei `requiresAllPrereqs`-Knoten zeigen
+  **alle** Praereq-Kanten mit `toNode == diese ID` darauf, siehe
+  `isAdjacentToAllocated`).
+- `seedTree()` (`@PostConstruct`, Upsert statt reinem `count == 0`-Check)
+  zieht beim nächsten Start automatisch nur die **fehlenden** IDs aus
+  `buildNodes()`/`buildEdges()` nach — bestehende Spieler-Allokationen
+  (`PlayerSkillNodeEntity`) bleiben unangetastet. Ändert sich Name/Effekt
+  eines **bestehenden** Knotens (wie beim 2026-08-10-Umbau), zieht das
+  **nicht** automatisch nach — dafür einmalig `skill_nodes` (Postgres droppt
+  sie neu über `ddl-auto=update`, siehe unten) bzw. `skill_node_effects`
+  leeren, da die DB als disposable gilt (siehe `CLAUDE.md`/ROADMAP).
+- **Kein CHECK-Constraint-Risiko mehr bei neuen `EffectType`-Werten**
+  (seit 2026-08-10, siehe oben) — einfach Enum-Konstante ergänzen und an
+  einer Call-Site verrechnen, fertig. `nodeTier` ist die einzige verbliebene
+  `@Enumerated`-Spalte im Skill-Baum-Schema; ein neuer Tier-Wert bräuchte
+  wieder den einmaligen `ALTER TABLE skill_nodes DROP CONSTRAINT
+  IF EXISTS skill_nodes_node_tier_check;`-Schritt, ist aber ein
+  stabiles 3-Werte-Set und wächst nicht.
 - Frontend (`SkillTreeDialog.vue`/`SkillTreeView.vue`) zeichnet den Baum
   automatisch aus den Backend-Daten, braucht für neue Knoten keine Änderung
   — außer das Branch-Icon (`BRANCH_ICON`-Map in `SkillTreeView.vue`) für
-  einen komplett neuen Branch-Namen.
+  einen komplett neuen Branch-Namen, oder ein eigenes Icon in der
+  `KEYSTONE_ICON`-Map für einen neuen Keystone.
 
 **Bewusst nicht gebaut (v1):**
 - Kein Respec/Un-Allocate-Endpoint (einfacher Folge-Ausbau).

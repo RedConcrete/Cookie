@@ -9,5 +9,9 @@
   "noPointsLeft": "No skill points left",
   "rootBuyHint": "Click to buy skill points",
   "centerTitle": "Center view",
-  "centerHint": "CENTER"
+  "centerHint": "CENTER",
+  "effectHarvestYield": "Harvest Yield",
+  "effectBakeOutput": "Cookie Yield",
+  "effectMarketFeeReduction": "Market Fee",
+  "effectWageInterestReduction": "Overdraft Interest"
 }

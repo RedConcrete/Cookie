@@ -9,5 +9,9 @@
   "noPointsLeft": "Kein Skill-Punkt übrig",
   "rootBuyHint": "Klicken zum Kaufen von Skill-Punkten",
   "centerTitle": "Ansicht zentrieren",
-  "centerHint": "ZENTRIEREN"
+  "centerHint": "ZENTRIEREN",
+  "effectHarvestYield": "Ernte-Ertrag",
+  "effectBakeOutput": "Cookie-Ausbeute",
+  "effectMarketFeeReduction": "Markt-Gebühr",
+  "effectWageInterestReduction": "Dispo-Zinsen"
 }
