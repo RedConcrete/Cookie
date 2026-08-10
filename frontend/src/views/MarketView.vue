@@ -324,32 +324,57 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 </script>
 
 <style scoped>
-.mv-root { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--px-cream); }
+/* Layout ist immer Chart links / Ressourcen-Panel rechts (kein separates
+   "breiter Bildschirm"-Design mehr) -- .md-box (MarketDialog.vue) ist nie
+   schmaler als 1260px, ein Umschalten auf ein spaltenweises Layout war
+   dadurch ohnehin nie erreichbar. */
+.mv-root { display: flex; flex-direction: row; height: 100%; min-height: 0; background: var(--px-cream); }
 
-.mv-chart-row { flex: 0 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; border-bottom: 4px solid var(--px-ink); }
-.mv-legend { display: flex; gap: 6px; flex-wrap: wrap; }
-.mv-legend-chip { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--px-cream2); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); cursor: pointer; transition: opacity 0.15s; }
+.mv-chart-row {
+  flex: 0 0 66%; flex-direction: row; padding: 16px; gap: 12px;
+  display: flex; border-right: 4px solid var(--px-ink); overflow: hidden;
+}
+.mv-chart-box { order: 1; flex: 1 1 auto; height: auto; min-width: 0; position: relative; background: var(--px-cream); border: 4px solid var(--px-ink); padding: 14px; overflow: hidden; }
+
+.mv-legend {
+  order: 2; flex: 0 0 76px; width: 76px;
+  display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px;
+  overflow-y: auto; overflow-x: hidden; position: relative; z-index: 1;
+}
+.mv-legend-chip {
+  position: relative; flex: 0 0 auto; width: 100%; box-sizing: border-box;
+  display: flex; flex-direction: row; align-items: center; gap: 4px;
+  padding: 4px 6px; background: var(--px-cream2); border: 3px solid var(--px-brown2);
+  font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt);
+  cursor: pointer; transition: opacity 0.15s;
+}
 .mv-legend-chip.inactive { opacity: 0.4; }
 .mv-legend-chip:hover { opacity: 1; }
-.mv-legend-dot { display: inline-block; width: 10px; height: 10px; box-shadow: 0 0 0 2px #402e2b; }
-.mv-legend-val { font-size: 12px; letter-spacing: 0.5px; color: var(--px-ink-txt); margin-left: 2px; }
-.mv-chart-box { height: 196px; flex: 0 0 auto; position: relative; background: var(--px-cream); border: 4px solid var(--px-ink); padding: 14px; }
+.mv-legend-name { display: none; }
+.mv-legend-dot { display: inline-block; width: 8px; height: 8px; box-shadow: 0 0 0 2px #402e2b; }
+.mv-legend-val { font-size: 9px; letter-spacing: 0.5px; color: var(--px-ink-txt); margin-left: 0; }
 
-.mv-icon { position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--px-wood3); border: 2px solid var(--px-ink); }
+.mv-icon { position: relative; width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: var(--px-wood3); border: 2px solid var(--px-ink); }
 
-.mv-table { flex: 1 1 auto; min-height: 0; background: var(--px-cream2); }
-.mv-table-inner { padding: 10px 16px; display: flex; flex-direction: column; gap: 3px; }
+.mv-table { flex: 1 1 360px; min-width: 300px; min-height: 0; background: var(--px-cream2); }
+.mv-table-inner { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.mv-row.mv-head { display: none; }
 .mv-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) 156px 190px;
-  gap: 10px; align-items: center; padding: 7px 10px; min-width: 720px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  padding: 8px 10px; min-width: 0;
 }
-.mv-info { display: grid; grid-template-columns: 34px 1fr 90px 84px 100px; gap: 10px; align-items: center; min-width: 0; }
-.mv-controls { display: contents; }
+.mv-info { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; min-width: 0; }
+.mv-controls { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 8px; }
+.mv-controls > :last-child { flex: 0 0 auto; }
+.mv-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.mv-actions { flex: 0 0 auto; }
+.mv-action-wrap { flex: 0 0 auto; }
+.mv-action-btn { width: 74px; padding: 5px 0; font-size: 9px; }
 .mv-head { background: var(--px-wood); border: 3px solid var(--px-ink); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
 .mv-row:not(.mv-head) { background: var(--px-cream); border: 2px solid #fff1a9; position: relative; }
 .mv-row.success { background: #fff1a9; }
 
-.mv-name  { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
+.mv-name  { font-weight: 600; color: var(--px-ink-txt); }
 .mv-price { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-orange); }
 .mv-trend { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
 .mv-stock { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-tan-ink); }
@@ -369,8 +394,7 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 
 .mv-actions { display: flex; flex-direction: column; gap: 4px; }
 .mv-actions-buttons { display: flex; gap: 6px; }
-.mv-action-wrap { position: relative; flex: 1; }
-.mv-action-btn { width: 100%; padding: 6px 0; text-align: center; font-size: 10px; }
+.mv-action-wrap { position: relative; }
 
 /* Immer im DOM (kein v-if), nur visibility umgeschaltet -- reserviert dauerhaft die Zeilenhoehe,
    damit Kaufen/Verkaufen beim Ein-/Ausblenden nicht springen (siehe .mv-actions-buttons). */
@@ -387,54 +411,21 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 .err-title { font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 15px; color: var(--px-red); margin-bottom: 8px; }
 .err-body  { font-size: 13px; color: var(--px-ink-txt); line-height: 1.5; }
 
-/* ── Schmaler Markt-Dialog: Chart links fix, Ressourcen-Karten rechts scrollbar.
-   Container Query auf .md-box (MarketDialog.vue) statt @media -- soll auf die
-   tatsaechliche Dialogbreite reagieren, nicht auf die volle (meist fullscreen)
-   Fensterbreite. Schwelle liegt bewusst ueber der festen md-box-Breite (1260px,
-   siehe MarketDialog.vue) -- sonst greift es bei normalem Zoom nie, weil der
-   Dialog nie so breit wird. */
-@container (max-width: 1280px) {
-  .mv-root { flex-direction: row; }
+/* Container Query auf .md-box (MarketDialog.vue), nicht @media -- soll auf
+   tatsaechliche Dialogbreite reagieren. Ab genug Breite mehr Luft: breiteres
+   Ressourcen-Panel, Legend-Chips mit Label statt nur Farbpunkt. */
+@container (min-width: 1500px) {
+  .mv-table { flex-basis: 460px; }
+  .mv-legend { flex-basis: 130px; width: 130px; }
+  .mv-legend-chip { padding: 5px 8px; font-size: 10px; }
+  .mv-legend-name { display: inline; }
+  .mv-legend-dot { width: 10px; height: 10px; }
+  .mv-legend-val { font-size: 10px; }
 
-  .mv-chart-row {
-    flex: 0 0 70%;
-    flex-direction: row;
-    border-bottom: none;
-    border-right: 4px solid var(--px-ink);
-    overflow: hidden;
-  }
-  .mv-chart-box { order: 1; flex: 1 1 auto; height: auto; min-height: 160px; min-width: 0; overflow: hidden; }
-
-  .mv-table { flex: 1 1 auto; min-width: 0; max-width: 30%; }
-  .mv-table-inner { padding: 10px 12px; }
-
-  .mv-legend {
-    order: 2; flex: 0 0 60px; width: 60px;
-    flex-direction: column; flex-wrap: nowrap;
-    overflow-y: auto; overflow-x: hidden;
-    position: relative; z-index: 1;
-  }
-  .mv-legend-chip {
-    flex: 0 0 auto; width: 100%; box-sizing: border-box;
-    flex-direction: row; align-items: center; gap: 4px;
-    padding: 3px 5px; font-size: 9px;
-  }
-  .mv-legend-name { display: none; }
-  .mv-legend-dot { width: 8px; height: 8px; }
-  .mv-legend-val { font-size: 9px; margin-left: 0; }
-
-  .mv-row.mv-head { display: none; }
-  .mv-row {
-    grid-template-columns: none;
-    display: flex; flex-direction: column; align-items: stretch;
-    gap: 6px; min-width: 0;
-  }
-  .mv-info { grid-template-columns: none; display: flex; flex-wrap: nowrap; align-items: center; min-width: 0; }
-  .mv-name { display: none; }
-  .mv-controls { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; }
-  .mv-controls > :last-child { flex: 0 0 auto; }
-  .mv-actions { flex: 0 0 auto; }
-  .mv-action-wrap { flex: 0 0 auto; }
-  .mv-action-btn { width: 76px; padding: 4px 0; font-size: 9px; }
+  .mv-info { gap: 10px; }
+  .mv-name { font-size: 15px; }
+  .mv-controls { flex-wrap: wrap; }
+  .mv-actions-buttons { gap: 8px; }
+  .mv-action-btn { width: 84px; padding: 6px 0; font-size: 10px; }
 }
 </style>

@@ -27,7 +27,7 @@ onMounted(() => audio.playBookOpen())
 <style scoped>
 .md-box {
   max-width: 98vw;
-  width: 1260px;
+  width: clamp(1260px, 80vw, 1900px);
   height: 90vh;
   overflow: hidden;
   display: flex;
