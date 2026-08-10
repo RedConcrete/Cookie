@@ -13,5 +13,6 @@
   "effectHarvestYield": "Ernte-Ertrag",
   "effectBakeOutput": "Cookie-Ausbeute",
   "effectMarketFeeReduction": "Markt-Gebühr",
-  "effectWageInterestReduction": "Dispo-Zinsen"
+  "effectWageInterestReduction": "Dispo-Zinsen",
+  "effectResourceWageReduction": "Gebäude-Lohn"
 }

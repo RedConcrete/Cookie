@@ -420,12 +420,20 @@ längere Spielzeit, nicht von 2–3 Käufen mit riesigem Einzeleffekt.
 
 **Effekt-Typen** (`enums/EffectType`): `HARVEST_YIELD`, `BAKE_OUTPUT`,
 `MARKET_FEE_REDUCTION`, `WAGE_INTEREST_REDUCTION` (2026-08-09, senkt den
-Dispo-Zinssatz, Abschnitt 5). `HARVEST_YIELD`-Knoten haben ein optionales
-`targetResource` (z. B. `MILK`) — `null` heißt global (gilt für jede
-Ressource), gesetzt heißt nur für diese eine Ressource. Alle Effekte eines
+Dispo-Zinssatz, Abschnitt 5), `RESOURCE_WAGE_REDUCTION` (2026-08-10, senkt
+den Arbeiter-Lohn **eines einzelnen Produktionsgebäudes**, `targetResource`
+= die zugehörige Ressource, z. B. `SUGAR` → Zuckerteich). `HARVEST_YIELD`-
+und `RESOURCE_WAGE_REDUCTION`-Knoten haben ein optionales `targetResource`
+(z. B. `MILK`) — `null` heißt global (gilt für jede Ressource/jedes
+Gebäude), gesetzt heißt nur für diese eine Ressource. Alle Effekte eines
 Typs (+ passender Ressource) addieren sich; zentral aufgelöst über
 `SkillTreeService#getEffectTotal(userId, type, targetResource)` statt
 verstreuter Einzel-Lookups wie im alten System.
+`RESOURCE_WAGE_REDUCTION` wird in `BuildingService#effectiveWage(def, ent,
+userId)` ausgewertet (nur für Gebäude mit `def.passiveResource() != null`,
+d. h. die 6 Produktionsgebäude — Lager/Ofen/Rathaus/Markt bleiben
+unberührt), mit Floor/Cap `[-0.5, 0.9]` (kann durch Keystone-Downsides auch
+negativ werden, siehe unten).
 
 **Mehrfach-Effekte pro Knoten (seit 2026-08-10):** ein Knoten kann mehrere
 `SkillNodeEffectEntity`-Zeilen haben (Tabelle `skill_node_effects`, FK
@@ -464,23 +472,49 @@ admin-editierbarer DB-Content, kein statischer UI-Text, deshalb **kein**
 wählt reaktiv nach `locale` (`nodeName()`/`nodeDesc()` in
 `SkillTreeView.vue`) — kein Tree-Refetch beim Sprachwechsel nötig.
 
-**V1-Baum:** 25 Knoten (Wurzel + 24) in 5 Zweigen + 1 Cross-Branch-Wheel-
+**V1-Baum:** 50 Knoten (Wurzel + 49) in 10 Zweigen + 1 Cross-Branch-Wheel-
 Beispiel (Seed in `SkillTreeService#buildNodes/buildEdges`,
-admin-editierbar zur Laufzeit):
+admin-editierbar zur Laufzeit).
+
+**Radiales 10-Branch-Layout (2026-08-10):** alle Zweige liegen gleichmäßig
+alle 36° auf einem Kreis um `root` (Kompass-Bearing, 0°=Norden=−y,
+90°=Osten=+x), Radius 150/300/450/600 pro Tier. Reihenfolge im Kreis:
+MILK(0°) SUGAR(36°) DISPO(72°) FLOUR(108°) BAKING(144°) MARKET(180°)
+EGGS(216°) BUTTER(252°) CORE(288°) CHOCOLATE(324°). Die 5 ursprünglichen
+Zweige (MILK/BAKING/MARKET/CORE/DISPO) wurden dafür **neu positioniert** —
+`x`/`y` ist reiner Anzeigewert ohne Spiellogik-Bezug (Allokation läuft
+ausschließlich über Kanten), Repositionieren bestehender Knoten-IDs ist
+also unkritisch. Grund: die alten 5 Arme ließen nur 2 schmale Lücken frei,
+zu wenig für 5 neue volle Zweige ohne Knoten-Kollisionen/Kanten-Kreuzungen
+(erst per Skript simuliert, dann gegen die Live-API verifiziert — 0 Treffer
+bei Kollisions- und Kreuzungs-Check über alle 50 Knoten × 51 Kanten).
+
 - **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
   +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
+- **SUGAR/FLOUR/EGGS/BUTTER/CHOCOLATE** (2026-08-10, ressourcen-spezifisch,
+  je 5 Knoten, mirrort MILK, Gebäude-Zuordnung: Zuckerteich/Bauernhof/
+  Hühnerhof/Butterei/Plantage): `<res>_1` `HARVEST_YIELD` (+0.05) →
+  `<res>_2` `RESOURCE_WAGE_REDUCTION` (+1 % Lohn-Reduktion am zugehörigen
+  Gebäude) → `<res>_3` NOTABLE `HARVEST_YIELD` (+0.08) → `<res>_4`
+  **KEYSTONE mit 2 Effekten**: `HARVEST_YIELD` +0.15 **und** eine negative
+  `RESOURCE_WAGE_REDUCTION` −0.03 (Arbeiter am Gebäude werden 3 % teurer —
+  echter Tradeoff, Netto klar positiv aber spürbar) + `<res>_5` als Fork ab
+  `<res>_2`, `RESOURCE_WAGE_REDUCTION` (+1.5 %). Effekt-Reihenfolge mischt
+  bewusst Ertrag/Lohn statt einer gleichförmigen Kette; BUTTER hat `_1`/`_2`
+  vertauscht (Lohn zuerst) als bewusste Abweichung vom Muster, damit nicht
+  alle 5 Zweige identisch wirken.
 - **BAKING** (global): `bake_1`…`bake_4` linear (+0.02/+0.02/+0.03/+0.05) +
   `bake_5` als Fork ab `bake_2` (+0.04), Keystone `bake_4`
 - **MARKET** (global, Gebühren-Reduktion): `market_1`…`market_4` linear
-  (−0.5%/−0.5%/−0.75%/−1%), Keystone `market_4`
+  (−0.5%/−0.5%/−0.75%/−1%), Keystone `market_4`, kein Fork
 - **CORE** (generalistisch, günstige Früh-Picks): `core_1` (+0.04 Ernte,
   global) → `core_2` (+0.015 Backen) **und** `core_3` (−0.5% Markt) →
   `core_4` (+0.06 Ernte, global, konvergierender Fork mit 2 eingehenden
   Kanten, testet Mehrfach-Eltern-Konnektivität, Tier `NOTABLE`)
 - **DISPO** (global, Dispo-Zinsreduktion, 2026-08-09): `dispo_1`…`dispo_4`
-  linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, Gesamt-Reduktion 5.5
-  Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum, harter
-  Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
+  linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, kein Fork, Gesamt-
+  Reduktion 5.5 Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum,
+  harter Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
 - **Cross-Branch-Wheel (2026-08-10):** `bridge_bake_market` (Tier `NOTABLE`,
   +0.03 Ernte global) verbindet `bake_3` und `market_3` und verlangt
   **beide** alloziert (AND statt der sonst üblichen OR-Konnektivität, Feld

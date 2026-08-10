@@ -10,7 +10,8 @@ anderen Pläne ([[2026-08-10-open-skillbaum-rohstoff-branches]],
 [[2026-08-10-open-skillbaum-lager-branch]],
 [[2026-08-10-open-skillbaum-bau-buerger-branch]],
 [[2026-08-10-open-skillbaum-respec]],
-[[2026-08-10-open-skillbaum-suche-buildplanung]]) setzen auf dem hier
+[[2026-08-10-open-skillbaum-suche-buildplanung]],
+[[2026-08-10-open-skillbaum-automatisierung]]) setzen auf dem hier
 gebauten Schema auf. **Deshalb zuerst umsetzen.**
 
 Auslöser: ein vom User mit Perplexity erstelltes Anforderungs-Dokument

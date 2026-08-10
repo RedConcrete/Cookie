@@ -13,5 +13,6 @@
   "effectHarvestYield": "Harvest Yield",
   "effectBakeOutput": "Cookie Yield",
   "effectMarketFeeReduction": "Market Fee",
-  "effectWageInterestReduction": "Overdraft Interest"
+  "effectWageInterestReduction": "Overdraft Interest",
+  "effectResourceWageReduction": "Building Wage"
 }

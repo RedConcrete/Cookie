@@ -95,7 +95,7 @@ public class BuildingService {
         return BUILDINGS.stream().map(def -> {
             PlayerBuildingEntity ent = owned.get(def.id());
             if (ent != null) settle(ent, def, idle, now);
-            return toDto(def, ent);
+            return toDto(def, ent, userId);
         }).toList();
     }
 
@@ -213,7 +213,7 @@ public class BuildingService {
         Map<String, Double> breakdown = new LinkedHashMap<>();
         for (BuildingDef def : BUILDINGS) {
             PlayerBuildingEntity ent = owned.get(def.id());
-            double wage = effectiveWage(def, ent);
+            double wage = effectiveWage(def, ent, userId);
             if (wage > 0) breakdown.put(def.id(), wage);
         }
         return breakdown;
@@ -224,12 +224,21 @@ public class BuildingService {
     // ("Jeder zusätzliche Einwohner erhöht ... den Lohn"). def.wagePerMin() bleibt für die
     // 6 Produktionsgebäude nur noch als Referenzwert für die Shop-Vorschau (Frontend,
     // korrekt bei Stufe-1-Vollbesatzung) übrig, hier ungenutzt.
-    private double effectiveWage(BuildingDef def, PlayerBuildingEntity ent) {
+    // Skill-Baum-Reduktion nur für Produktionsgebäude (def.passiveResource() != null) --
+    // Zuckerteich-Lohn sinkt nur durch SUGAR-Branch-Knoten, nie durch einen anderen Branch.
+    // Floor+Cap noetig, weil ein Keystone-Downside (siehe Rohstoff-Branches-Plan) den Wert auch
+    // negativ machen kann (Lohn steigt statt sinkt) -- ohne Deckel koennte das theoretisch einen
+    // absurd hohen Lohn erzeugen. -0.5 als Platzhalter-Deckel, siehe Balancing-Pass (ROADMAP §4).
+    private double effectiveWage(BuildingDef def, PlayerBuildingEntity ent, String userId) {
         if (ent == null) return 0;
         // Lager: free at level 1, +wagePerMin for each level above 1
         if (def.id().equals("lager")) return Math.max(0, ent.getLevel() - 1) * def.wagePerMin();
         if (def.maxWorkers() <= 0) return 0; // ofen, rathaus, markt — kein Lohn
-        return ent.getWorkers() * balance.getWagePerMinPerWorker();
+        double baseWage = ent.getWorkers() * balance.getWagePerMinPerWorker();
+        if (def.passiveResource() == null) return baseWage;
+        double wageReduction = skillTreeService.getEffectTotal(
+                userId, EffectType.RESOURCE_WAGE_REDUCTION, def.passiveResource().name());
+        return baseWage * (1 - Math.min(0.9, Math.max(-0.5, wageReduction)));
     }
 
     public int getMaxCitizens(String userId) {
@@ -296,7 +305,7 @@ public class BuildingService {
         return def.baseCost() * Math.pow(balance.getBuildingCostGrowth(), currentLevel);
     }
 
-    private PlayerBuildingDto toDto(BuildingDef def, PlayerBuildingEntity ent) {
+    private PlayerBuildingDto toDto(BuildingDef def, PlayerBuildingEntity ent, String userId) {
         int level   = ent != null ? ent.getLevel() : 0;
         int workers = ent != null ? ent.getWorkers() : 0;
         double ratePerSec = def.passiveRatePerSecPerWorker() * workers;
@@ -305,7 +314,7 @@ public class BuildingService {
         dto.setId(def.id());
         dto.setName(def.name());
         dto.setLevel(level);
-        dto.setWagePerMin(effectiveWage(def, ent));
+        dto.setWagePerMin(effectiveWage(def, ent, userId));
         dto.setStorageCapBonus(def.upgradeable() && def.id().equals("lager") ? (int) balance.getStoragePerLevel() : 0);
         dto.setCanUpgrade(def.upgradeable());
         dto.setNextLevelCost(def.upgradeable() || level == 0 ? computeCost(def, level) : 0);

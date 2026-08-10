@@ -734,15 +734,16 @@ Backlog dokumentiert.
   fehlt) muss noch definiert werden.
 - [ ] **Skillbaum-Ausbau (mehrere Spielweisen).** Design-Pass abgeschlossen
   (inkl. eines vom User mit Perplexity erstellten Anforderungs-Prompts,
-  eingearbeitet), Umsetzung offen — 7 separate Pläne unter `docs/plans/`,
+  eingearbeitet), Umsetzung läuft — 8 separate Pläne unter `docs/plans/`,
   unabhängig voneinander umsetzbar (bewusst nicht am Stück), aber mit einer
   Abhängigkeit: `2026-08-10-open-skillbaum-wheel-keystones.md` ist das
   **Fundament** (Mehrfach-Effekte pro Knoten für echte Keystone-Tradeoffs,
   Node-Tiers PASSIVE/NOTABLE/KEYSTONE, i18n-Fix für Knotentexte,
-  Cross-Branch-Wheel, geschützte-IDs-Liste) und sollte zuerst umgesetzt
-  werden — die anderen 6 setzen direkt darauf auf:
+  Cross-Branch-Wheel, geschützte-IDs-Liste), umgesetzt 2026-08-10 (noch
+  nicht committed) — die anderen 7 setzen direkt darauf auf:
   `2026-08-10-open-skillbaum-rohstoff-branches.md` (Zucker/Mehl/Eier/
-  Butter/Schoko, löst diesen Punkt hier ab),
+  Butter/Schoko, löst diesen Punkt hier ab), umgesetzt 2026-08-10 (noch
+  nicht committed),
   `2026-08-10-open-skillbaum-crit-system.md` (Krit bei Ernte/Passiv-
   Produktion/Backen), `2026-08-10-open-skillbaum-lager-branch.md`
   (STORAGE-Branch, löst den "Ausgleich für volles Lager"-Punkt weiter unten
@@ -751,8 +752,10 @@ Backlog dokumentiert.
   `2026-08-10-open-skillbaum-respec.md` (Punkte gegen Cookies zurückgeben,
   fixer Preis, konnektivitäts-sicher),
   `2026-08-10-open-skillbaum-suche-buildplanung.md` (Such-/Filter-UI +
-  erweiterte Tooltips). Jede Datei einzeln auf ✅/`-done-` umstellen, sobald
-  umgesetzt.
+  erweiterte Tooltips),
+  `2026-08-10-open-skillbaum-automatisierung.md` (Auto-Sammeln/-Verkauf/
+  -Backen + ressourcen-unabhängige Hover-Boni, User-Idee vom 2026-08-10).
+  Jede Datei einzeln auf ✅/`-done-` umstellen, sobald umgesetzt.
 - [ ] **Rezepte pro Season randomisiert + Entdecken-Minigame.** Komplett
   neues Feature (Rezept-Rotation-Modell im Backend, Minigame-Konzept) —
   eigene Design-Session nötig.

@@ -120,7 +120,10 @@ function flash(msg, isError = false) {
 const tree = computed(() => playerStore.skillTree)
 const canAfford = computed(() => playerStore.cookies >= tree.value.nextPointCost)
 
-const BRANCH_ICON = { MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw', DISPO: 'lohn' }
+const BRANCH_ICON = {
+  MILK: 'milch', BAKING: 'ofen', MARKET: 'stand', CORE: 'einw', DISPO: 'lohn',
+  SUGAR: 'zucker', FLOUR: 'mehl', EGGS: 'eier', BUTTER: 'butter', CHOCOLATE: 'schoko',
+}
 // Nur Keystones bekommen ein eigenes Icon pro Knoten -- Notables/Passives bleiben auf dem
 // Branch-Icon, sonst braeuchte jeder kuenftige Notable eines (siehe Plan Fundament, Abschnitt
 // Frontend-Aenderungen).
@@ -130,6 +133,11 @@ const KEYSTONE_ICON = {
   market_4: 'keystoneMarket4',
   dispo_4: 'keystoneDispo4',
   keystone_alleskoenner: 'keystoneAlleskoenner',
+  sugar_4: 'keystoneSugar4',
+  flour_4: 'keystoneFlour4',
+  eggs_4: 'keystoneEggs4',
+  butter_4: 'keystoneButter4',
+  chocolate_4: 'keystoneChocolate4',
 }
 function nodeIcon(n) {
   if (n.root) return 'stern'
@@ -152,6 +160,7 @@ const EFFECT_LABEL_KEY = {
   BAKE_OUTPUT: 'skillTreeView.effectBakeOutput',
   MARKET_FEE_REDUCTION: 'skillTreeView.effectMarketFeeReduction',
   WAGE_INTEREST_REDUCTION: 'skillTreeView.effectWageInterestReduction',
+  RESOURCE_WAGE_REDUCTION: 'skillTreeView.effectResourceWageReduction',
 }
 function effectLabel(e) {
   const base = t(EFFECT_LABEL_KEY[e.effectType] || e.effectType)

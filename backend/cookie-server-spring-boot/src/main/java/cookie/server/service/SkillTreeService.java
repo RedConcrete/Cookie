@@ -89,12 +89,25 @@ public class SkillTreeService {
         skillNodeRepository.findAll().forEach(n -> nodeCache.put(n.getId(), n));
     }
 
+    // Radiales 10-Branch-Layout (2026-08-10, Rohstoff-Branches-Plan): alle Branches auf einem
+    // Kreis um root, gleichmaessig alle 36 Grad (Kompass-Bearing, 0=Nord=-y, 90=Ost=+x). Die 5
+    // urspruenglichen Branches (MILK/BAKING/MARKET/CORE/DISPO) wurden dafuer NEU POSITIONIERT --
+    // x/y ist reiner Anzeigewert ohne Spiellogik-Bezug (Allokation laeuft ausschliesslich ueber
+    // Kanten), Umpositionieren bestehender IDs ist also unkritisch. Grund: die alten 5 Arme
+    // liessen nur 2 schmale Luecken frei, viel zu wenig fuer 5 neue volle Branches ohne
+    // Knoten-Kollisionen oder Kanten-Kreuzungen (per Skript verifiziert, siehe Kommentar an
+    // isAdjacentToAllocated). Reihenfolge um den Kreis: MILK(0) SUGAR(36) DISPO(72) FLOUR(108)
+    // BAKING(144) MARKET(180) EGGS(216) BUTTER(252) CORE(288) CHOCOLATE(324). Radien pro Tier:
+    // 150/300/450/600 (Keystone-Tier), Notable meist auf Tier 3 (450). Fork-Knoten (_5) liegen
+    // bei Radius 300 leicht abgewinkelt vom Hauptarm -- Winkel je nach Nachbar-Branch gespiegelt,
+    // damit sich zwei benachbarte Forks nicht in derselben Luecke treffen (siehe einzelne
+    // Kommentare unten).
     private List<SkillNodeEntity> buildNodes() {
         return List.of(
             node(ROOT_ID, "Ursprung", "Origin", "Startpunkt des Skill-Baums", "Starting point of the skill tree",
                     "CORE", NodeTier.PASSIVE, 0, 0, true, List.of()),
 
-            // Branch MILK (Norden, resourcen-spezifisch)
+            // Branch MILK -- Bearing 0 (unveraendert), resourcen-spezifisch
             node("milk_1", "Bessere Melkkannen", "Better Milk Pails", "+5% Milch pro Ernte-Tick", "+5% milk per harvest tick",
                     "MILK", NodeTier.PASSIVE, 0, -150, false,
                     List.of(new Effect(EffectType.HARVEST_YIELD, "MILK", 0.05))),
@@ -107,28 +120,107 @@ public class SkillTreeService {
             node("milk_4", "Meister-Melker", "Master Milker", "+10% Milch pro Ernte-Tick", "+10% milk per harvest tick",
                     "MILK", NodeTier.KEYSTONE, 0, -600, false,
                     List.of(new Effect(EffectType.HARVEST_YIELD, "MILK", 0.10))),
+            // Fork-Winkel +14 Grad (Richtung SUGAR-Seite) -- neu positioniert, war vorher (150,-300).
             node("milk_5", "Zweite Kanne", "Second Pail", "+7% Milch pro Ernte-Tick", "+7% milk per harvest tick",
-                    "MILK", NodeTier.PASSIVE, 150, -300, false,
+                    "MILK", NodeTier.PASSIVE, 73, -291, false,
                     List.of(new Effect(EffectType.HARVEST_YIELD, "MILK", 0.07))),
 
-            // Branch BAKING (Osten, global)
+            // Branch SUGAR -- Bearing 36, neu (Rohstoff-Branches-Plan). Gebaeude: Zuckerteich (pond).
+            node("sugar_1", "Feinkörniger Zucker", "Fine Grain Sugar", "+5% Zucker pro Ernte-Tick", "+5% sugar per harvest tick",
+                    "SUGAR", NodeTier.PASSIVE, 88, -121, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "SUGAR", 0.05))),
+            node("sugar_2", "Faire Bezahlung", "Fair Pay", "-1% Lohn im Zuckerteich", "-1% wage at the sugar pond",
+                    "SUGAR", NodeTier.PASSIVE, 176, -243, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "SUGAR", 0.01))),
+            node("sugar_3", "Zuckerrohr-Expertise", "Sugarcane Expertise", "+8% Zucker pro Ernte-Tick", "+8% sugar per harvest tick",
+                    "SUGAR", NodeTier.NOTABLE, 265, -364, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "SUGAR", 0.08))),
+            node("sugar_4", "Zucker-Baron", "Sugar Baron",
+                    "+15% Zucker pro Ernte-Tick, aber Arbeiter im Zuckerteich kosten 3% mehr Lohn",
+                    "+15% sugar per harvest tick, but workers at the sugar pond cost 3% more wage",
+                    "SUGAR", NodeTier.KEYSTONE, 353, -485, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "SUGAR", 0.15),
+                            new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "SUGAR", -0.03))),
+            node("sugar_5", "Nebenverdienst", "Side Income", "-1.5% Lohn im Zuckerteich", "-1.5% wage at the sugar pond",
+                    "SUGAR", NodeTier.PASSIVE, 230, -193, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "SUGAR", 0.015))),
+
+            // Branch DISPO -- Bearing 72 (war 45), senkt den Zinssatz auf negative Cookies (siehe
+            // WageService#deductWageForUser, balance.debtInterestRate). Kein Fork.
+            node("dispo_1", "Guter Draht zur Bank", "Good Bank Connections", "-1% Dispo-Zinsen", "-1% overdraft interest",
+                    "DISPO", NodeTier.PASSIVE, 143, -46, false,
+                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.01))),
+            node("dispo_2", "Bonitätsprüfung bestanden", "Passed Credit Check", "-1% Dispo-Zinsen", "-1% overdraft interest",
+                    "DISPO", NodeTier.PASSIVE, 285, -93, false,
+                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.01))),
+            node("dispo_3", "Verhandelter Rahmen", "Negotiated Credit Line", "-1.5% Dispo-Zinsen", "-1.5% overdraft interest",
+                    "DISPO", NodeTier.PASSIVE, 428, -139, false,
+                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.015))),
+            node("dispo_4", "Goldener Kredit", "Golden Credit", "-2% Dispo-Zinsen", "-2% overdraft interest",
+                    "DISPO", NodeTier.KEYSTONE, 571, -185, false,
+                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.02))),
+
+            // Branch FLOUR -- Bearing 108, neu. Gebaeude: Bauernhof (hof).
+            node("flour_1", "Gutes Saatgut", "Good Seed Stock", "+5% Mehl pro Ernte-Tick", "+5% flour per harvest tick",
+                    "FLOUR", NodeTier.PASSIVE, 143, 46, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "FLOUR", 0.05))),
+            node("flour_2", "Anständiger Lohn", "Decent Wage", "-1% Lohn auf dem Bauernhof", "-1% wage at the farm",
+                    "FLOUR", NodeTier.PASSIVE, 285, 93, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "FLOUR", 0.01))),
+            node("flour_3", "Mühlenmeisterschaft", "Milling Mastery", "+8% Mehl pro Ernte-Tick", "+8% flour per harvest tick",
+                    "FLOUR", NodeTier.NOTABLE, 428, 139, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "FLOUR", 0.08))),
+            node("flour_4", "Mühlen-Baron", "Mill Baron",
+                    "+15% Mehl pro Ernte-Tick, aber Arbeiter auf dem Bauernhof kosten 3% mehr Lohn",
+                    "+15% flour per harvest tick, but workers at the farm cost 3% more wage",
+                    "FLOUR", NodeTier.KEYSTONE, 571, 185, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "FLOUR", 0.15),
+                            new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "FLOUR", -0.03))),
+            // Fork-Winkel -14 Grad (Richtung DISPO-Seite, weg von BAKING) -- vermeidet Kollision
+            // mit bake_5, das ebenfalls in diese Luecke zeigen wuerde.
+            node("flour_5", "Zusatzeinkommen", "Extra Income", "-1.5% Lohn auf dem Bauernhof", "-1.5% wage at the farm",
+                    "FLOUR", NodeTier.PASSIVE, 299, 21, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "FLOUR", 0.015))),
+
+            // Branch BAKING -- Bearing 144 (war 90), global
             node("bake_1", "Warmer Ofen", "Warm Oven", "+2% Cookie-Ausbeute beim Backen", "+2% cookie yield when baking",
-                    "BAKING", NodeTier.PASSIVE, 150, 0, false,
+                    "BAKING", NodeTier.PASSIVE, 88, 121, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.02))),
             node("bake_2", "Gleichmäßige Hitze", "Even Heat", "+2% Cookie-Ausbeute beim Backen", "+2% cookie yield when baking",
-                    "BAKING", NodeTier.PASSIVE, 300, 0, false,
+                    "BAKING", NodeTier.PASSIVE, 176, 243, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.02))),
             node("bake_3", "Süßes Händchen", "Sweet Touch", "+3% Cookie-Ausbeute beim Backen", "+3% cookie yield when baking",
-                    "BAKING", NodeTier.PASSIVE, 450, 0, false,
+                    "BAKING", NodeTier.PASSIVE, 265, 364, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.03))),
             node("bake_4", "Meisterbäcker", "Master Baker", "+5% Cookie-Ausbeute beim Backen", "+5% cookie yield when baking",
-                    "BAKING", NodeTier.KEYSTONE, 600, 0, false,
+                    "BAKING", NodeTier.KEYSTONE, 353, 485, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.05))),
+            // Fork-Winkel -14 Grad (Richtung FLOUR-Seite, weg von der Bruecke/MARKET) -- vermeidet
+            // Kollision mit bridge_bake_market.
             node("bake_5", "Geheimrezept", "Secret Recipe", "+4% Cookie-Ausbeute beim Backen", "+4% cookie yield when baking",
-                    "BAKING", NodeTier.PASSIVE, 300, 150, false,
+                    "BAKING", NodeTier.PASSIVE, 230, 193, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.04))),
 
-            // Branch MARKET (Süden, global)
+            // Cross-Branch-Wheel: Bruecke zwischen BAKING und MARKET, verlangt Vorarbeit in
+            // beiden Aesten (bake_3 UND market_3 alloziert, siehe requiresAllPrereqs unten und
+            // isAdjacentToAllocated). NICHT MILK-BAKING (urspruenglicher Entwurf) -- deren
+            // damalige gemeinsame Diagonale war von DISPO belegt. Position = Bearing-Mittelwert
+            // zwischen BAKING(144) und MARKET(180) = 162, mit Rest-Puffer zu beiden.
+            node("bridge_bake_market", "Kreuzung der Höfe", "Crossroads of the Farms",
+                    "+3% Ernte-Ertrag (alle Ressourcen) -- verbindet BAKING und MARKET",
+                    "+3% harvest yield (all resources) -- links BAKING and MARKET",
+                    "CORE", NodeTier.NOTABLE, 87, 266, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.03)), true),
+
+            // Genereller Keystone: nur ueber die Bruecke erreichbar, kleiner globaler Bonus,
+            // keine Nachteile (siehe Plan Abschnitt 5 -- bewusst der eine reine Positiv-Keystone
+            // im Baum, kuenftige Branch-Keystones bekommen echte Tradeoffs).
+            node("keystone_alleskoenner", "Alleskönner-Ader", "Jack-of-All-Trades Vein",
+                    "+5% Ernte-Ertrag (alle Ressourcen)", "+5% harvest yield (all resources)",
+                    "CORE", NodeTier.KEYSTONE, 124, 380, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.05))),
+
+            // Branch MARKET -- Bearing 180 (unveraendert), global. Kein Fork.
             node("market_1", "Verhandlungsgeschick", "Negotiation Skill", "-0.5% Markt-Verkaufsgebühr", "-0.5% market sell fee",
                     "MARKET", NodeTier.PASSIVE, 0, 150, false,
                     List.of(new Effect(EffectType.MARKET_FEE_REDUCTION, null, 0.005))),
@@ -142,56 +234,87 @@ public class SkillTreeService {
                     "MARKET", NodeTier.KEYSTONE, 0, 600, false,
                     List.of(new Effect(EffectType.MARKET_FEE_REDUCTION, null, 0.01))),
 
-            // Branch CORE (Westen, generalistisch)
+            // Branch EGGS -- Bearing 216, neu. Gebaeude: Hühnerhof (huhn).
+            node("eggs_1", "Fleißige Hennen", "Diligent Hens", "+5% Eier pro Ernte-Tick", "+5% eggs per harvest tick",
+                    "EGGS", NodeTier.PASSIVE, -88, 121, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "EGGS", 0.05))),
+            node("eggs_2", "Gerechter Lohn", "Just Wage", "-1% Lohn im Hühnerhof", "-1% wage at the henhouse",
+                    "EGGS", NodeTier.PASSIVE, -176, 243, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "EGGS", 0.01))),
+            node("eggs_3", "Hühnerhof-Expertise", "Henhouse Expertise", "+8% Eier pro Ernte-Tick", "+8% eggs per harvest tick",
+                    "EGGS", NodeTier.NOTABLE, -265, 364, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "EGGS", 0.08))),
+            node("eggs_4", "Hühner-Baron", "Poultry Baron",
+                    "+15% Eier pro Ernte-Tick, aber Arbeiter im Hühnerhof kosten 3% mehr Lohn",
+                    "+15% eggs per harvest tick, but workers at the henhouse cost 3% more wage",
+                    "EGGS", NodeTier.KEYSTONE, -353, 485, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "EGGS", 0.15),
+                            new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "EGGS", -0.03))),
+            // Fork-Winkel -14 Grad (Richtung MARKET-Seite, weg von BUTTER).
+            node("eggs_5", "Zubrot", "Side Earnings", "-1.5% Lohn im Hühnerhof", "-1.5% wage at the henhouse",
+                    "EGGS", NodeTier.PASSIVE, -112, 278, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "EGGS", 0.015))),
+
+            // Branch BUTTER -- Bearing 252, neu. Gebaeude: Butterei (butter). Reihenfolge bewusst
+            // gespiegelt (Lohn zuerst, Ertrag zweitens) -- Punkt aus dem Plan: nicht jeder Branch
+            // soll mit "mehr Ertrag" starten, sonst wirken alle 5 Rohstoff-Zweige identisch.
+            node("butter_1", "Sparsame Buchhaltung", "Frugal Bookkeeping", "-1% Lohn in der Butterei", "-1% wage at the creamery",
+                    "BUTTER", NodeTier.PASSIVE, -143, 46, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "BUTTER", 0.01))),
+            node("butter_2", "Reichhaltige Sahne", "Rich Cream", "+5% Butter pro Ernte-Tick", "+5% butter per harvest tick",
+                    "BUTTER", NodeTier.PASSIVE, -285, 93, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "BUTTER", 0.05))),
+            node("butter_3", "Butterei-Expertise", "Creamery Expertise", "+8% Butter pro Ernte-Tick", "+8% butter per harvest tick",
+                    "BUTTER", NodeTier.NOTABLE, -428, 139, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "BUTTER", 0.08))),
+            node("butter_4", "Butter-Baron", "Butter Baron",
+                    "+15% Butter pro Ernte-Tick, aber Arbeiter in der Butterei kosten 3% mehr Lohn",
+                    "+15% butter per harvest tick, but workers at the creamery cost 3% more wage",
+                    "BUTTER", NodeTier.KEYSTONE, -571, 185, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "BUTTER", 0.15),
+                            new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "BUTTER", -0.03))),
+            // Fork-Winkel -14 Grad (Richtung EGGS-Seite, weg von CORE).
+            node("butter_5", "Nebeneinkommen", "Side Income", "-1.5% Lohn in der Butterei", "-1.5% wage at the creamery",
+                    "BUTTER", NodeTier.PASSIVE, -254, 159, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "BUTTER", 0.015))),
+
+            // Branch CORE -- Bearing 288 (war 270), generalistisch. Konvergierender Fork
+            // unveraendert (core_2/core_3 laufen auf core_4 zusammen, testet Mehrfach-Eltern-
+            // Konnektivitaet), nur der ganze Arm auf die neue Bearing gedreht.
             node("core_1", "Fleißige Hände", "Diligent Hands", "+4% Ernte-Ertrag (alle Ressourcen)", "+4% harvest yield (all resources)",
-                    "CORE", NodeTier.PASSIVE, -150, 0, false,
+                    "CORE", NodeTier.PASSIVE, -143, -46, false,
                     List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.04))),
             node("core_2", "Ausdauer", "Stamina", "+1.5% Cookie-Ausbeute beim Backen", "+1.5% cookie yield when baking",
-                    "CORE", NodeTier.PASSIVE, -300, -100, false,
+                    "CORE", NodeTier.PASSIVE, -316, 6, false,
                     List.of(new Effect(EffectType.BAKE_OUTPUT, null, 0.015))),
             node("core_3", "Sparsamkeit", "Frugality", "-0.5% Markt-Verkaufsgebühr", "-0.5% market sell fee",
-                    "CORE", NodeTier.PASSIVE, -300, 100, false,
+                    "CORE", NodeTier.PASSIVE, -252, -190, false,
                     List.of(new Effect(EffectType.MARKET_FEE_REDUCTION, null, 0.005))),
             node("core_4", "Alleskönner", "Jack of All Trades", "+6% Ernte-Ertrag (alle Ressourcen)", "+6% harvest yield (all resources)",
-                    "CORE", NodeTier.NOTABLE, -450, 0, false,
+                    "CORE", NodeTier.NOTABLE, -428, -139, false,
                     List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.06))),
 
-            // Branch DISPO (Nordosten) -- senkt den Zinssatz auf negative Cookies (siehe
-            // WageService#deductWageForUser, balance.debtInterestRate).
-            node("dispo_1", "Guter Draht zur Bank", "Good Bank Connections", "-1% Dispo-Zinsen", "-1% overdraft interest",
-                    "DISPO", NodeTier.PASSIVE, 150, -150, false,
-                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.01))),
-            node("dispo_2", "Bonitätsprüfung bestanden", "Passed Credit Check", "-1% Dispo-Zinsen", "-1% overdraft interest",
-                    "DISPO", NodeTier.PASSIVE, 300, -300, false,
-                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.01))),
-            node("dispo_3", "Verhandelter Rahmen", "Negotiated Credit Line", "-1.5% Dispo-Zinsen", "-1.5% overdraft interest",
-                    "DISPO", NodeTier.PASSIVE, 450, -450, false,
-                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.015))),
-            node("dispo_4", "Goldener Kredit", "Golden Credit", "-2% Dispo-Zinsen", "-2% overdraft interest",
-                    "DISPO", NodeTier.KEYSTONE, 600, -600, false,
-                    List.of(new Effect(EffectType.WAGE_INTEREST_REDUCTION, null, 0.02))),
-
-            // Cross-Branch-Wheel: Bruecke zwischen BAKING (Osten) und MARKET (Sueden), verlangt
-            // Vorarbeit in beiden Aesten (bake_3 UND market_3 alloziert, siehe requiresAllPrereqs
-            // unten und isAdjacentToAllocated). NICHT MILK-BAKING (urspruenglicher Entwurf) --
-            // deren gemeinsame NO-Diagonale ist bereits von DISPO belegt (dispo_1..4 laufen exakt
-            // y=-x), jede direkte Verbindung zwischen den beiden Aesten haette zwangslaeufig
-            // DISPO-Kanten gekreuzt. Der SO-Quadrant zwischen BAKING/MARKET ist dagegen komplett
-            // frei -- Position als Notable (staerkerer Effekt + groessere Optik, passend zur
-            // Kantenlaenge von zwei vollen Schritten statt der ueblichen ~150/212).
-            node("bridge_bake_market", "Kreuzung der Höfe", "Crossroads of the Farms",
-                    "+3% Ernte-Ertrag (alle Ressourcen) -- verbindet BAKING und MARKET",
-                    "+3% harvest yield (all resources) -- links BAKING and MARKET",
-                    "CORE", NodeTier.NOTABLE, 280, 280, false,
-                    List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.03)), true),
-
-            // Genereller Keystone: nur ueber die Bruecke erreichbar, kleiner globaler Bonus,
-            // keine Nachteile (siehe Plan Abschnitt 5 -- bewusst der eine reine Positiv-Keystone
-            // im Baum, kuenftige Branch-Keystones bekommen echte Tradeoffs).
-            node("keystone_alleskoenner", "Alleskönner-Ader", "Jack-of-All-Trades Vein",
-                    "+5% Ernte-Ertrag (alle Ressourcen)", "+5% harvest yield (all resources)",
-                    "CORE", NodeTier.KEYSTONE, 380, 380, false,
-                    List.of(new Effect(EffectType.HARVEST_YIELD, null, 0.05)))
+            // Branch CHOCOLATE -- Bearing 324, neu. Gebaeude: Plantage (kakao).
+            node("chocolate_1", "Edelkakao", "Fine Cocoa", "+5% Schokolade pro Ernte-Tick", "+5% chocolate per harvest tick",
+                    "CHOCOLATE", NodeTier.PASSIVE, -88, -121, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "CHOCOLATE", 0.05))),
+            node("chocolate_2", "Faire Erntelöhne", "Fair Harvest Wages", "-1% Lohn auf der Plantage", "-1% wage at the plantation",
+                    "CHOCOLATE", NodeTier.PASSIVE, -176, -243, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "CHOCOLATE", 0.01))),
+            node("chocolate_3", "Confiseur-Expertise", "Confectioner Expertise", "+8% Schokolade pro Ernte-Tick", "+8% chocolate per harvest tick",
+                    "CHOCOLATE", NodeTier.NOTABLE, -265, -364, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "CHOCOLATE", 0.08))),
+            node("chocolate_4", "Schoko-Baron", "Chocolate Baron",
+                    "+15% Schokolade pro Ernte-Tick, aber Arbeiter auf der Plantage kosten 3% mehr Lohn",
+                    "+15% chocolate per harvest tick, but workers at the plantation cost 3% more wage",
+                    "CHOCOLATE", NodeTier.KEYSTONE, -353, -485, false,
+                    List.of(new Effect(EffectType.HARVEST_YIELD, "CHOCOLATE", 0.15),
+                            new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "CHOCOLATE", -0.03))),
+            // Fork-Winkel +16 Grad (Richtung MILK-Seite, weg von CORE) -- Sonderfall: der
+            // globale Standard-Offset -14 (Richtung CORE) waere hier zu nah an core_3 gelaufen.
+            node("chocolate_5", "Zusatzverdienst", "Extra Earnings", "-1.5% Lohn auf der Plantage", "-1.5% wage at the plantation",
+                    "CHOCOLATE", NodeTier.PASSIVE, -112, -278, false,
+                    List.of(new Effect(EffectType.RESOURCE_WAGE_REDUCTION, "CHOCOLATE", 0.015)))
         );
     }
 
@@ -200,22 +323,37 @@ public class SkillTreeService {
             edge(ROOT_ID, "milk_1"), edge("milk_1", "milk_2"), edge("milk_2", "milk_3"),
             edge("milk_3", "milk_4"), edge("milk_2", "milk_5"),
 
-            edge(ROOT_ID, "bake_1"), edge("bake_1", "bake_2"), edge("bake_2", "bake_3"),
-            edge("bake_3", "bake_4"), edge("bake_2", "bake_5"),
-
-            edge(ROOT_ID, "market_1"), edge("market_1", "market_2"), edge("market_2", "market_3"),
-            edge("market_3", "market_4"),
-
-            edge(ROOT_ID, "core_1"), edge("core_1", "core_2"), edge("core_1", "core_3"),
-            edge("core_2", "core_4"), edge("core_3", "core_4"),
+            edge(ROOT_ID, "sugar_1"), edge("sugar_1", "sugar_2"), edge("sugar_2", "sugar_3"),
+            edge("sugar_3", "sugar_4"), edge("sugar_2", "sugar_5"),
 
             edge(ROOT_ID, "dispo_1"), edge("dispo_1", "dispo_2"), edge("dispo_2", "dispo_3"),
             edge("dispo_3", "dispo_4"),
 
+            edge(ROOT_ID, "flour_1"), edge("flour_1", "flour_2"), edge("flour_2", "flour_3"),
+            edge("flour_3", "flour_4"), edge("flour_2", "flour_5"),
+
+            edge(ROOT_ID, "bake_1"), edge("bake_1", "bake_2"), edge("bake_2", "bake_3"),
+            edge("bake_3", "bake_4"), edge("bake_2", "bake_5"),
+
             // Bruecke: beide Praereq-Kanten zeigen auf bridge_bake_market (toNode), so erkennt
             // requiresAllPrereqs, welche Kanten "Voraussetzung" statt "Folgeknoten" sind.
             edge("bake_3", "bridge_bake_market"), edge("market_3", "bridge_bake_market"),
-            edge("bridge_bake_market", "keystone_alleskoenner")
+            edge("bridge_bake_market", "keystone_alleskoenner"),
+
+            edge(ROOT_ID, "market_1"), edge("market_1", "market_2"), edge("market_2", "market_3"),
+            edge("market_3", "market_4"),
+
+            edge(ROOT_ID, "eggs_1"), edge("eggs_1", "eggs_2"), edge("eggs_2", "eggs_3"),
+            edge("eggs_3", "eggs_4"), edge("eggs_2", "eggs_5"),
+
+            edge(ROOT_ID, "butter_1"), edge("butter_1", "butter_2"), edge("butter_2", "butter_3"),
+            edge("butter_3", "butter_4"), edge("butter_2", "butter_5"),
+
+            edge(ROOT_ID, "core_1"), edge("core_1", "core_2"), edge("core_1", "core_3"),
+            edge("core_2", "core_4"), edge("core_3", "core_4"),
+
+            edge(ROOT_ID, "chocolate_1"), edge("chocolate_1", "chocolate_2"), edge("chocolate_2", "chocolate_3"),
+            edge("chocolate_3", "chocolate_4"), edge("chocolate_2", "chocolate_5")
         );
     }
 
