@@ -428,9 +428,9 @@ spezifiziert ist:
   **Folgearbeit (bewusst zurückgestellt):** ein echter Ausgleich für volles
   Lager (z. B. Ressourcen-Umwandlung, Lager-Overflow-Puffer, o.ä.) als
   größere Mechanik im Skill-/Passiv-Baum (Abschnitt 9 im Design-Doc) statt
-  des pauschalen automatischen Verkaufs — noch nicht spezifiziert, Spieler
-  will das gezielt als Skill-Baum-Feature designen statt es hier nebenbei
-  mitzulösen.
+  des pauschalen automatischen Verkaufs — jetzt spezifiziert in
+  `docs/plans/2026-08-10-open-skillbaum-lager-branch.md` (siehe
+  Skillbaum-Ausbau-Eintrag weiter oben).
 - [x] **Start-Balance-Bug: Lager sofort überfüllt (2026-08-07).** Jeder neue
   Spieler startete mit 1000 von jeder der 6 Rohstoff-Ressourcen (6000
   insgesamt) bei nur 1100 Lagerkapazität — schon vor dem ersten Klick 5-fach
@@ -452,10 +452,10 @@ spezifiziert ist:
   `UserEntity`-Felder + `GET /api/v1/players/{steamId}/stats`. Details:
   `cookie-game-design.md` Abschnitt 10.
   **Zurückgestellte Idee aus derselben Session:** Crit-Chance beim Ernten/
-  Backen (Chance auf überproportionalen Bonus-Ertrag) — vom Spieler explizit
-  auf "später" verschoben, noch keine Spezifikation (Chance-Wert, Multiplikator,
-  eigener Skill-Baum-Zweig?). Aufgreifen, wenn die Statistik-Basis (Lifetime-
-  Zähler) schon steht, um Crit-Ausbeute dort mitzuzählen.
+  Backen (Chance auf überproportionalen Bonus-Ertrag) — jetzt spezifiziert
+  (inkl. passiver Arbeiter-Produktion, nicht nur Backen) in
+  `docs/plans/2026-08-10-open-skillbaum-crit-system.md`. Beim Umsetzen an
+  Crit-Ausbeute in der Statistik (Lifetime-Zähler) denken.
 - [x] **Passive Produktion: Ansammeln + manuell einsammeln statt 5s-Server-
   Tick (2026-08-07).** Bug: `PassiveIncomeScheduler` schrieb alle 5s im
   Hintergrund direkt in `UserEntity`-Ressourcen, für JEDEN je registrierten
@@ -722,10 +722,27 @@ Backlog dokumentiert.
   `centerOnBuilding(id)` werden, neue Actions in `useActionHotkeys.js` +
   `triggerAction()`. Prioritätsliste (Rathaus → nächstbestes falls Ziel
   fehlt) muss noch definiert werden.
-- [ ] **Mehr passive Skills, ein Zweig pro Rohstoff** (Zucker/Mehl/Eier/
-  Butter/Schokolade analog zum bestehenden MILK-Zweig in
-  `SkillTreeService`) — eigener Design-Pass nötig (Node-Anzahl,
-  Effektwerte, Balance), zu groß für einen Fix-Pass.
+- [ ] **Skillbaum-Ausbau (mehrere Spielweisen).** Design-Pass abgeschlossen
+  (inkl. eines vom User mit Perplexity erstellten Anforderungs-Prompts,
+  eingearbeitet), Umsetzung offen — 7 separate Pläne unter `docs/plans/`,
+  unabhängig voneinander umsetzbar (bewusst nicht am Stück), aber mit einer
+  Abhängigkeit: `2026-08-10-open-skillbaum-wheel-keystones.md` ist das
+  **Fundament** (Mehrfach-Effekte pro Knoten für echte Keystone-Tradeoffs,
+  Node-Tiers PASSIVE/NOTABLE/KEYSTONE, i18n-Fix für Knotentexte,
+  Cross-Branch-Wheel, geschützte-IDs-Liste) und sollte zuerst umgesetzt
+  werden — die anderen 6 setzen direkt darauf auf:
+  `2026-08-10-open-skillbaum-rohstoff-branches.md` (Zucker/Mehl/Eier/
+  Butter/Schoko, löst diesen Punkt hier ab),
+  `2026-08-10-open-skillbaum-crit-system.md` (Krit bei Ernte/Passiv-
+  Produktion/Backen), `2026-08-10-open-skillbaum-lager-branch.md`
+  (STORAGE-Branch, löst den "Ausgleich für volles Lager"-Punkt weiter unten
+  ab), `2026-08-10-open-skillbaum-bau-buerger-branch.md`
+  (CONSTRUCTION-Branch, Gebäudekosten/Lohn),
+  `2026-08-10-open-skillbaum-respec.md` (Punkte gegen Cookies zurückgeben,
+  fixer Preis, konnektivitäts-sicher),
+  `2026-08-10-open-skillbaum-suche-buildplanung.md` (Such-/Filter-UI +
+  erweiterte Tooltips). Jede Datei einzeln auf ✅/`-done-` umstellen, sobald
+  umgesetzt.
 - [ ] **Rezepte pro Season randomisiert + Entdecken-Minigame.** Komplett
   neues Feature (Rezept-Rotation-Modell im Backend, Minigame-Konzept) —
   eigene Design-Session nötig.

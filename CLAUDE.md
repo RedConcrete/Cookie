@@ -68,6 +68,29 @@ Design-Doc-Pflege): `docs/ROADMAP.md`.** Bei jeder Aufgabe dort nachsehen, ob de
 Punkt schon abgehakt ist — Duplizierung vermeiden, Datei ist die einzige
 Quelle für offene Baustellen.
 
+## Pläne (docs/plans/)
+
+Jeder Plan aus dem Claude-Code Planungsmodus, der umgesetzt wird, landet als
+Datei in `docs/plans/` — nicht im User-Home-Verzeichnis. Dateiname:
+`YYYY-MM-DD-{open|done}-sprechender-titel.md` (Datum = Tag der Planung,
+`open`/`done` = Umsetzungsstatus, Titel beschreibt den Inhalt, kein
+Zufalls-Codename) — Status ist so schon in der Dateiliste sichtbar, ohne
+irgendeine Datei zu öffnen.
+
+Status steht zusätzlich noch zweimal im Dateiinhalt, falls z. B. ein
+IDE-Tab nur den Titel zeigt:
+- In der H1-Überschrift selbst als Emoji-Präfix: `# ⏳ Titel` (offen) bzw.
+  `# ✅ Titel` (umgesetzt).
+- Direkt darunter als ausführliche Zeile: `> **Status:** ⏳ Offen` bzw.
+  `> **Status:** ✅ Umgesetzt (Datum, Commit-Hash(es))`.
+
+Sobald ein Plan umgesetzt/committed ist: Datei umbenennen (`open`→`done` im
+Namen) und beide Marker im Inhalt aktualisieren.
+
+Sobald ein Plan umgesetzt/committed ist, beide Marker von ⏳ auf ✅ umstellen
+(Datum + Commit-Hash in der ausführlichen Zeile ergänzen). Bei jeder Aufgabe,
+die einen bestehenden Plan betrifft, kurz nachsehen, ob er schon auf ✅ steht.
+
 ## Steam-Upload-Plan
 
 ```
