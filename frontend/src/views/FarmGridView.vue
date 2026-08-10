@@ -101,6 +101,7 @@
         :pending-amount="livePending(b)"
         :storage-capacity="b.storageCapacity"
         :resource-icon="RESOURCE_ICON[b.resource]"
+        :collect-shake="shakingBuildingIds.has(b.id)"
         :class="{ 'building-idle': isPassiveIdle(b) && isBuildingOwned(b.id) }"
         @open="onOpenBuilding(b)"
         @harvest-start="b.resource && !isProductionBlocked(b) && startHarvest(b.id, b.resource)"
@@ -412,8 +413,21 @@ function livePending(b) {
 // clientseitig durch parallele Requests umgehen bzw. fuehrt zu verwirrenden 409/400-Antworten.
 const collectingBuildingIds = reactive(new Set())
 
+// Kurzes "geht nicht"-Wackeln statt Request, wenn das Hauptlager (gemeinsamer Topf, siehe
+// isResourceFull) bereits voll ist -- der Server wuerde ohnehin 0 gutschreiben (siehe
+// PassiveIncomeService#collectBuilding), das Gebaeude-Lager bliebe unveraendert voll. Frueher
+// lief der Klick trotzdem durch collectLockedUntil (Button + INAKTIV-Badge sofort ausgeblendet),
+// bis die Antwort zeigte, dass nichts gutgeschrieben wurde -- dann sprangen beide sichtbar
+// zurueck. Jetzt: gar kein Request, nur ein Wackeln als visuelles "Nein".
+const shakingBuildingIds = reactive(new Set())
+function shakeCollectButton(id) {
+  shakingBuildingIds.add(id)
+  setTimeout(() => shakingBuildingIds.delete(id), 400)
+}
+
 async function onCollectBuilding(b) {
   if (collectingBuildingIds.has(b.id)) return
+  if (isResourceFull(b.resource)) { shakeCollectButton(b.id); return }
   collectingBuildingIds.add(b.id)
   // Sofort setzen, nicht erst nach der Antwort -- sonst kann ein zweiter Klick noch vor dem
   // ersten Response durchrutschen und den Button-Verschwindet-Effekt umgehen.

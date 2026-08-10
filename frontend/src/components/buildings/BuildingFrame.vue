@@ -31,7 +31,7 @@
     <button
       v-if="pendingAmount > 0"
       class="bf-collect-badge"
-      :class="{ full: pendingAmount >= storageCapacity }"
+      :class="{ full: pendingAmount >= storageCapacity, shake: collectShake }"
       @pointerdown.stop
       @click.stop="emit('collect')"
     >
@@ -105,6 +105,9 @@ const props = defineProps({
   pendingAmount:   { type: Number, default: 0 },
   storageCapacity: { type: Number, default: 0 },
   resourceIcon:    { type: String, default: '' },
+  // Kurzes "Nein, geht nicht"-Wackeln statt Einsammeln -- Hauptlager ist voll, siehe
+  // FarmGridView's shakeCollectButton (Server wuerde ohnehin 0 gutschreiben).
+  collectShake:    { type: Boolean, default: false },
 })
 const emit = defineEmits(['open', 'harvest-start', 'harvest-stop', 'moved', 'collect'])
 
@@ -209,6 +212,17 @@ const rootStyle = computed(() => ({
 @keyframes bf-collect-bob {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50%      { transform: translateX(-50%) translateY(-3px); }
+}
+/* Ueberschreibt bf-collect-bob voruebergehend (gleiche Selektor-Basis, aber .shake
+   ist spezifischer) -- kurzes Kopfschuetteln statt der bob-Animation, waehrend die
+   Klasse anliegt (siehe FarmGridView's shakeCollectButton). */
+.bf-collect-badge.shake { animation: bf-collect-shake .4s ease; }
+@keyframes bf-collect-shake {
+  0%, 100% { transform: translateX(-50%); }
+  20%      { transform: translateX(calc(-50% - 7px)); }
+  40%      { transform: translateX(calc(-50% + 6px)); }
+  60%      { transform: translateX(calc(-50% - 5px)); }
+  80%      { transform: translateX(calc(-50% + 3px)); }
 }
 
 .bf-blocked-notice {

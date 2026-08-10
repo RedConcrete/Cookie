@@ -45,7 +45,10 @@
             </div>
             <PixelTip :anchor="segEls[r.key]" :text="segTipText(r)" :visible="hoverSegKey === r.key" />
           </div>
-          <div class="ld-seg-free" @click="showAmounts = !showAmounts">
+          <!-- Ab hier ist der freie Rest zu schmal fuer die absolut positionierte Beschriftung,
+               ohne dass sie das letzte Rohstoff-Segment ueberlappt -- unter 10% lieber ganz
+               ausblenden statt "FREI 0%" ueber ein Segment zu legen. -->
+          <div v-if="freePct >= 10" class="ld-seg-free" @click="showAmounts = !showAmounts">
             {{ t('lagerDialog.freeLabel') }} {{ showAmounts ? fmtK(totalCapacity - totalResources) : freePct.toFixed(0) + '%' }}
           </div>
         </div>
@@ -338,18 +341,26 @@ async function upgradeLager() {
   cursor: pointer; z-index: 2;
 }
 
-.ld-res-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); min-width: 68px; }
+/* Feste Breite statt min-width -- sonst schiebt ein laengerer Gebaeudename (z.B.
+   ZUCKERTEICH) die Bar-Spalte (flex:1) pro Zeile unterschiedlich weit zusammen und
+   die Balken wirken ungleich lang, obwohl ihr %-Fuellstand gleich ist. */
+.ld-res-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink-txt); width: 78px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ld-res-bar-wrap { flex: 1; }
 .ld-res-bar { height: 8px; background: var(--px-ink); border: 2px solid var(--px-ink); }
 .ld-res-fill { height: 100%; background: var(--px-gold); }
-.ld-res-val   { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-ink); min-width: 48px; text-align: right; }
+/* Feste Breite -- sonst schiebt eine laengere Zahl (z.B. "958.5 / 2.9K" vs "3.5 / 1.3K")
+   die Bar-Spalte davor genauso unterschiedlich zusammen wie vorher der Name. */
+.ld-res-val   { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-ink); width: 78px; flex-shrink: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ld-buildings { display: flex; flex-direction: column; gap: 6px; }
 .ld-section-title { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
 .ld-bres-empty { font-size: 11px; color: var(--px-muted); padding: 4px 2px; }
 .ld-bres-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
+/* Feste Breite aus demselben Grund -- der Button-Text ("840.0" vs "3.5") variiert sonst
+   in Ziffernzahl und veraendert die Buttonbreite, was wiederum die Bar-Spalte staucht. */
 .ld-bres-collect {
-  font-family: 'Silkscreen', monospace; font-size: 8px; padding: 5px 8px; flex-shrink: 0;
+  font-family: 'Silkscreen', monospace; font-size: 8px; padding: 5px 4px; width: 52px; flex-shrink: 0;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* Eigener Rohstoff im Hauptlager schon voll -- Einsammeln würde 0 gutschreiben, siehe
    buildingRows/resourceFull. Rot statt nur ausgegraut, damit "blockiert" (koennte
