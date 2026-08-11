@@ -322,7 +322,7 @@ onMounted(async () => {
   transform-origin: center center;
 }
 
-.sta-edges { position: absolute; left: 0; top: 0; }
+.sta-edges { position: absolute; left: 0; top: 0; overflow: visible; }
 .sta-edge { stroke: var(--px-gold); stroke-width: 4; opacity: 0.8; pointer-events: none; }
 .sta-edge-hit { stroke: transparent; stroke-width: 14; cursor: pointer; }
 .sta-edge-hit:hover + .sta-edge { stroke: var(--px-red); }

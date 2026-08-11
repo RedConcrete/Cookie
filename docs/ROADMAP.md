@@ -452,6 +452,12 @@ spezifiziert ist:
     Transaktion/Validierung, nicht einfach `seedTree()` wiederverwenden).
     Passt zeitlich am besten neben den Season-Reset-Admin-Endpoint (siehe
     `docs/cookie-game-design.md` Abschnitt 9).
+  - [ ] **Nodes klonen** — bestehenden Node duplizieren (Werte/Effekte
+    übernehmen, neue ID, leicht versetzte Position, keine Kanten
+    mitkopieren) statt jeden neuen Node einzeln von Hand anzulegen. Baut auf
+    dem "Neue Nodes erstellen"-Punkt oben auf (braucht den
+    `POST /admin/skilltree/nodes`-Endpoint), spart danach beim Erweitern
+    des Baums viel Klickarbeit.
 - [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
   Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
   Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`
