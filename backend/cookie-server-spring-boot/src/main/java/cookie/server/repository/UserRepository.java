@@ -5,10 +5,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<UserEntity, String> {
 
     long countByLastActiveAtAfter(LocalDateTime cutoff);
+
+    // WageScheduler: nur Spieler mit frischem Heartbeat bekommen diesen Tick Lohn/Zinsen
+    // abgerechnet -- siehe UserEntity#lastHeartbeatAt.
+    List<UserEntity> findByLastHeartbeatAtAfter(LocalDateTime cutoff);
 
     @Query("SELECT COALESCE(SUM(u.sugar), 0) FROM UserEntity u")
     double getTotalSugar();

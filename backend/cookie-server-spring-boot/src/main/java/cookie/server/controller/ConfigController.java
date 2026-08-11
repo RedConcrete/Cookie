@@ -37,7 +37,11 @@ public class ConfigController {
             // Frontend spiegelt das, um Buy/Sell waehrend der Markt-Sperre clientseitig zu
             // deaktivieren (Pixel-Sanduhr, siehe MarketView.vue) -- der eigentliche Schutz
             // bleibt der serverseitige Check in MarketService#performAction.
-            "marketTradeCooldownMs", marketConfig.getTradeCooldownMs()
+            "marketTradeCooldownMs", marketConfig.getTradeCooldownMs(),
+            // Frontend spiegelt das, um denselben Schwellenwert fuer den AFK-Kick zu
+            // verwenden (siehe useIdleTimeout.js) -- der eigentliche Schutz (kein Lohn/Zins-Tick
+            // mehr) bleibt serverseitig in WageScheduler#deductWages.
+            "afkTimeoutMinutes", balanceConfig.getAfkTimeoutMinutes()
         ));
     }
 }

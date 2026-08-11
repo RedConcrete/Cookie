@@ -23,5 +23,7 @@
   "dirLeft": "Move left",
   "dirRight": "Move right",
   "pressKey": "PRESS KEY…",
-  "exitGame": "EXIT GAME"
+  "exitGame": "EXIT GAME",
+  "dangerZone": "DANGER ZONE",
+  "hardResetButton": "DECLARE BANKRUPTCY"
 }

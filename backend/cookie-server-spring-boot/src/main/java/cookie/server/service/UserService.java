@@ -88,6 +88,16 @@ public class UserService {
         });
     }
 
+    // Aktivitaets-Heartbeat waehrend des Spielens (siehe useIdleTimeout.js) -- haelt
+    // UserEntity#lastHeartbeatAt frisch, solange der Spieler tatsaechlich interagiert, damit
+    // WageScheduler ihn nicht faelschlich als AFK behandelt.
+    public void recordHeartbeat(String userId) {
+        userRepository.findById(userId).ifPresent(u -> {
+            u.setLastHeartbeatAt(LocalDateTime.now());
+            userRepository.save(u);
+        });
+    }
+
     // displayName: Steam display name resynced on every login (see GameController#initializeGame).
     // Not trusted for anything beyond cosmetic display -- capped and stored as-is.
     public UserInformationDto getUser(String userId, String displayName) {

@@ -13,6 +13,8 @@ public interface NetWorthHistoryRepository extends JpaRepository<NetWorthHistory
 
     List<NetWorthHistoryEntity> findByUserIdOrderByTimestampAsc(String userId);
 
+    void deleteByUserId(String userId);
+
     @Modifying
     @Query("DELETE FROM NetWorthHistoryEntity n WHERE n.userId = :userId AND n.timestamp < :before")
     void deleteOldByUserId(String userId, LocalDateTime before);

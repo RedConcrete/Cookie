@@ -1,0 +1,8 @@
+{
+  "title": "BANKRUPTCY",
+  "confirm": "Declare Bankruptcy",
+  "bankruptcyBody": "Your debt exceeds the value of everything you own. There is no way back on your own. Declare yourself bankrupt for a fresh start.",
+  "manualBody": "Your progress will be fully reset: cookies, resources, buildings, skill tree and prestige level. Only lifetime stats are kept.",
+  "warning": "This action cannot be undone!",
+  "error": "Reset failed. Please try again later."
+}

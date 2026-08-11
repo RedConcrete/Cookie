@@ -102,6 +102,10 @@
           </div>
         </PixelSection>
 
+        <PixelSection :title="t('settings.dangerZone')">
+          <button class="px-btn sd-exit-btn" @click="showHardReset = true"><ShortcutSlot />{{ t('settings.hardResetButton') }}</button>
+        </PixelSection>
+
         <button v-if="isElectron" class="px-btn sd-exit-btn" @click="exitGame"><ShortcutSlot />{{ t('settings.exitGame') }}</button>
       </div>
       </PixelScrollBox>
@@ -112,6 +116,8 @@
         </button>
       </div>
     </div>
+
+    <HardResetDialog v-if="showHardReset" mode="manual" @close="showHardReset = false" />
   </div>
 </template>
 
@@ -126,8 +132,10 @@ import PixelIcon from './pixel/PixelIcon.vue'
 import PixelSection from './pixel/PixelSection.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import HardResetDialog from './HardResetDialog.vue'
 
 const emit = defineEmits(['close'])
+const showHardReset = ref(false)
 const audio = useAudio()
 const camera = useCameraControls()
 const actionHotkeys = useActionHotkeys()

@@ -1,0 +1,8 @@
+{
+  "title": "BANKROTT",
+  "confirm": "Bankrott erklären",
+  "bankruptcyBody": "Deine Schulden übersteigen den Wert deines gesamten Besitzes. Du kommst aus eigener Kraft nicht mehr heraus. Erkläre dich bankrott für einen Neubeginn.",
+  "manualBody": "Dein Fortschritt wird komplett zurückgesetzt: Cookies, Rohstoffe, Gebäude, Skill-Baum und Prestige-Level. Nur Lifetime-Statistiken bleiben erhalten.",
+  "warning": "Diese Aktion kann nicht rückgängig gemacht werden!",
+  "error": "Reset fehlgeschlagen. Bitte später erneut versuchen."
+}

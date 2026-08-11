@@ -160,6 +160,7 @@
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
     <SkillTreeAdminDialog v-if="dialog === 'skilltreeadmin'" @close="dialog = null" />
+    <HardResetDialog     v-if="showBankruptcyDialog" mode="bankruptcy" @close="showBankruptcyDialog = false" />
   </div>
 </template>
 
@@ -257,6 +258,7 @@ import CitizenDialog from '../components/CitizenDialog.vue'
 import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
 import SkillTreeAdminDialog from '../components/SkillTreeAdminDialog.vue'
+import HardResetDialog from '../components/HardResetDialog.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
@@ -362,6 +364,9 @@ const cookieChipEl = ref(null)
 let lastSeenWageAt = null
 let wagePollTimer = null
 const WAGE_POLL_MS = 15000
+// Bankrott-Dialog ist wegklickbar -- läuft NetWorth weiter < 0, wird er hier bei jedem
+// Wage-Poll-Tick erneut aufgemacht, statt nur einmal beim Übergang zu triggern.
+const showBankruptcyDialog = ref(false)
 
 async function pollWageStatus() {
   try {
@@ -372,14 +377,13 @@ async function pollWageStatus() {
     playerStore.debtLimit = status.debtLimit
     if (lastSeenWageAt === null) {
       lastSeenWageAt = status.lastWageAtEpochMs
-      return
-    }
-    if (status.lastWageAtEpochMs > lastSeenWageAt) {
+    } else if (status.lastWageAtEpochMs > lastSeenWageAt) {
       lastSeenWageAt = status.lastWageAtEpochMs
       playerStore.cookies = status.cookies
       const rect = cookieChipEl.value?.getBoundingClientRect()
       if (rect) spawnWageNumber(status.lastWageAmount, rect.left + rect.width / 2, rect.top + rect.height / 2)
     }
+    if (playerStore.isBankrupt) showBankruptcyDialog.value = true
   } catch (e) {
     // Poll ist rein kosmetisch -- Fehler (Server kurz weg, o.ä.) einfach beim naechsten Tick erneut versuchen.
   }

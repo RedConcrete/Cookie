@@ -85,6 +85,11 @@ public class GameBalanceConfig {
      * einem Eintrag/Minute entsprechen 200 Einträge ca. 3.3 Stunden Historie. */
     private int wageLedgerMaxEntries = 200;
 
+    /** Ohne Heartbeat (siehe UserEntity#lastHeartbeatAt) länger als diese Zahl Minuten gilt ein
+     * Spieler als AFK -- WageScheduler rechnet für ihn dann keinen Lohn/Zinsen mehr ab, bis er
+     * wieder aktiv ist. Gespiegelt ans Frontend über ConfigController. */
+    private int afkTimeoutMinutes = 10;
+
     public double getBaseStorageCap() { return baseStorageCap; }
     public void setBaseStorageCap(double v) { this.baseStorageCap = v; }
 
@@ -129,6 +134,9 @@ public class GameBalanceConfig {
 
     public int getWageLedgerMaxEntries() { return wageLedgerMaxEntries; }
     public void setWageLedgerMaxEntries(int v) { this.wageLedgerMaxEntries = v; }
+
+    public int getAfkTimeoutMinutes() { return afkTimeoutMinutes; }
+    public void setAfkTimeoutMinutes(int v) { this.afkTimeoutMinutes = v; }
 
     public double getDebtInterestRate() { return debtInterestRate; }
     public void setDebtInterestRate(double v) { this.debtInterestRate = v; }

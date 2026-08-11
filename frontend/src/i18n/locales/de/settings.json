@@ -23,5 +23,7 @@
   "dirLeft": "Nach links",
   "dirRight": "Nach rechts",
   "pressKey": "TASTE…",
-  "exitGame": "SPIEL BEENDEN"
+  "exitGame": "SPIEL BEENDEN",
+  "dangerZone": "GEFAHRENZONE",
+  "hardResetButton": "BANKROTT ERKLÄREN"
 }

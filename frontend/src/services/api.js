@@ -34,6 +34,8 @@ async function request(method, path, body) {
     err.status = res.status
     throw err
   }
+  // 204 No Content (e.g. heartbeat) has no body -- res.json() would throw on the empty string.
+  if (res.status === 204) return null
   return res.json()
 }
 
@@ -212,6 +214,18 @@ export function getWageHistory(steamId, limit = 50) {
 // Reset player data (dev mode only, no token needed for DEV_PLAYER_001).
 export function adminResetPlayer(steamId) {
   return request('POST', `/api/v1/admin/reset/${steamId}`)
+}
+
+// Self-service hard reset (bankruptcy confirmation or manual settings action). Wipes the
+// current run back to a fresh-account state, keeps lifetime stats and Steam identity.
+export function hardResetPlayer(steamId) {
+  return request('POST', `/api/v1/users/${steamId}/hard-reset`)
+}
+
+// Activity heartbeat while actually playing (see useIdleTimeout.js) -- keeps the backend
+// from treating this player as AFK and skipping their wage/interest tick.
+export function heartbeatPlayer(steamId) {
+  return request('POST', `/api/v1/users/${steamId}/heartbeat`)
 }
 
 // Skill-Baum-Admin-Editor (dev mode only, no token needed -- siehe adminResetPlayer).

@@ -77,6 +77,10 @@ export const usePlayerStore = defineStore('player', () => {
   const nwSkillTreeValue = computed(() => skillTree.value.totalSkillPointCookiesSpent ?? 0)
   const netWorth    = computed(() => nwCookies.value + nwResources.value + nwSkillTreeValue.value)
 
+  // Bankrott: Schulden (negative Cookies) übersteigen den Restwert (Ressourcen + Skill-Baum),
+  // NetWorth wird dabei genau dann negativ -- siehe HardResetDialog.vue / FarmGridView.vue.
+  const isBankrupt = computed(() => netWorth.value < 0)
+
   function resourceValue(key) {
     return { sugar, flour, eggs, butter, chocolate, milk }[key].value
   }
@@ -155,7 +159,7 @@ export const usePlayerStore = defineStore('player', () => {
     workersIdle, debtInterestRate, debtLimit, totalResourceCap, totalResources, ownedBuildings, ownedOnly, totalWage,
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
-    netWorth, nwCookies, nwResources, nwSkillTreeValue, loading, error, serverUnavailable, recipes,
+    netWorth, nwCookies, nwResources, nwSkillTreeValue, isBankrupt, loading, error, serverUnavailable, recipes,
     init, updateFromDto, loadBuildings, buyCitizenAction,
   }
 })

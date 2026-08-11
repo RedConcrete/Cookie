@@ -877,3 +877,32 @@ Backlog dokumentiert.
       verstoßen.
   Braucht eigene Design-Session (wie beim Rezept-Rotation-Feature oben) und
   danach einen eigenen Plan unter `docs/plans/`, bevor Code entsteht.
+
+---
+
+## 10. AFK-Timeout → Hauptmenü (Idee, 2026-08-11)
+
+- [x] **Wer den Tab/das Fenster lange offen lässt ohne etwas zu tun, soll
+  automatisch zurück ins Hauptmenü fliegen** — Ziel: Server entlasten
+  (kein `pollWageStatus`, keine Websocket-Marktupdates, keine sonstigen
+  Timer/Polls mehr für Spieler, die eh nicht mehr da sind). Noch offen vor
+  einem Plan:
+  - Wie wird "keine Aktion" erkannt (Maus/Tastatur/Klick-Events global
+    tracken, welcher Timeout in Minuten)? Muss Hover-Ernten (passives
+    Halten der Maus über einem Feld) als "Aktivität" zählen oder nicht —
+    sonst verhindert genau der Hauptmechanismus des Spiels den Timeout nie.
+  - Gibt es aktuell überhaupt eine Hauptmenü-Route/View, zu der man
+    zurückspringen kann, oder muss die erst gebaut werden?
+  - Welche Timer/Polls genau sollen beim Timeout gestoppt werden (siehe
+    `FarmGridView.vue`: `pollWageStatus`/`wagePollTimer`, Websocket-
+    Marktverbindung aus `services/websocket.js`, ggf. weitere) und sauber
+    wieder hochfahren, wenn der Spieler zurückkommt.
+  - Soll der Spieler vorgewarnt werden (z.B. Countdown-Hinweis kurz vorm
+    Rausfliegen), oder direkter Sprung ohne Warnung?
+  **Umgesetzt (2026-08-11):** 10 Minuten ohne Aktivität (Hover zählt),
+  Heartbeat-Mechanismus (`UserEntity#lastHeartbeatAt`,
+  `POST /api/v1/users/{id}/heartbeat`), `WageScheduler` überspringt Spieler
+  ohne frischen Heartbeat komplett (kein Lohn/Zins-Tick), Frontend
+  (`composables/useIdleTimeout.js`) schickt bei Inaktivität zurück ins
+  Hauptmenü und räumt Bake-Poll/Markt-Websocket ab. Kein Warn-Dialog (bewusst
+  weggelassen, siehe `docs/plans/2026-08-11-open-afk-timeout.md`).

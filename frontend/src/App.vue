@@ -17,17 +17,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from './stores/player.js'
+import { useBakeStore } from './stores/bake.js'
 import { useAudio } from './composables/useAudio.js'
+import { useIdleTimeout } from './composables/useIdleTimeout.js'
+import { disconnectMarketWebSocket } from './services/websocket.js'
 import LoadingIndicator from './components/pixel/LoadingIndicator.vue'
 import LandingView from './components/LandingView.vue'
 import MainMenuView from './components/MainMenuView.vue'
 import ServerUnavailableView from './components/ServerUnavailableView.vue'
 
 const playerStore = usePlayerStore()
+const bakeStore   = useBakeStore()
 const audio       = useAudio()
+const idle        = useIdleTimeout()
 const { t } = useI18n()
 
 const blocked = ref(false)
@@ -41,7 +46,19 @@ const showServerUnavailable = computed(() => configUnreachable.value || playerSt
 async function startGame() {
   started.value = true
   await playerStore.init(authInfo.value.steamId, authInfo.value.name)
+  idle.start(authInfo.value.steamId)
 }
+
+// Zurueck ins Hauptmenue nach laengerer Inaktivitaet (siehe useIdleTimeout.js) -- verhindert
+// unnoetigen Cookie-Verlust durch weiterlaufende Loehne/Zinsen und raeumt Client-seitige
+// Verbindungen ab, waehrend niemand spielt.
+watch(() => idle.isAfk.value, (afk) => {
+  if (!afk) return
+  started.value = false
+  bakeStore.stop()
+  disconnectMarketWebSocket()
+  idle.stop()
+})
 
 function retry() {
   location.reload()

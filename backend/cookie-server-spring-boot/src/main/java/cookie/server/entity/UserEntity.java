@@ -51,6 +51,12 @@ public class UserEntity {
     // Aktiv-Status faelschlich auffrischen.
     private LocalDateTime lastActiveAt;
 
+    // Aktivitaets-Heartbeat vom Client (siehe UserService#recordHeartbeat), solange der
+    // Spieler tatsaechlich interagiert (Maus/Tastatur, siehe useIdleTimeout.js). WageScheduler
+    // ueberspringt Spieler, deren Heartbeat aelter als GameBalanceConfig#afkTimeoutMinutes ist --
+    // damit laufen Lohn/Zinsen nicht unbemerkt weiter, waehrend niemand am Rechner sitzt.
+    private LocalDateTime lastHeartbeatAt;
+
     // Server-Zeitpunkt des letzten angenommenen Markt-Trades (Kauf/Verkauf) -- Anti-Spam-
     // Sperre, siehe MarketService#performAction/MarketConfig#getTradeCooldownMs. Gilt global
     // pro Spieler ueber alle Ressourcen hinweg, nicht pro Ressource.
@@ -176,6 +182,14 @@ public class UserEntity {
 
     public void setLastActiveAt(LocalDateTime lastActiveAt) {
         this.lastActiveAt = lastActiveAt;
+    }
+
+    public LocalDateTime getLastHeartbeatAt() {
+        return lastHeartbeatAt;
+    }
+
+    public void setLastHeartbeatAt(LocalDateTime lastHeartbeatAt) {
+        this.lastHeartbeatAt = lastHeartbeatAt;
     }
 
     public LocalDateTime getLastMarketTradeAt() {
