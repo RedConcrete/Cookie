@@ -59,7 +59,7 @@
               {{ t('farmGridView.profileTitle') }}
               <ShortcutSlot />
             </button>
-            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}<ShortcutSlot /></button>
+            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}<ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.skilltree) : ''" /></button>
             <button class="hud-menu-item" @click="selectMenu('stats')">{{ t('farmGridView.statsLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}<ShortcutSlot /></button>
@@ -772,6 +772,7 @@ function triggerAction(action) {
   if (!actionHotkeysEnabled.value) return
   if (dialog.value || detailBuilding.value) return
   if (action === 'networth') dialog.value = 'networth'
+  if (action === 'skilltree') dialog.value = 'skilltree'
 }
 function readGamepadActions() {
   if (gamepadIndex.value === null) return

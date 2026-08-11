@@ -823,3 +823,57 @@ Backlog dokumentiert.
   v2: mehrere simulierte Spieler gleichzeitig für Race-Condition-/Pentest-
   Findung) jetzt in `docs/plans/2026-08-11-open-mcp-ki-testing.md` — noch
   offene Fragen dort (ein Server vs. mehrere, Playwright-Anbindung ja/nein).
+
+---
+
+## 9. Spieler-Fusion / Account-Merge (Idee, 2026-08-11)
+
+- [ ] **Mehrere Spieler können sich zu einem gemeinsamen Account
+  fusionieren.** Grobkonzept, noch kein Plan/Umsetzung. Eckpunkte laut
+  Nutzer-Vorgabe:
+  - **Freischaltung:** neuer Keystone-Node im Skillbaum (baut auf dem
+    PASSIVE/NOTABLE/KEYSTONE-Fundament aus
+    `2026-08-10-open-skillbaum-wheel-keystones.md` auf) — jeder Teilnehmer
+    muss diesen Keystone selbst freigeschaltet haben, bevor er fusionieren
+    kann. Offen: eigener zentraler Keystone oder pro Branch einer, und wie
+    teuer/wo im Baum.
+  - **Ablauf:** ein Spieler schickt eine Merge-Anfrage an mehrere andere
+    Spieler (braucht neuen Request/Accept-Flow, analog Freundschafts-
+    Anfragen — noch kein Endpoint/Entity dafür vorhanden). Erst wenn alle
+    Angefragten annehmen, wird fusioniert.
+  - **Effekt:** alles wird zusammengelegt — Cookies, Ressourcen, Gebäude,
+    Skillpunkte/Skillbaum-Stand, Net Worth der beteiligten Accounts fließen
+    in den Ziel-Account. Die ursprünglichen Accounts bestehen danach leer/
+    inaktiv weiter (nicht gelöscht).
+  - **Permanent**, keine Rückgängig-Funktion (bewusste Entscheidung, kein
+    Respec-artiger Trennungs-Mechanismus wie beim Skillbaum).
+  - **Steuerung danach:** alle fusionierten Spieler loggen weiterhin mit
+    ihrer eigenen Steam-ID ein und steuern live gemeinsam denselben Account
+    gleichzeitig (echte geteilte Session, nicht nur einer aktiv) — ähnlich
+    wie mehrere Browser-Tabs auf demselben Hof, nur mit mehreren echten
+    Spielern.
+  - **Noch ungeklärt / vor einem echten Plan zu beantworten:**
+    - Aktuell ist die Zuordnung `steamId` → `UserEntity` 1:1 (siehe Auth-
+      Punkt in Abschnitt 0). Für Fusion braucht es eine N:1-Zuordnung
+      (mehrere SteamIDs → ein gemeinsamer Spielstand) — neue
+      Verknüpfungstabelle nötig, betrifft potenziell jeden Endpunkt, der
+      aktuell `steamId` als alleinigen Nutzer-Schlüssel nimmt.
+      Reihenfolge beachten: erst die Steam-Auth-Verifizierung aus
+      Abschnitt 0 sauber lösen, danach an Fusion — sonst baut Fusion auf
+      einer ohnehin ungeprüften Identität auf.
+    - Concurrency: mehrere Spieler greifen jetzt *dauerhaft* gleichzeitig
+      auf denselben Datensatz zu (nicht nur kurze Rennen wie bisher beim
+      Einsammeln, siehe Abschnitt 7.1 Race-Condition-Fix) — bestehende
+      `@Version`-Locks reichen vermutlich nicht für ein Dauer-Multi-Actor-
+      Szenario, eigenes Konzept nötig.
+    - Leaderboard/Season-Reset: zählt ein fusionierter Account als ein
+      Spieler oder gewichtet nach Teilnehmerzahl? Bleibt Fusion über einen
+      Season-Reset hinweg bestehen?
+    - UI fehlt komplett: Spielerliste/-suche, Anfrage senden, offene
+      Anfragen annehmen/ablehnen, Anzeige "wer gehört zu diesem Account".
+    - Skillbaum-Konflikt: was passiert, wenn beide Accounts unterschiedlich
+      allokierte, sich gegenseitig ausschließende Notable/Keystone-Pfade
+      haben? Zusammenlegen kann gegen die PoE-Konnektivitätsregel
+      verstoßen.
+  Braucht eigene Design-Session (wie beim Rezept-Rotation-Feature oben) und
+  danach einen eigenen Plan unter `docs/plans/`, bevor Code entsteht.

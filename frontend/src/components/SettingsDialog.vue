@@ -62,6 +62,25 @@
               ><ShortcutSlot />{{ listeningForGamepad === 'networth' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.networth) }}</button>
             </div>
           </div>
+          <div class="sd-hotkey-row">
+            <span>{{ t('settings.openSkillTree') }}</span>
+            <div class="sd-hotkey-combo">
+              <button
+                class="sd-hotkey-key sd-hotkey-btn"
+                :class="{ listening: listeningForAction === 'skilltree' }"
+                :disabled="!actionHotkeys.enabled.value"
+                :title="t('settings.keyboardTitle')"
+                @click="startListenAction('skilltree')"
+              ><ShortcutSlot />{{ listeningForAction === 'skilltree' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.skilltree) }}</button>
+              <button
+                class="sd-hotkey-key sd-hotkey-btn"
+                :class="{ listening: listeningForGamepad === 'skilltree' }"
+                :disabled="!actionHotkeys.enabled.value"
+                :title="t('settings.controllerTitle')"
+                @click="startListenGamepad('skilltree')"
+              ><ShortcutSlot />{{ listeningForGamepad === 'skilltree' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.skilltree) }}</button>
+            </div>
+          </div>
         </PixelSection>
 
         <PixelSection :title="t('settings.camera')">

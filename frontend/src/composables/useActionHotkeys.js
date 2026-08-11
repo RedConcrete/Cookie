@@ -4,9 +4,9 @@ import { reactive, ref, watch } from 'vue'
 // (opening a dialog etc.) -- as opposed to the continuous WASD camera pan
 // in useCameraControls.js, which needs held-key state instead of a single
 // press. Mirrors that composable's storage/rebind pattern.
-const ACTIONS = ['networth']
-const DEFAULT_KEYS = { networth: 'n' }
-const DEFAULT_GAMEPAD_BUTTONS = { networth: null } // null = unbound
+const ACTIONS = ['networth', 'skilltree']
+const DEFAULT_KEYS = { networth: 'n', skilltree: 'p' }
+const DEFAULT_GAMEPAD_BUTTONS = { networth: null, skilltree: null } // null = unbound
 
 // Standard Gamepad API button order (Xbox-style layout; most controllers,
 // including PlayStation/Steam Deck, map to this via the browser's standard mapping).
