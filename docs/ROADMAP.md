@@ -807,3 +807,19 @@ Backlog dokumentiert.
   darf nirgends gelb sein" als generelle Regel braucht es eine visuelle
   Durchsicht im Browser (welche Kombination wirklich unlesbar ist) statt
   blindem Suchen-Ersetzen.
+
+---
+
+## 8. AI-Driven Testing (Idee, 2026-08-11)
+
+- [ ] **Alles im Spiel soll später per KI-Tools testbar sein.** Ziel: MCP-
+  Schnittstellen bauen, die Spielaktionen (klicken, Gebäude kaufen, Markt
+  handeln, Skill-Punkte setzen, etc.) für KI-Agents zugänglich machen, damit
+  ein Agent das Spiel automatisiert durchspielen und dabei Bugs/Balance-
+  Probleme finden kann (v.a. relevant für die AMM-Markt-Wirtschaft, siehe
+  Abschnitt 6 `cookie-game-design.md`). **Ausdrücklich nur Dev-Umgebung,
+  nie aktive Nutzung in Produktiv.** Architektur-Vorschlag (v1: MCP-Server
+  wrappt bestehende REST-API, spielt als Dev-Player, Scope zuerst Markt/Farm;
+  v2: mehrere simulierte Spieler gleichzeitig für Race-Condition-/Pentest-
+  Findung) jetzt in `docs/plans/2026-08-11-open-mcp-ki-testing.md` — noch
+  offene Fragen dort (ein Server vs. mehrere, Playwright-Anbindung ja/nein).
