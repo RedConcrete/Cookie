@@ -418,7 +418,7 @@ onMounted(async () => {
   transform-origin: center center;
 }
 
-.stv-edges { position: absolute; left: 0; top: 0; pointer-events: none; }
+.stv-edges { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .stv-edge { stroke-width: 4; }
 .stv-edge-locked    { stroke: var(--px-wood2); opacity: 0.5; }
 .stv-edge-available { stroke: var(--px-gold); opacity: 0.8; }
