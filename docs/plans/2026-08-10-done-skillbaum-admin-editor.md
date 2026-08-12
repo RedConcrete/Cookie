@@ -1,6 +1,7 @@
-# ⏳ Skill-Baum Admin-Editor: Nodes draggen + Verbindungen setzen/löschen
+# ✅ Skill-Baum Admin-Editor: Nodes draggen + Verbindungen setzen/löschen
 
-> **Status:** ⏳ Offen (Code fertig + Browser-getestet, noch nicht committed)
+> **Status:** ✅ Umgesetzt (2026-08-10, Commit 7124ec6; seither um
+> Panning-Fixes (851ea47) und einen Effekt-Editor im Info-Panel erweitert).
 
 ## Context
 

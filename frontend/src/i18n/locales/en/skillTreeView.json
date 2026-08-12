@@ -16,5 +16,6 @@
   "effectWageInterestReduction": "Overdraft Interest",
   "effectResourceWageReduction": "Building Wage",
   "effectStorageCapBonus": "Main Storage Capacity",
-  "effectBuildingBufferBonus": "Building Buffer"
+  "effectBuildingBufferBonus": "Building Buffer",
+  "searchPlaceholder": "Search…"
 }

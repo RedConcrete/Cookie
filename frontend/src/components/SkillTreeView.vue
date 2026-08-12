@@ -35,6 +35,8 @@
                 { 'stv-node-nopoints': nodeState(n) === 'allocatable' && tree.skillPoints < 1 },
                 { 'stv-node-keystone': n.nodeTier === 'KEYSTONE' },
                 { 'stv-node-notable': n.nodeTier === 'NOTABLE' },
+                { 'stv-node-search-match': searching && matchesSearch(n) },
+                { 'stv-node-search-dim': searching && !matchesSearch(n) },
               ]"
               :disabled="!n.root && (!canAllocate(n) || allocating)"
               @click="onNodeClick(n)"
@@ -56,6 +58,16 @@
         <div class="stv-cam-controls">
           <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
+        </div>
+
+        <!-- ── Suche: hebt passende Knoten hervor, dimmt den Rest ── -->
+        <div class="stv-search-box" @mousedown.stop>
+          <input
+            type="text" class="stv-search-input"
+            v-model="searchQuery"
+            :placeholder="t('skillTreeView.searchPlaceholder')"
+          />
+          <button v-if="searchQuery" class="stv-search-clear" @click="searchQuery = ''">&times;</button>
         </div>
 
         <div v-if="notice" class="stv-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -110,6 +122,17 @@ const allocating = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
 const buyDialogOpen = ref(false)
+
+// Suche: durchsucht immer beide Sprachen gleichzeitig (nicht nur die aktive UI-Sprache), damit
+// z.B. "Milch" auch im EN-Modus gefunden wird. Filtert nicht durch Ausblenden (würde Kanten/
+// Baum-Struktur optisch zerreißen), sondern per Highlight/Dim-Klasse auf den Knoten selbst.
+const searchQuery = ref('')
+const searching = computed(() => searchQuery.value.trim().length > 0)
+function matchesSearch(n) {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return true
+  return [n.nameDe, n.nameEn, n.descriptionDe, n.descriptionEn].some(s => (s || '').toLowerCase().includes(q))
+}
 
 function flash(msg, isError = false) {
   notice.value = msg
@@ -467,4 +490,39 @@ onMounted(async () => {
   0%, 100% { box-shadow: 0 0 0 3px var(--px-red), 0 0 10px 2px var(--px-red-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
   50%      { box-shadow: 0 0 0 3px var(--px-gold), 0 0 18px 4px var(--px-gold-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
 }
+
+/* Suche: dimmt Nicht-Treffer wie ein "locked"-Knoten (bestehende Optik-Sprache statt einer
+   vierten neuen), hebt Treffer stattdessen mit einem gruenen Puls hervor -- Filter kommt NACH
+   den Tier-Klassen, damit auch ein gedimmter Keystone erkennbar gedimmt bleibt. */
+.stv-node-search-dim {
+  filter: saturate(0.4) brightness(0.55);
+}
+.stv-node-search-match {
+  animation: stv-search-glow 1.3s ease-in-out infinite;
+}
+@keyframes stv-search-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--px-green), 0 0 8px 2px var(--px-green-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+  50%      { box-shadow: 0 0 0 3px var(--px-green-lt), 0 0 14px 4px var(--px-green), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+}
+
+.stv-search-box {
+  position: absolute; top: 14px; left: 14px; z-index: 20;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  background: var(--px-wood3); border: 3px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+}
+.stv-search-input {
+  width: 130px; font-family: 'Silkscreen', monospace; font-size: 12px;
+  background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
+  padding: 4px 6px; outline: none;
+}
+.stv-search-input::placeholder { color: var(--px-tan-ink); opacity: 0.7; }
+.stv-search-clear {
+  width: 20px; height: 20px; flex: none;
+  font-family: 'Silkscreen', monospace; font-size: 12px; line-height: 1;
+  background: var(--px-wood2); color: var(--px-cream); border: 2px solid var(--px-ink);
+  cursor: pointer;
+}
+.stv-search-clear:hover { background: var(--px-red-dk); }
 </style>

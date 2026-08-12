@@ -1,6 +1,7 @@
-# ⏳ Skillbaum-Fundament: Mehrfach-Effekte, Node-Tiers, i18n, Cross-Branch-Wheel
+# ✅ Skillbaum-Fundament: Mehrfach-Effekte, Node-Tiers, i18n, Cross-Branch-Wheel
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-10, Commit aae56b5), Marker war nicht
+> nachgezogen worden.
 
 ## Context
 

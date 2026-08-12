@@ -29,6 +29,8 @@
               'sta-node-root': n.root,
               'sta-node-selected': selectedId === n.id,
               'sta-node-pending': pendingFrom === n.id,
+              'sta-node-search-match': searching && matchesSearch(n),
+              'sta-node-search-dim': searching && !matchesSearch(n),
             }"
             :style="nodeWrapStyle(n)"
             @mousedown="nodeMouseDown($event, n)"
@@ -46,6 +48,15 @@
           <div v-if="connectMode" class="sta-hint">
             {{ pendingFrom ? t('skillTreeAdminDialog.connectHintPick') : t('skillTreeAdminDialog.connectHintFrom') }}
           </div>
+        </div>
+
+        <div class="sta-search-box" @mousedown.stop>
+          <input
+            type="text" class="sta-search-input"
+            v-model="searchQuery"
+            :placeholder="t('skillTreeAdminDialog.searchPlaceholder')"
+          />
+          <button v-if="searchQuery" class="sta-search-clear" @click="searchQuery = ''">&times;</button>
         </div>
 
         <div v-if="selectedNode && !connectMode" class="sta-info px-panel" @mousedown.stop>
@@ -135,6 +146,16 @@ function flash(msg, isError = false) {
   notice.value = msg
   noticeError.value = isError
   setTimeout(() => { notice.value = '' }, 2500)
+}
+
+// Suche: identisches Verhalten zum Spieler-Baum (SkillTreeView.vue) -- durchsucht immer beide
+// Sprachen gleichzeitig, hebt Treffer hervor statt sie auszublenden.
+const searchQuery = ref('')
+const searching = computed(() => searchQuery.value.trim().length > 0)
+function matchesSearch(n) {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return true
+  return [n.nameDe, n.nameEn, n.descriptionDe, n.descriptionEn].some(s => (s || '').toLowerCase().includes(q))
 }
 
 const selectedNode = computed(() => nodes.value.find(n => n.id === selectedId.value) || null)
@@ -417,6 +438,15 @@ onMounted(async () => {
 .sta-node-selected { box-shadow: 0 0 0 3px var(--px-gold), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
 .sta-node-pending { box-shadow: 0 0 0 3px var(--px-green), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
 
+/* Suche: gleiche Optik-Sprache wie SkillTreeView.vue (Spieler-Baum) -- gedimmt statt
+   ausgeblendet, damit die Kanten/Baum-Struktur nicht optisch zerreisst. */
+.sta-node-search-dim { filter: saturate(0.4) brightness(0.55); }
+.sta-node-search-match { animation: sta-search-glow 1.3s ease-in-out infinite; }
+@keyframes sta-search-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--px-green), 0 0 8px 2px var(--px-green-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+  50%      { box-shadow: 0 0 0 3px var(--px-green-lt), 0 0 14px 4px var(--px-green), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+}
+
 .sta-toolbar {
   position: absolute; top: 14px; left: 14px; z-index: 20;
   display: flex; align-items: center; gap: 10px;
@@ -425,6 +455,27 @@ onMounted(async () => {
   font-size: 11px; font-family: 'Silkscreen', monospace; color: var(--px-tan);
   background: rgba(16,11,7,.6); padding: 4px 8px;
 }
+
+.sta-search-box {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  background: var(--px-wood3); border: 3px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+}
+.sta-search-input {
+  width: 160px; font-family: 'Silkscreen', monospace; font-size: 12px;
+  background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
+  padding: 4px 6px; outline: none;
+}
+.sta-search-input::placeholder { color: var(--px-tan-ink); opacity: 0.7; }
+.sta-search-clear {
+  width: 20px; height: 20px; flex: none;
+  font-family: 'Silkscreen', monospace; font-size: 12px; line-height: 1;
+  background: var(--px-wood2); color: var(--px-cream); border: 2px solid var(--px-ink);
+  cursor: pointer;
+}
+.sta-search-clear:hover { background: var(--px-red-dk); }
 
 .sta-info {
   position: absolute; top: 14px; right: 60px; z-index: 20;

@@ -14,5 +14,6 @@
   "removeEffectTitle": "Effekt entfernen",
   "addEffectLabel": "+ Effekt",
   "saveLabel": "Speichern",
-  "effectsSavedNotice": "Effekte gespeichert"
+  "effectsSavedNotice": "Effekte gespeichert",
+  "searchPlaceholder": "Suchen…"
 }

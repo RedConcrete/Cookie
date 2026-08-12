@@ -1,6 +1,7 @@
-# ⏳ Skillbaum: STORAGE-Branch (Speicherkapazität)
+# ✅ Skillbaum: STORAGE-Branch (Speicherkapazität)
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-10, Commit e1ec601), Marker war nicht
+> nachgezogen worden.
 
 ## Context
 

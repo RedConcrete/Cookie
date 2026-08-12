@@ -1,6 +1,14 @@
 # ⏳ Skillbaum: Suche/Filter + Tooltip-Ausbau (Build-Vorschau-Vorbereitung)
 
-> **Status:** ⏳ Offen
+> **Status:** ⏳ Teilweise umgesetzt (2026-08-12). **Suche/Filter fertig** —
+> nicht nur in `SkillTreeView.vue` (Spieler) wie ursprünglich geplant,
+> sondern auf Nutzerwunsch gleich auch in `SkillTreeAdminDialog.vue`
+> (Admin) gebaut: Suchfeld, `matchesSearch(n)` durchsucht alle 4
+> Sprachfelder gleichzeitig, Treffer pulsieren grün, Rest wird gedimmt
+> (`stv-node-search-match/-dim` bzw. `sta-node-search-match/-dim`). **Noch
+> offen:** die Tooltip-Erweiterung um Folgeknoten-Namen (Effekt-Liste im
+> Tooltip war zu dem Zeitpunkt schon aus dem Fundament-Plan vorhanden, siehe
+> unten) — war nicht Teil der aktuellen Anfrage.
 
 ## Context
 

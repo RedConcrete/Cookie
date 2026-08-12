@@ -14,5 +14,6 @@
   "removeEffectTitle": "Remove effect",
   "addEffectLabel": "+ Effect",
   "saveLabel": "Save",
-  "effectsSavedNotice": "Effects saved"
+  "effectsSavedNotice": "Effects saved",
+  "searchPlaceholder": "Search…"
 }

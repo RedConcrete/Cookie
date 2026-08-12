@@ -16,5 +16,6 @@
   "effectWageInterestReduction": "Dispo-Zinsen",
   "effectResourceWageReduction": "Gebäude-Lohn",
   "effectStorageCapBonus": "Hauptlager-Kapazität",
-  "effectBuildingBufferBonus": "Gebäude-Zwischenspeicher"
+  "effectBuildingBufferBonus": "Gebäude-Zwischenspeicher",
+  "searchPlaceholder": "Suchen…"
 }
