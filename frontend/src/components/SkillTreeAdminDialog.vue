@@ -11,7 +11,7 @@
         @mousedown="panStart"
         @mousemove="panMove"
         @mouseup="panEnd"
-        @mouseleave="panEnd"
+        @mouseleave="panLeave"
         @wheel="onWheel"
       >
         <div class="sta-canvas" :style="canvasStyle">
@@ -37,7 +37,7 @@
           </button>
         </div>
 
-        <div class="sta-toolbar">
+        <div class="sta-toolbar" @mousedown.stop>
           <button
             class="px-btn"
             :class="{ 'px-btn-accent': connectMode }"
@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <div v-if="selectedNode && !connectMode" class="sta-info px-panel">
+        <div v-if="selectedNode && !connectMode" class="sta-info px-panel" @mousedown.stop>
           <div class="sta-info-row"><span>ID</span><strong>{{ selectedNode.id }}</strong></div>
           <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.branchLabel') }}</span><strong>{{ selectedNode.branch }}</strong></div>
           <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.tierLabel') }}</span><strong>{{ selectedNode.nodeTier || '—' }}</strong></div>
@@ -84,7 +84,7 @@
           </div>
         </div>
 
-        <div class="sta-cam-controls">
+        <div class="sta-cam-controls" @mousedown.stop>
           <button class="sta-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="sta-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
@@ -226,8 +226,11 @@ async function saveEffects() {
 const DRAG_THRESHOLD = 5
 
 function nodeMouseDown(e, n) {
-  if (n.root) { handleNodeClick(n); return }
+  // stopPropagation zuerst, auch fuer die Root-Node (kein Drag) -- sonst wuerde der Klick zum
+  // Viewport durchbubbeln und der neue "Klick auf Hintergrund waehlt ab"-Handler (panEnd) die
+  // gerade erst per handleNodeClick gesetzte Auswahl im selben Zug wieder aufheben.
   e.stopPropagation()
+  if (n.root) { handleNodeClick(n); return }
   e.preventDefault()
   const startX = e.clientX
   const startY = e.clientY
@@ -313,11 +316,14 @@ function clampPan() {
 
 let dragging = false
 let lastX = 0, lastY = 0
+let panStartX = 0, panStartY = 0
 function panStart(e) {
   if (e.button !== 0) return
   dragging = true
   lastX = e.clientX
   lastY = e.clientY
+  panStartX = e.clientX
+  panStartY = e.clientY
 }
 function panMove(e) {
   if (!dragging) return
@@ -327,7 +333,18 @@ function panMove(e) {
   lastY = e.clientY
   clampPan()
 }
-function panEnd() { dragging = false }
+// Klick auf leeren Hintergrund (kein Drag, siehe DRAG_THRESHOLD wie beim Node-Drag) waehlt die
+// aktuell ausgewaehlte Node ab. Toolbar/Info-Panel/Kamera-Controls stoppen ihr eigenes mousedown
+// (siehe Template), sonst wuerde z.B. Klick auf "Speichern" im Effekt-Editor die Node sofort
+// wieder abwaehlen.
+function panEnd(e) {
+  if (dragging && e) {
+    const moved = Math.hypot(e.clientX - panStartX, e.clientY - panStartY) > DRAG_THRESHOLD
+    if (!moved) selectedId.value = null
+  }
+  dragging = false
+}
+function panLeave() { dragging = false }
 function resetView() { panX.value = 0; panY.value = 0; zoom.value = 0.55 }
 
 function onWheel(e) {
