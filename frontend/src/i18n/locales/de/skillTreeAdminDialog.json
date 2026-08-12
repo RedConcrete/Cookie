@@ -7,5 +7,12 @@
   "tierLabel": "Tier",
   "positionSavedNotice": "Position gespeichert",
   "edgeCreatedNotice": "Verbindung erstellt",
-  "edgeDeletedNotice": "Verbindung gelöscht"
+  "edgeDeletedNotice": "Verbindung gelöscht",
+  "effectsLabel": "Effekte",
+  "effectGlobalOption": "(global)",
+  "signToggleTitle": "Positiv/Negativ umschalten",
+  "removeEffectTitle": "Effekt entfernen",
+  "addEffectLabel": "+ Effekt",
+  "saveLabel": "Speichern",
+  "effectsSavedNotice": "Effekte gespeichert"
 }

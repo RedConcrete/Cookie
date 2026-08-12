@@ -7,5 +7,12 @@
   "tierLabel": "Tier",
   "positionSavedNotice": "Position saved",
   "edgeCreatedNotice": "Connection created",
-  "edgeDeletedNotice": "Connection deleted"
+  "edgeDeletedNotice": "Connection deleted",
+  "effectsLabel": "Effects",
+  "effectGlobalOption": "(global)",
+  "signToggleTitle": "Toggle positive/negative",
+  "removeEffectTitle": "Remove effect",
+  "addEffectLabel": "+ Effect",
+  "saveLabel": "Save",
+  "effectsSavedNotice": "Effects saved"
 }

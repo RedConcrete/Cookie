@@ -430,12 +430,20 @@ spezifiziert ist:
   neuem `DELETE /admin/skilltree/edges/{id}`. Details/Plan:
   `docs/plans/2026-08-10-open-skillbaum-admin-editor.md`.
   **Offene Erweiterungen fürs Tool** (noch nicht gebaut):
-  - [ ] **Werte-Editor** — bestehende Nodes im Tool selbst umbenennen/
-    Effekte anpassen/Branch+Tier ändern, statt Java-Seed-Code editieren zu
-    müssen. Backend kann das schon (`PUT /skilltree/nodes/{id}` nimmt
-    bereits Name/Beschreibung/Effekte/Branch/Tier entgegen), fehlt nur die
-    UI (Formular im selben Dialog, z. B. im Info-Panel bei ausgewähltem
-    Node).
+  - [x] **Werte-Editor: Effekte (2026-08-12).** Info-Panel im selben Dialog
+    zeigt bei ausgewähltem Node jetzt die Effekt-Liste und macht sie
+    editierbar — pro Effekt ein Dropdown für `effectType` (Labels
+    wiederverwenden `skillTreeView`s bestehende i18n-Keys), ein Dropdown
+    für `targetResource` (inkl. "(global)" für `null`), ein Vorzeichen-
+    Toggle-Button (grün/rot) + Zahlenfeld für den Betrag, Löschen pro
+    Effekt-Zeile, "+ Effekt" zum Hinzufügen, "Speichern" schickt den
+    kompletten Node per `PUT /admin/skilltree/nodes/{id}` (Endpoint konnte
+    das schon). Getestet gegen die laufende API (Wert geändert, Effekt
+    hinzugefügt, per GET verifiziert, wieder zurückgesetzt).
+  - [ ] **Werte-Editor: Name/Beschreibung/Branch/Tier** — nur Effekte sind
+    editierbar, `nameDe/nameEn/descriptionDe/descriptionEn/branch/nodeTier`
+    im Info-Panel noch reiner Anzeigetext. Backend nimmt das über denselben
+    `PUT`-Endpoint bereits entgegen, fehlt nur die restlichen Formularfelder.
   - [ ] **Neue Nodes erstellen/löschen** — aktuell kann der Editor nur
     bestehende (geseedete) Nodes verschieben/verbinden, keine komplett
     neuen anlegen. Bräuchte einen neuen `POST /admin/skilltree/nodes`-

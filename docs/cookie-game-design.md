@@ -466,9 +466,14 @@ typed Enum mit `@Enumerated` — anders als `effectType` ein kleines, stabiles
 3-Werte-Set, der einmalige CHECK-Constraint-Drop nach dem allerersten Boot
 ist hier unkritisch). Frontend zeigt Tiers über Knotengröße + Rahmen/Glow
 (`NODE_SIZE`/`NOTABLE_SIZE`/`KEYSTONE_SIZE`, CSS-Klassen
-`.stv-node-notable`/`.stv-node-keystone` in `SkillTreeView.vue`) — pro neuem
-Branch üblich: 1 Notable (mittelstark, kein eigenes Icon) + höchstens 1–2
-Keystones (starker Effekt, eigenes 8×8-Icon über die `KEYSTONE_ICON`-Map).
+`.stv-node-notable`/`.stv-node-keystone` in `SkillTreeView.vue`). **Seit
+2026-08-12 nutzt der gesamte Seed-Baum nur noch `PASSIVE`/`KEYSTONE`** —
+`NOTABLE` bleibt als Enum-Wert bestehen (Frontend-Styling/Admin-Editor
+unterstützen ihn weiterhin), wird aber von keinem aktuellen Knoten mehr
+gesetzt. Grund: der mittlere Tier fühlte sich wie eine willkürliche
+Zwischenstufe an statt einer echten Design-Entscheidung; jeder Branch
+besteht jetzt aus kleinen `PASSIVE`-Bausteinen, die auf ein bis zwei
+`KEYSTONE`-Payoffs (großer Bonus, meist mit Tradeoff) hinlaufen.
 
 **Zweisprachige Knoteninhalte:** `nameDe`/`nameEn`/`descriptionDe`/
 `descriptionEn` statt `name`/`description` — Knoteninhalt ist
@@ -477,9 +482,14 @@ admin-editierbarer DB-Content, kein statischer UI-Text, deshalb **kein**
 wählt reaktiv nach `locale` (`nodeName()`/`nodeDesc()` in
 `SkillTreeView.vue`) — kein Tree-Refetch beim Sprachwechsel nötig.
 
-**V1-Baum:** 55 Knoten (Wurzel + 54) in 11 Zweigen + 1 Cross-Branch-Wheel-
-Beispiel (Seed in `SkillTreeService#buildNodes/buildEdges`,
-admin-editierbar zur Laufzeit).
+**V1-Baum:** 70 Knoten (Wurzel + 69) in 11 Zweigen + 1 Cross-Branch-Wheel-
+Beispiel, 81 Kanten (Seed in `SkillTreeService#buildNodes/buildEdges`,
+admin-editierbar zur Laufzeit). Stand nach dem PoE-Mesh-Umbau der 5
+Rohstoff-Branches (2026-08-12, +15 Knoten/+25 Kanten ggü. der 2026-08-10-
+Fassung) — Kollisionsfreiheit dabei per Hand nachgerechnet (Bearing/Radius-
+Formel + Mindestabstand-Check gegen alle Nachbar-Branches, kein
+Python-Skript-Lauf wie beim vorherigen Pass), nicht zusätzlich gegen die
+Live-API verifiziert.
 
 **Radiales 11-Branch-Layout (2026-08-10, zweite Fassung):** alle Zweige
 liegen gleichmäßig alle 360°/11 ≈ 32.7° auf einem Kreis um `root`
@@ -503,18 +513,28 @@ Knoten × 56 Kanten.
 
 - **MILK** (ressourcen-spezifisch): `milk_1`…`milk_4` linear (+0.05/+0.05/
   +0.07/+0.10) + `milk_5` als Fork ab `milk_2` (+0.07), Keystone `milk_4`
-- **SUGAR/FLOUR/EGGS/BUTTER/CHOCOLATE** (2026-08-10, ressourcen-spezifisch,
-  je 5 Knoten, mirrort MILK, Gebäude-Zuordnung: Zuckerteich/Bauernhof/
-  Hühnerhof/Butterei/Plantage): `<res>_1` `HARVEST_YIELD` (+0.05) →
-  `<res>_2` `RESOURCE_WAGE_REDUCTION` (+1 % Lohn-Reduktion am zugehörigen
-  Gebäude) → `<res>_3` NOTABLE `HARVEST_YIELD` (+0.08) → `<res>_4`
-  **KEYSTONE mit 2 Effekten**: `HARVEST_YIELD` +0.15 **und** eine negative
-  `RESOURCE_WAGE_REDUCTION` −0.03 (Arbeiter am Gebäude werden 3 % teurer —
-  echter Tradeoff, Netto klar positiv aber spürbar) + `<res>_5` als Fork ab
-  `<res>_2`, `RESOURCE_WAGE_REDUCTION` (+1.5 %). Effekt-Reihenfolge mischt
-  bewusst Ertrag/Lohn statt einer gleichförmigen Kette; BUTTER hat `_1`/`_2`
-  vertauscht (Lohn zuerst) als bewusste Abweichung vom Muster, damit nicht
-  alle 5 Zweige identisch wirken.
+- **SUGAR/FLOUR/EGGS/BUTTER/CHOCOLATE** (2026-08-10, PoE-Mesh-Umbau
+  2026-08-12, ressourcen-spezifisch, je 8 Knoten, Gebäude-Zuordnung:
+  Zuckerteich/Bauernhof/Hühnerhof/Butterei/Plantage): `<res>_1`
+  `HARVEST_YIELD` (+0.04) → `<res>_2` `RESOURCE_WAGE_REDUCTION` (+1 %
+  Lohn-Reduktion am zugehörigen Gebäude) — Fork-Punkt. Ab hier **echtes
+  Mesh statt Baum**: Ertrags-Pfad `<res>_y1` (+0.05) → `<res>_y2` (+0.07) →
+  `<res>_y3` **KEYSTONE mit 2 Effekten** (`HARVEST_YIELD` +0.20 **und**
+  negative `RESOURCE_WAGE_REDUCTION` −0.05); parallel dazu Lohn-Pfad
+  `<res>_w1` (+1.5 %) → `<res>_w2` (+2 %) → `<res>_w3` **KEYSTONE mit 2
+  Effekten** (`RESOURCE_WAGE_REDUCTION` +0.12 **und** negativer
+  `HARVEST_YIELD` −0.05). Zusätzlich **2 Cross-Link-Kanten** zwischen den
+  Pfaden (`<res>_y1`↔`<res>_w1`, `<res>_y2`↔`<res>_w2`) — ein Spieler kann
+  vom Ertrags- auf den Lohn-Pfad wechseln (und umgekehrt), ohne zum
+  Fork-Punkt zurückzumüssen (`isAdjacentToAllocated`s OR-Konnektivität
+  unterstützt das ohne Codeänderung, Kanten sind faktisch ungerichtet).
+  **Kein `NOTABLE`-Tier mehr** in diesen 5 Branches (nur `PASSIVE`/
+  `KEYSTONE`) — bewusste Abkehr vom alten Einzel-Fork-Muster, das sich wie
+  eine lange Kette statt einem echten PoE-Passiv-Baum anfühlte. Radius pro
+  Branch jetzt bis 750 (2. Keystone-Ring, `WORLD_SIZE` in `SkillTreeView.vue`
+  dafür 1500→1800), Pfade fächern ±8° vom Branch-Bearing. BUTTER hat `_1`/
+  `_2` vertauscht (Lohn zuerst) als bewusste Abweichung vom Muster, damit
+  nicht alle 5 Zweige identisch wirken.
 - **BAKING** (global): `bake_1`…`bake_4` linear (+0.02/+0.02/+0.03/+0.05) +
   `bake_5` als Fork ab `bake_2` (+0.04), Keystone `bake_4`
 - **MARKET** (global, Gebühren-Reduktion): `market_1`…`market_4` linear
@@ -522,19 +542,19 @@ Knoten × 56 Kanten.
 - **CORE** (generalistisch, günstige Früh-Picks): `core_1` (+0.04 Ernte,
   global) → `core_2` (+0.015 Backen) **und** `core_3` (−0.5% Markt) →
   `core_4` (+0.06 Ernte, global, konvergierender Fork mit 2 eingehenden
-  Kanten, testet Mehrfach-Eltern-Konnektivität, Tier `NOTABLE`)
+  Kanten, testet Mehrfach-Eltern-Konnektivität, Tier `PASSIVE`)
 - **DISPO** (global, Dispo-Zinsreduktion, 2026-08-09): `dispo_1`…`dispo_4`
   linear (−1%/−1%/−1.5%/−2%), Keystone `dispo_4`, kein Fork, Gesamt-
   Reduktion 5.5 Prozentpunkte (10 % Basis → 4.5 % Minimum über den Baum,
   harter Code-Floor bei 2 % zusätzlich, siehe Abschnitt 5)
 - **STORAGE** (global, Lager-Branch, 2026-08-10): `storage_1` (+0.05
   `STORAGE_CAP_BONUS`) → `storage_2` (+0.10 `BUILDING_BUFFER_BONUS`) →
-  `storage_3` (+0.08 `STORAGE_CAP_BONUS`, Tier `NOTABLE`) → `storage_4`
+  `storage_3` (+0.08 `STORAGE_CAP_BONUS`, Tier `PASSIVE`) → `storage_4`
   (**KEYSTONE mit 2 Effekten**: `BUILDING_BUFFER_BONUS` +0.25 **und**
   `STORAGE_CAP_BONUS` −0.10 — Gebäude sammeln deutlich länger ungestört
   weiter, das Hauptlager selbst schrumpft aber, echter Tradeoff) +
   `storage_5` als Fork ab `storage_2` (+0.10 `STORAGE_CAP_BONUS`)
-- **Cross-Branch-Wheel (2026-08-10):** `bridge_bake_market` (Tier `NOTABLE`,
+- **Cross-Branch-Wheel (2026-08-10):** `bridge_bake_market` (Tier `PASSIVE`,
   +0.03 Ernte global) verbindet `bake_3` und `market_3` und verlangt
   **beide** alloziert (AND statt der sonst üblichen OR-Konnektivität, Feld
   `SkillNodeEntity.requiresAllPrereqs` + Sonderfall in
@@ -549,11 +569,13 @@ Knoten × 56 Kanten.
   wurde. Neue Brücken **vor dem Festlegen der Koordinaten** gegen alle
   bestehenden Node-Positionen und Kanten prüfen (Kollision: Abstand zweier
   Knotenmittelpunkte < Summe ihrer halben Kantenlängen je Tier — PASSIVE 28,
-  NOTABLE 34, KEYSTONE 40; Kreuzung: Kantensegmente auf Schnitt prüfen, nicht
-  nur Endpunkte) — bei einer erwartbar langen Verbindung (deutlich über der
-  üblichen Schrittweite von 150/212) den Brücken-Knoten als `NOTABLE` statt
-  `PASSIVE` anlegen, das macht die Zwischenstation optisch/mechanisch
-  bewusst statt wie ein Artefakt. Weitere Brücken sind pro künftigem
+  NOTABLE 34 (aktuell ungenutzt, siehe oben), KEYSTONE 40; Kreuzung:
+  Kantensegmente auf Schnitt prüfen, nicht nur Endpunkte). `bridge_bake_market`
+  war ursprünglich als `NOTABLE` angelegt, weil die Verbindung deutlich über
+  der üblichen Schrittweite von 150/212 liegt — seit dem 2026-08-12-Umbau
+  (nur noch `PASSIVE`/`KEYSTONE` im ganzen Baum) läuft sie als `PASSIVE`
+  weiter, die Zwischenstation ist dadurch optisch kleiner als vorher, aber
+  kein Sonderfall mehr im Tier-System. Weitere Brücken sind pro künftigem
   Content-Plan optional ergänzbar.
 
 Effektwerte bewusst klein (siehe Kostenkurve oben) — aktuelle Zahlen per

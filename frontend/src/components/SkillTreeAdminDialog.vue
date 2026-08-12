@@ -53,6 +53,35 @@
           <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.branchLabel') }}</span><strong>{{ selectedNode.branch }}</strong></div>
           <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.tierLabel') }}</span><strong>{{ selectedNode.nodeTier || '—' }}</strong></div>
           <div class="sta-info-row"><span>X / Y</span><strong>{{ selectedNode.x }} / {{ selectedNode.y }}</strong></div>
+
+          <div class="sta-effects-title">{{ t('skillTreeAdminDialog.effectsLabel') }}</div>
+          <div v-for="(eff, idx) in selectedNode.effects" :key="idx" class="sta-effect-row">
+            <select class="sta-select" v-model="eff.effectType">
+              <option v-for="et in EFFECT_TYPES" :key="et.value" :value="et.value">{{ t(et.labelKey) }}</option>
+            </select>
+            <select class="sta-select" :value="eff.targetResource || ''" @change="eff.targetResource = $event.target.value || null">
+              <option value="">{{ t('skillTreeAdminDialog.effectGlobalOption') }}</option>
+              <option v-for="r in RESOURCES" :key="r" :value="r">{{ resourceLabel(r, t) }}</option>
+            </select>
+            <div class="sta-effect-value">
+              <button
+                class="sta-sign-btn"
+                :class="{ 'sta-sign-neg': eff.effectValue < 0 }"
+                :title="t('skillTreeAdminDialog.signToggleTitle')"
+                @click="eff.effectValue = -eff.effectValue"
+              >{{ eff.effectValue < 0 ? '−' : '+' }}</button>
+              <input
+                type="number" step="0.001" min="0" class="sta-num-input"
+                :value="Math.abs(eff.effectValue)"
+                @input="setEffectMagnitude(eff, $event.target.value)"
+              />
+            </div>
+            <button class="sta-effect-del" :title="t('skillTreeAdminDialog.removeEffectTitle')" @click="selectedNode.effects.splice(idx, 1)">&times;</button>
+          </div>
+          <div class="sta-effects-actions">
+            <button class="px-btn" @click="addEffect">{{ t('skillTreeAdminDialog.addEffectLabel') }}</button>
+            <button class="px-btn px-btn-accent" @click="saveEffects">{{ t('skillTreeAdminDialog.saveLabel') }}</button>
+          </div>
         </div>
 
         <div class="sta-cam-controls">
@@ -71,9 +100,23 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
+import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+
+// Effekt-Editor: Dropdown-Optionen wiederverwenden dieselben i18n-Keys wie das Spieler-Info-Panel
+// (SkillTreeView.vue EFFECT_LABEL_KEY) statt eigener Duplikate.
+const EFFECT_TYPES = [
+  { value: 'HARVEST_YIELD', labelKey: 'skillTreeView.effectHarvestYield' },
+  { value: 'BAKE_OUTPUT', labelKey: 'skillTreeView.effectBakeOutput' },
+  { value: 'MARKET_FEE_REDUCTION', labelKey: 'skillTreeView.effectMarketFeeReduction' },
+  { value: 'WAGE_INTEREST_REDUCTION', labelKey: 'skillTreeView.effectWageInterestReduction' },
+  { value: 'RESOURCE_WAGE_REDUCTION', labelKey: 'skillTreeView.effectResourceWageReduction' },
+  { value: 'STORAGE_CAP_BONUS', labelKey: 'skillTreeView.effectStorageCapBonus' },
+  { value: 'BUILDING_BUFFER_BONUS', labelKey: 'skillTreeView.effectBuildingBufferBonus' },
+]
+const RESOURCES = ['SUGAR', 'FLOUR', 'EGGS', 'BUTTER', 'CHOCOLATE', 'MILK']
 
 const emit = defineEmits(['close'])
 const { t } = useI18n()
@@ -150,13 +193,31 @@ async function deleteEdge(id) {
   }
 }
 
-async function persistNode(n) {
+async function persistNode(n, noticeKey = 'skillTreeAdminDialog.positionSavedNotice') {
   try {
     await adminUpdateSkillNode(n.id, n)
-    flash(t('skillTreeAdminDialog.positionSavedNotice'))
+    flash(t(noticeKey))
   } catch (err) {
     flash(err.message, true)
   }
+}
+
+// Magnitude-Input haelt immer den Betrag, das Vorzeichen kommt separat vom Sign-Toggle-Button --
+// verhindert dass Tippen im Feld ein bestehendes Minus verliert.
+function setEffectMagnitude(eff, rawValue) {
+  const abs = Math.abs(Number(rawValue) || 0)
+  eff.effectValue = eff.effectValue < 0 ? -abs : abs
+}
+
+function addEffect() {
+  if (!selectedNode.value) return
+  if (!selectedNode.value.effects) selectedNode.value.effects = []
+  selectedNode.value.effects.push({ effectType: EFFECT_TYPES[0].value, targetResource: null, effectValue: 0.01 })
+}
+
+async function saveEffects() {
+  if (!selectedNode.value) return
+  await persistNode(selectedNode.value, 'skillTreeAdminDialog.effectsSavedNotice')
 }
 
 // ── Node-Drag: eigener mousedown-Handler pro Node (stoppt Propagation, damit
@@ -197,7 +258,7 @@ function nodeMouseDown(e, n) {
 }
 
 // ── Layout (identisch zu SkillTreeView.vue) ─────────────────────
-const WORLD_SIZE = 1500
+const WORLD_SIZE = 1800
 const CENTER = WORLD_SIZE / 2
 const NODE_SIZE = 56
 const NOTABLE_SIZE = 68
@@ -318,7 +379,7 @@ onMounted(async () => {
 
 .sta-canvas {
   position: absolute; left: 50%; top: 50%;
-  width: 1500px; height: 1500px;
+  width: 1800px; height: 1800px;
   transform-origin: center center;
 }
 
@@ -350,11 +411,49 @@ onMounted(async () => {
 
 .sta-info {
   position: absolute; top: 14px; right: 60px; z-index: 20;
-  width: 200px; padding: 10px 12px;
+  width: 260px; padding: 10px 12px;
   display: flex; flex-direction: column; gap: 4px;
+  max-height: calc(100vh - 28px); overflow-y: auto;
 }
 .sta-info-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--px-tan-ink); gap: 8px; }
 .sta-info-row strong { color: var(--px-ink); }
+
+.sta-effects-title {
+  margin-top: 8px; padding-top: 6px; border-top: 2px solid var(--px-ink);
+  font-size: 11px; color: var(--px-tan-ink); text-transform: uppercase;
+}
+.sta-effect-row {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 6px; background: rgba(16,11,7,.06); border: 2px solid var(--px-ink);
+}
+.sta-select {
+  width: 100%; font-family: 'Silkscreen', monospace; font-size: 11px;
+  background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
+  padding: 3px 4px;
+}
+.sta-effect-value { display: flex; align-items: center; gap: 4px; }
+.sta-sign-btn {
+  width: 22px; height: 22px; flex: none;
+  font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: bold; line-height: 1;
+  background: var(--px-green); color: var(--px-cream); border: 2px solid var(--px-ink);
+  cursor: pointer;
+}
+.sta-sign-btn.sta-sign-neg { background: var(--px-red); }
+.sta-num-input {
+  flex: 1; min-width: 0; font-family: 'Silkscreen', monospace; font-size: 12px;
+  background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
+  padding: 3px 4px;
+}
+.sta-effect-del {
+  align-self: flex-end;
+  width: 20px; height: 20px; flex: none;
+  font-family: 'Silkscreen', monospace; font-size: 12px; line-height: 1;
+  background: var(--px-wood3); color: var(--px-cream); border: 2px solid var(--px-ink);
+  cursor: pointer;
+}
+.sta-effect-del:hover { background: var(--px-red-dk); }
+.sta-effects-actions { display: flex; gap: 6px; margin-top: 4px; }
+.sta-effects-actions .px-btn { flex: 1; font-size: 11px; padding: 6px 4px; }
 
 .sta-cam-controls {
   position: absolute; left: 14px; bottom: 14px; z-index: 20;

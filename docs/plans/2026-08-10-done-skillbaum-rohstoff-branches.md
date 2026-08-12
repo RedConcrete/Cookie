@@ -1,6 +1,11 @@
-# ⏳ Skillbaum: Rohstoff-Branches (Zucker/Mehl/Eier/Butter/Schoko)
+# ✅ Skillbaum: Rohstoff-Branches (Zucker/Mehl/Eier/Butter/Schoko)
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-11/2026-08-12), Marker war zunächst nicht
+> nachgezogen worden. Topologie hier (5 Knoten, 1 Keystone, 1 Fork pro
+> Branch) inzwischen durch
+> [[2026-08-12-done-skillbaum-rohstoff-poe-mesh]] ersetzt (8 Knoten, 2
+> Keystones, PoE-Mesh mit Cross-Links pro Branch) — dieser Plan bleibt als
+> historische Referenz stehen.
 
 ## Context
 

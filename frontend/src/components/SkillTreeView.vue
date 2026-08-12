@@ -134,11 +134,13 @@ const KEYSTONE_ICON = {
   market_4: 'keystoneMarket4',
   dispo_4: 'keystoneDispo4',
   keystone_alleskoenner: 'keystoneAlleskoenner',
-  sugar_4: 'keystoneSugar4',
-  flour_4: 'keystoneFlour4',
-  eggs_4: 'keystoneEggs4',
-  butter_4: 'keystoneButter4',
-  chocolate_4: 'keystoneChocolate4',
+  // Rohstoff-Branches (2026-08-12): 2 Keystones je Branch (Ertrags-Pfad "_y3" reused das alte
+  // Icon, Lohn-Pfad "_w3" bekommt ein neues).
+  sugar_y3: 'keystoneSugar4', sugar_w3: 'keystoneSugarW3',
+  flour_y3: 'keystoneFlour4', flour_w3: 'keystoneFlourW3',
+  eggs_y3: 'keystoneEggs4', eggs_w3: 'keystoneEggsW3',
+  butter_y3: 'keystoneButter4', butter_w3: 'keystoneButterW3',
+  chocolate_y3: 'keystoneChocolate4', chocolate_w3: 'keystoneChocolateW3',
   storage_4: 'keystoneStorage4',
 }
 function nodeIcon(n) {
@@ -240,7 +242,7 @@ async function allocate(n) {
 }
 
 // ── Layout ─────────────────────────────────────────────
-const WORLD_SIZE = 1500
+const WORLD_SIZE = 1800
 const CENTER = WORLD_SIZE / 2
 const NODE_SIZE = 56
 const NOTABLE_SIZE = 68
