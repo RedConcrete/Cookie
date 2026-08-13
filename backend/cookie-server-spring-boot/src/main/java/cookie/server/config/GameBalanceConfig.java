@@ -39,8 +39,24 @@ public class GameBalanceConfig {
     /** Wachstumsfaktor der Gebäude-Bau-/Ausbaukosten pro Stufe (cost = baseCost × growth^level). */
     private double buildingCostGrowth = 2.0;
 
-    /** Prestige-Schwelle bei Stufe 0 (Net Worth, ab der Prestige Stufe 1 möglich ist). */
-    private double prestigeBaseThreshold = 100_000;
+    /** Prestige-Schwelle bei Stufe 0 (Net Worth, ab der Prestige Stufe 1 möglich ist).
+     * Kalibriert (2026-08-13) über den Fortschritts-Simulator in
+     * frontend/scripts/balance-report.mjs (siehe docs/plans/2026-08-13-open-
+     * balance-report-tool.md): Ziel war ein erster Reset nach 2-3 Tagen für
+     * einen Spieler mit genau einem Startgebäude (Check-in alle 12h + 1-2h
+     * aktive Hover-Ernte pro Check-in). Der alte Wert 100_000 war ca. 60-100x
+     * zu hoch -- selbst nach 20 simulierten Tagen wurde er mit nur einem
+     * Gebäude nie erreicht. Ein erster Durchlauf ohne Hover-Ernte kam auf
+     * 1700, war mit Hover-Ernte dazugerechnet aber zu niedrig (~1-2 statt
+     * 2-3 Tage) -- 4500 trifft Bauernhof (3d) und Plantage (2d) gut.
+     * Hühnerhof (4.5d, schwächste Produktionsrate 0.4 vs. 0.6-0.7
+     * Einheiten/Sek./Arbeiter) und Butterei (1.5d, höchster Ressourcenpreis
+     * macht Hover-Ernte-Verkauf überproportional stark) laufen an
+     * gegenüberliegenden Enden aus dem Band -- kein einzelner globaler
+     * Threshold trifft alle vier gleich gut, siehe docs/ROADMAP.md Punkt 11
+     * für Details. Baugebäude-spezifisches Feintuning (Rate/Kosten je
+     * Gebäude) ist der nächste Schritt, noch offen. */
+    private double prestigeBaseThreshold = 4500;
 
     /** Wachstumsfaktor der Prestige-Schwelle pro Stufe. */
     private double prestigeThresholdGrowth = 1.5;

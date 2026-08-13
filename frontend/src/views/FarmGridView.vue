@@ -72,11 +72,12 @@
     <!-- Fixed screen-space overlay for the falling red wage number -- NOT inside .hof-canvas,
          since the cookie chip lives in the fixed .hud layer, not the pannable world. -->
     <WageNumbers />
-<button
-          v-if="playerStore.skillTree.skillPoints > 0"
-          class="px-btn hud-skillpoint-star"
-          @click="dialog = 'skilltree'"
-        ><PixelIcon name="stern" :size="16" /></button>
+    <button
+      v-if="playerStore.skillTree.skillPoints > 0"
+      class="hud-skillpoint-star"
+      :title="t('farmGridView.skillTreeLabel')"
+      @click="dialog = 'skilltree'"
+    ><PixelIcon name="stern" :size="20" /></button>
     <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
     <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
@@ -1075,14 +1076,20 @@ onUnmounted(() => {
 .hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* Zeigt an, dass noch Skill-Punkte zu vergeben sind (Playtest-Feedback) -- verweist per
-   Klick direkt in den Skill-Baum, statt dass Spieler das Menue durchsuchen muessen. */
+   Klick direkt in den Skill-Baum, statt dass Spieler das Menue durchsuchen muessen. Eigene
+   Button-Optik statt der generischen .px-btn (die ist fuer Text+Padding gedacht, mit nur
+   einem Icon drin sah sie klein/leer aus) -- gleiches quadratisches Icon-Button-Muster wie
+   .cam-center/.build-fab, nur mit Gold-Akzent, damit der Hinweis auffaellt. */
 .hud-skillpoint-star {
   position: absolute; top: 88px; right: 14px; z-index: 51;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--px-gold); border: 4px solid var(--px-ink); color: var(--px-ink-txt);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.4);
+  cursor: pointer;
   animation: hud-star-pulse 1.4s ease-in-out infinite;
 }
+.hud-skillpoint-star:hover { filter: brightness(1.1); }
 @keyframes hud-star-pulse {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.18); }

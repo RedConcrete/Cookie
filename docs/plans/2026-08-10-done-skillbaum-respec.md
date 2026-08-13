@@ -17,6 +17,35 @@
 > Ketten-Abschneiden (mehrere Hops) blockiert, gültiger Blatt-Respec
 > erfolgreich mit korrekter Cookie-/Punkte-Buchung, danach wieder
 > gelöscht.
+>
+> **Frontend-UX nachträglich korrigiert (2026-08-12, User-Feedback):** erster
+> Wurf (Klick auf freigeschalteten Knoten öffnet sofort ein
+> Einzel-Bestätigungs-Popup) hatte einen echten Bug -- der Node-Button war
+> für bereits allozierte Knoten die ganze Zeit `:disabled` (alte Bedingung
+> `!canAllocate(n)`, die für allozierte Knoten immer `true` ist), Klicks
+> kamen also nie an. Gleichzeitig wollte der User ohnehin einen anderen
+> Ablauf: **Modus-Toggle + Mehrfachauswahl** statt Einzel-Popup, analog zum
+> "Verbinden"-Modus im Admin-Editor (`SkillTreeAdminDialog.vue`) -- Button
+> oben links (`px-btn`, wird `px-btn-accent` wenn aktiv, gleiches Muster wie
+> überall sonst im Spiel statt einer Einzelanfertigung), im aktiven Modus
+> markiert ein Klick auf einen freigeschalteten Knoten ihn nur (roter Puls,
+> analog zum grünen Such-Puls), eine Leiste unten zeigt Anzahl + Gesamtkosten
+> + "Bestätigen"/"Abbrechen". Backend blieb unverändert (weiterhin ein
+> Knoten pro API-Aufruf, siehe oben) -- das Frontend ruft `deallocate`
+> mehrfach nacheinander auf, sortiert die Auswahl aber vorher nach
+> Baumtiefe ab `root` absteigend (tiefste zuerst), sonst würde das
+> gleichzeitige Entfernen von Eltern- und Kindknoten in derselben Auswahl
+> am Server-seitigen Abschneide-Schutz scheitern, obwohl die komplette
+> Auswahl zusammen gültig ist. Gegen einen zweiten Wegwerf-Testnutzer
+> verifiziert: Eltern+Kind (`milk_2`+`milk_5`) zusammen ausgewählt, beide
+> Aufrufe kommen in der richtigen Reihenfolge durch (200/200), Endzustand
+> und Cookie-Abzug (2× 300) korrekt, Nutzer wieder gelöscht. Nebenbei auch
+> den optisch kaputten "Skill-Punkte verfügbar"-Stern-Button in der
+> Hof-Ansicht (`FarmGridView.vue`, `.hud-skillpoint-star`) gefixt -- er nutzte
+> die generische `.px-btn`-Text-Button-Optik für einen reinen Icon-Button
+> und sah dadurch klein/leer aus; jetzt gleiches quadratisches
+> Icon-Button-Muster wie `.cam-center`/`.build-fab` (fixe 48px-Box,
+> Tinte-Rahmen, Box-Shadow), mit Gold-Akzent.
 
 ## Context
 

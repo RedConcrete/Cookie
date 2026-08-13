@@ -937,3 +937,98 @@ Backlog dokumentiert.
   Stattdessen: `frontend/scripts/balance-report.mjs` liest Live-Werte direkt
   vom Dev-Server, rechnet die echten Formeln nach, markiert Ausreißer.
   Plan: `docs/plans/2026-08-13-open-balance-report-tool.md`.
+  **Fortschritts-Simulator ergänzt (2026-08-13):** neues Modul simuliert
+  einen Spieler mit genau einem Startgebäude (Check-in alle 12h, echte
+  settle()/AMM/Storage-Cap-Formeln, plus 1-2h aktive Hover-Ernte pro
+  Check-in — braucht laut `UserService#harvest` keinen Gebäudebesitz, ist
+  aber Aktiv-only, kein Lazy-Catchup wie settle()) und misst Tage bis zum
+  ersten Prestige-Reset. Fund: `prestigeBaseThreshold` war mit 100.000 ca.
+  60-100x zu hoch — selbst nach 20 simulierten Tagen nie erreicht. Erster
+  Durchlauf (ohne Hover-Ernte) kam auf 1700, war mit Hover-Ernte
+  eingerechnet aber zu niedrig (Spieler kommt aktiv in 1-2 statt 2-3 Tagen
+  hin). Auf **4500** kalibriert (`GameBalanceConfig.java`,
+  `application.properties`) — trifft Bauernhof (3 Tage) und Plantage
+  (2 Tage) gut. Zwei Ausreißer an gegenüberliegenden Enden bleiben, kein
+  einzelner globaler Threshold trifft alle vier: Hühnerhof braucht 4.5
+  Tage (schwächste Produktionsrate, 0.4 vs. 0.6-0.7 Einheiten/Sek./
+  Arbeiter bei den anderen, konsistent in beiden Kalibrierungs-Durchläufen
+  aufgefallen), Butterei nur 1.5 Tage (höchster Ressourcenpreis macht den
+  Hover-Ernte-Verkauf überproportional stark). Noch offen, kein reines
+  Threshold-Problem, braucht Gebäude-spezifisches Feintuning (Rate/Kosten
+  je Gebäude statt nur der einen globalen Schwelle). Plantage-Start (380
+  Cookies) ist ein echter Softlock ohne
+  Hover-Ernte-Grinding (400 Start-Cookies − 380 = 20 Rest, reicht nicht für
+  den ersten Bürger à 50) — laut Rücksprache **kein Bug**,
+  `PlayerResetService.hardReset()` ist genau für diesen Fall der
+  vorgesehene Ausweg (siehe Punkt 12 unten).
+
+## 12. Prestige Passive Tree (Idee, 2026-08-13)
+
+- [ ] **Prestige soll einen eigenen, separaten Passiv-Baum bekommen** (nicht
+  den normalen Skill-Baum) — bei Reset gibt's einen "Prestige-Punkt", den
+  der Spieler dort dauerhaft investiert. Soll die aktuelle flache
+  `prestigeMultiplierPerLevel`-Mechanik (`PrestigeService.calcMultiplier()`,
+  +10 % Ernte/Backen pro Stufe, kein Baum) ersetzen. Der erste große
+  Prestige-Keystone soll so stark sein, dass der Spieler danach nur noch
+  ~halb so lange braucht, um wieder auf den Stand vor dem Reset zu kommen
+  — und das soll sich mit jedem weiteren Reset/Keystone wiederholen
+  (siehe Diskussion zum Fortschritts-Simulator, Punkt 11).
+  **Bestätigt:** Softlocks (z.B. Plantage-Start, siehe Punkt 11) sind
+  legitim — `PlayerResetService.hardReset()` (bestehender Endpoint, kein
+  Schwellenwert nötig, aber auch keine Belohnung, setzt `prestigeLevel`
+  zurück auf 0) ist genau dafür der vorgesehene Fluchtweg, kein Bug zum
+  Fixen.
+  **Offene Fragen vor einem Plan:**
+  - Bleibt `hardReset()` wie heute (kein Prestige-Punkt, `prestigeLevel`→0,
+    also auch der neue Baum wird geleert), oder soll der Prestige-Baum
+    davon verschont bleiben, weil er ja "dauerhafter Fortschritt" sein
+    soll? Aktuell setzt `hardReset()` auch `prestigeLevel`/`totalPrestiges`
+    zurück auf 0 — bei einem Punkte-Baum müsste das äquivalent entschieden
+    werden.
+  - Genau 1 Prestige-Punkt pro `PrestigeService.prestige()`-Aufruf (wie
+    aktuell +1 `prestigeLevel`), oder skaliert das mit erreichtem Net
+    Worth/Overshoot über der Schwelle?
+  - Ersetzt der neue Baum `prestigeMultiplierPerLevel` komplett, oder
+    laufen beide parallel (Baum zusätzlich zum flachen Bonus)?
+  - Bleibt `prestigeThresholdGrowth` (aktuell ×1.5 pro Stufe) als
+    Schwellen-Wachstum bestehen, oder braucht das eigene Abstimmung, sobald
+    der Baum reinspielt?
+  - Node-Effekte: gleiche `EffectType`-Palette wie der normale Skill-Baum
+    (HARVEST_YIELD etc., einfach dauerhaft statt pro Run), oder eigene
+    "Meta"-Effekte (z.B. Kostenkurven abflachen, Start-Ressourcen für den
+    nächsten Run, Lager-Cap dauerhaft erhöhen)?
+  - Technisch: gleiches Baum-Muster wie `SkillNodeEntity`/`SkillEdgeEntity`
+    (eigene Tabellen `prestige_nodes`/`prestige_edges`) oder eine
+    gemeinsame Tabelle mit Discriminator-Feld? Admin-Editor
+    (`SkillTreeAdminDialog.vue`) later mitbenutzen oder eigenes Tool?
+  Sobald diese Fragen geklärt sind, wird daraus ein
+  `docs/plans/`-Eintrag.
+
+## 13. Grundstücke-Paywall im Rathaus (Idee, 2026-08-13)
+
+- [ ] **Nur ein Gebäude soll am Spielstart baubar sein** — aktuell kann ein
+  Spieler theoretisch alle 6 Produktionsgebäude direkt kaufen, sobald er
+  sich die Kosten zusammengespart hat (`BuildingService` kennt kein Limit
+  für gleichzeitig besessene Gebäude, nur den Preis pro einzelnem Gebäude).
+  Geplant: weitere Gebäude-"Grundstücke" hinter einer Paywall im Rathaus —
+  solange kein Grundstück freigeschaltet ist, ist der Bau-Button für
+  weitere Gebäude im Hof-Grid komplett ausgeblendet (nicht nur unbezahlbar,
+  sondern gar nicht klickbar). Macht die "1 Gebäude"-Frühphase, die der
+  Fortschritts-Simulator (Punkt 11) simuliert, zur echten Spielregel statt
+  nur einer Spieler-Selbstbeschränkung.
+  **Entschieden (2026-08-13):** eigene Kostenkurve pro Grundstück
+  (`plotCost(n) = plotBaseCost × plotCostGrowth^n`, `n` = Anzahl bereits
+  besessener Produktionsgebäude, unabhängig vom Rathaus-Level); freie Wahl,
+  welches der verbleibenden Gebäude freigeschaltet wird; kombinierter Preis
+  (Freischalten + Bauen in einem Kauf, ersetzt den bisherigen
+  `baseCost`-Erstkauf, Level-2+-Ausbau bleibt unverändert); gesperrte
+  Gebäude im Hof-Grid sichtbar, ausgegraut, Schloss-Icon, Klick zeigt nur
+  einen Hinweis, der eigentliche Kauf passiert im Rathaus-Dialog
+  (`CitizenDialog.vue`, neue Sektion neben Bürger-Anwerben). Kein neuer
+  Endpoint nötig, `buyOrUpgrade()`/`nextLevelCost` reichen mit angepasster
+  Preisformel für den `currentLevel == 0`-Fall.
+  **Ändert die `prestigeBaseThreshold`-Kalibrierung aus Punkt 11 mit** —
+  bisher war Zuckerteich (500)/Kuhstall (600) bewusst kein Tag-1-Kauf,
+  das entfällt jetzt (alle 6 Gebäude kosten bei gleichem `n` gleich viel),
+  muss beim Umsetzen neu durch den Fortschritts-Simulator laufen.
+  Plan: `docs/plans/2026-08-13-open-grundstuecke-paywall.md`.

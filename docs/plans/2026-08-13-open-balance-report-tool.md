@@ -177,9 +177,17 @@ editierbar, kein separates Config-Format nötig):
 
 ## Wiederkehrender Einsatz
 
+Shortcut über die bestehenden Start-Skripte: `scripts/start.sh --balance`
+(bzw. `scripts\start.bat --balance` unter Windows) startet keinen Server,
+sondern ruft direkt `npm run balance:report` im `frontend`-Verzeichnis auf
+-- weitere Flags (`--static`, `--out=...`) werden 1:1 durchgereicht. Für den
+Live-Modus muss der Dev-Server separat laufen (z.B. `scripts/start.sh` in
+einem zweiten Terminal), sonst greift automatisch der `--static`-Fallback.
+
 Ablauf, wiederholbar bei jeder Balancing-Session:
 
-1. `npm run balance:report -- --live` gegen laufenden Dev-Server.
+1. `scripts/start.sh --balance` (Server läuft bereits) oder
+   `npm run balance:report -- --live` direkt im `frontend`-Verzeichnis.
 2. Entwickler bittet Claude, die neue `docs/balance-reports/*-suggestions.md`
    durchzugehen ("mach Balancing" o.ä.).
 3. Claude liest die Datei, fasst die geflaggten Punkte zusammen, bespricht

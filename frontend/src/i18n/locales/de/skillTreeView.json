@@ -18,8 +18,12 @@
   "effectStorageCapBonus": "Hauptlager-Kapazität",
   "effectBuildingBufferBonus": "Gebäude-Zwischenspeicher",
   "searchPlaceholder": "Suchen…",
-  "respecLabel": "Respec",
-  "respecClickHint": "Klicken zum Zurückgeben",
-  "respecConfirmText": "Diesen Knoten gegen den Skill-Punkt zurücktauschen? Kostet Cookies, unabhängig davon wie oft schon respeccet wurde.",
-  "respecButtonLabel": "Zurückgeben"
+  "respecLabel": "Zurücksetzen",
+  "respecModeLabel": "Zurücksetzen",
+  "respecModeHint": "Knoten anklicken zum Markieren, dann bestätigen",
+  "respecMarkHint": "Klicken zum Markieren",
+  "respecUnmarkHint": "Klicken zum Abwählen",
+  "respecSelectedCount": "{count} markiert",
+  "respecClearLabel": "Abbrechen",
+  "respecConfirmLabel": "Zurückgeben"
 }

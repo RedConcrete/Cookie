@@ -19,7 +19,11 @@
   "effectBuildingBufferBonus": "Building Buffer",
   "searchPlaceholder": "Search…",
   "respecLabel": "Respec",
-  "respecClickHint": "Click to refund",
-  "respecConfirmText": "Refund this node back into a skill point? Costs cookies, no matter how many respecs you've already done.",
-  "respecButtonLabel": "Refund"
+  "respecModeLabel": "Respec",
+  "respecModeHint": "Click nodes to mark them, then confirm",
+  "respecMarkHint": "Click to mark",
+  "respecUnmarkHint": "Click to unmark",
+  "respecSelectedCount": "{count} marked",
+  "respecClearLabel": "Cancel",
+  "respecConfirmLabel": "Refund"
 }

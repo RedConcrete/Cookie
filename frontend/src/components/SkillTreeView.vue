@@ -37,8 +37,10 @@
                 { 'stv-node-notable': n.nodeTier === 'NOTABLE' },
                 { 'stv-node-search-match': searching && matchesSearch(n) },
                 { 'stv-node-search-dim': searching && !matchesSearch(n) },
+                { 'stv-node-respec-marked': respecMode && respecSelection.includes(n.id) },
+                { 'stv-node-respec-dim': respecMode && (n.root || nodeState(n) !== 'allocated') },
               ]"
-              :disabled="!n.root && (!canAllocate(n) || allocating)"
+              :disabled="!n.root && (respecMode ? respeccing : (!canAllocate(n) || allocating))"
               @click="onNodeClick(n)"
             >
               <PixelIcon :name="nodeIcon(n)" :size="iconSize(n)" />
@@ -60,7 +62,19 @@
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
 
-        <!-- ── Suche: hebt passende Knoten hervor, dimmt den Rest ── -->
+        <!-- ── Respec-Modus: oben links, gleicher Stil wie der Admin-Editor
+             (px-btn-Toggle analog zu SkillTreeAdminDialog's "Verbinden"-Modus) ── -->
+        <div class="stv-toolbar" @mousedown.stop>
+          <button
+            class="px-btn"
+            :class="{ 'px-btn-accent': respecMode }"
+            @click="toggleRespecMode"
+          ><ShortcutSlot />{{ t('skillTreeView.respecModeLabel') }}</button>
+          <div v-if="respecMode" class="stv-hint">{{ t('skillTreeView.respecModeHint') }}</div>
+        </div>
+
+        <!-- ── Suche: oben rechts, neben dem Schließen-Button des umgebenden Dialogs
+             (SkillTreeDialog.vue's .std-close sitzt bei right:14px) ── -->
         <div class="stv-search-box" @mousedown.stop>
           <input
             type="text" class="stv-search-input"
@@ -68,6 +82,18 @@
             :placeholder="t('skillTreeView.searchPlaceholder')"
           />
           <button v-if="searchQuery" class="stv-search-clear" @click="searchQuery = ''">&times;</button>
+        </div>
+
+        <!-- ── Respec-Bestätigungsleiste: erscheint sobald mindestens ein Knoten markiert ist ── -->
+        <div v-if="respecMode && respecSelection.length > 0" class="stv-respec-bar px-panel" @mousedown.stop>
+          <span class="stv-respec-count">{{ t('skillTreeView.respecSelectedCount', { count: respecSelection.length }) }}</span>
+          <span class="stv-respec-cost">{{ fmt(respecTotalCost) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" /></span>
+          <button class="px-btn" @click="respecSelection = []">{{ t('skillTreeView.respecClearLabel') }}</button>
+          <button
+            class="px-btn px-btn-accent"
+            :disabled="!canAffordRespec || respeccing"
+            @click="confirmRespecBatch"
+          >{{ t('skillTreeView.respecConfirmLabel') }}</button>
         </div>
 
         <div v-if="notice" class="stv-notice" :class="{ error: noticeError }">{{ notice }}</div>
@@ -92,27 +118,6 @@
               @click="buyPoint"
             >
               <ShortcutSlot />{{ t('skillTreeView.buyPointLabel') }} &middot; {{ fmt(tree.nextPointCost) }}
-              <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Respec: Popup, öffnet per Klick auf einen bereits freigeschalteten Knoten ── -->
-      <div v-if="respecTarget" class="stv-buy-overlay" @click.self="respecTarget = null">
-        <div class="stv-buy-panel px-panel">
-          <div class="px-titlebar">
-            <span>{{ nodeName(respecTarget) }}</span>
-            <button class="px-close" @click="respecTarget = null"><ShortcutSlot />&times;</button>
-          </div>
-          <div class="stv-buy-panel-body stv-respec-body">
-            <p class="stv-respec-hint">{{ t('skillTreeView.respecConfirmText') }}</p>
-            <button
-              class="px-btn px-btn-accent"
-              :disabled="!canAffordRespec || respeccing"
-              @click="confirmRespec"
-            >
-              <ShortcutSlot />{{ t('skillTreeView.respecButtonLabel') }} &middot; {{ fmt(tree.respecCostFlat) }}
               <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
             </button>
           </div>
@@ -144,7 +149,13 @@ const respeccing  = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
 const buyDialogOpen = ref(false)
-const respecTarget  = ref(null)
+
+// Respec-Modus: Toggle wie "Verbinden" im Admin-Editor (SkillTreeAdminDialog.vue) --
+// solange aktiv, waehlt ein Klick auf einen freigeschalteten Knoten ihn nur zur
+// Mehrfachauswahl an/ab, statt normal zu allozieren. Bestaetigen respecced alle markierten
+// auf einmal (nacheinander, siehe confirmRespecBatch).
+const respecMode = ref(false)
+const respecSelection = ref([])
 
 // Suche: durchsucht immer beide Sprachen gleichzeitig (nicht nur die aktive UI-Sprache), damit
 // z.B. "Milch" auch im EN-Modus gefunden wird. Filtert nicht durch Ausblenden (würde Kanten/
@@ -248,7 +259,10 @@ function nodeRows(n) {
   const state = nodeState(n)
   if (state === 'allocated') {
     rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' })
-    rows.push({ k: t('skillTreeView.respecLabel'), v: t('skillTreeView.respecClickHint'), color: 'y' })
+    if (respecMode.value && !n.root) {
+      const hint = respecSelection.value.includes(n.id) ? 'skillTreeView.respecUnmarkHint' : 'skillTreeView.respecMarkHint'
+      rows.push({ k: t('skillTreeView.respecLabel'), v: t(hint), color: 'y' })
+    }
     return rows
   }
   if (state === 'allocatable') {
@@ -275,9 +289,69 @@ async function buyPoint() {
 }
 
 function onNodeClick(n) {
+  if (respecMode.value) { toggleRespecSelect(n); return }
   if (n.root) { buyDialogOpen.value = true; return }
-  if (nodeState(n) === 'allocated') { respecTarget.value = n; return }
   allocate(n)
+}
+
+function toggleRespecMode() {
+  respecMode.value = !respecMode.value
+  respecSelection.value = []
+}
+
+function toggleRespecSelect(n) {
+  if (n.root || nodeState(n) !== 'allocated') return
+  const idx = respecSelection.value.indexOf(n.id)
+  if (idx === -1) respecSelection.value = [...respecSelection.value, n.id]
+  else respecSelection.value = respecSelection.value.filter(id => id !== n.id)
+}
+
+const respecTotalCost = computed(() => respecSelection.value.length * (tree.value.respecCostFlat ?? 0))
+const canAffordRespec = computed(() => playerStore.cookies >= respecTotalCost.value)
+
+// Bestaetigen respecced mehrere Knoten in EINEM Rutsch, der Backend-Endpunkt entfernt aber nur
+// einen pro Aufruf (siehe docs/plans/2026-08-10-done-skillbaum-respec.md -- bewusste
+// Design-Entscheidung, kein Bulk-Endpoint). Reihenfolge ist deshalb wichtig: ein Elternknoten
+// darf erst entfernt werden, NACHDEM alle mit-ausgewaehlten Kindknoten schon weg sind, sonst
+// meldet der Server "wuerde X abschneiden", obwohl die komplette Auswahl zusammen eigentlich
+// gueltig waere. Tiefe ab root (nur ueber aktuell allozierte Knoten) bestimmt die Reihenfolge:
+// tiefste zuerst.
+function nodeDepthsFromRoot() {
+  const byId = Object.fromEntries(tree.value.nodes.map(n => [n.id, n]))
+  const depth = { root: 0 }
+  const queue = ['root']
+  while (queue.length) {
+    const cur = queue.shift()
+    for (const e of (tree.value.edges || [])) {
+      const other = e.from === cur ? e.to : (e.to === cur ? e.from : null)
+      if (!other || depth[other] !== undefined) continue
+      const otherNode = byId[other]
+      if (!otherNode || !otherNode.allocated) continue
+      depth[other] = depth[cur] + 1
+      queue.push(other)
+    }
+  }
+  return depth
+}
+
+async function confirmRespecBatch() {
+  if (respeccing.value || respecSelection.value.length === 0 || !canAffordRespec.value) return
+  respeccing.value = true
+  const depths = nodeDepthsFromRoot()
+  const order = [...respecSelection.value].sort((a, b) => (depths[b] ?? -1) - (depths[a] ?? -1))
+  try {
+    for (const nodeId of order) {
+      playerStore.skillTree = await deallocateSkillNode(playerStore.steamId, nodeId)
+      respecSelection.value = respecSelection.value.filter(id => id !== nodeId)
+    }
+    const dto = await getPlayer(playerStore.steamId)
+    playerStore.updateFromDto(dto)
+    respecMode.value = false
+  } catch (e) {
+    flash(e.message, true)
+  } finally {
+    respeccing.value = false
+  }
 }
 
 async function allocate(n) {
@@ -289,23 +363,6 @@ async function allocate(n) {
     flash(e.message, true)
   } finally {
     allocating.value = false
-  }
-}
-
-const canAffordRespec = computed(() => playerStore.cookies >= (tree.value.respecCostFlat ?? 0))
-
-async function confirmRespec() {
-  if (respeccing.value || !respecTarget.value || !canAffordRespec.value) return
-  respeccing.value = true
-  try {
-    playerStore.skillTree = await deallocateSkillNode(playerStore.steamId, respecTarget.value.id)
-    const dto = await getPlayer(playerStore.steamId)
-    playerStore.updateFromDto(dto)
-    respecTarget.value = null
-  } catch (e) {
-    flash(e.message, true)
-  } finally {
-    respeccing.value = false
   }
 }
 
@@ -453,9 +510,6 @@ onMounted(async () => {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 18px;
 }
-.stv-respec-body { flex-direction: column; align-items: stretch; gap: 14px; }
-.stv-respec-hint { margin: 0; font-size: 13px; line-height: 1.5; color: var(--px-tan-ink); }
-
 .stv-hud-points { display: flex; align-items: center; gap: 6px; }
 .stv-hud-val { font-family: 'Silkscreen', monospace; font-size: 15px; color: #56642e; }
 .stv-hud-label { font-size: 11px; color: var(--px-tan-ink); }
@@ -532,6 +586,12 @@ onMounted(async () => {
 .stv-node-keystone {
   border-width: 5px;
   border-color: var(--px-red-lt);
+}
+/* Puls-Glow nur wenn tatsaechlich alloziert -- vorher pulsierte JEDER Keystone auf der Karte
+   (auch weit entfernte, noch gesperrte), das sah nach "hier ist was Wichtiges freigeschaltet"
+   aus obwohl nichts freigeschaltet war (Spieler-Feedback). Rahmenstaerke/-farbe oben bleibt
+   erhalten, damit Keystones auf der Karte weiterhin als solche erkennbar sind, auch gesperrt. */
+.stv-node-keystone.stv-node-allocated {
   animation: stv-keystone-glow 2s ease-in-out infinite;
 }
 @keyframes stv-keystone-glow {
@@ -553,8 +613,39 @@ onMounted(async () => {
   50%      { box-shadow: 0 0 0 3px var(--px-green-lt), 0 0 14px 4px var(--px-green), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
 }
 
-.stv-search-box {
+/* Respec-Modus: nicht-allozierte Knoten sind waehrenddessen nicht anklickbar (siehe
+   :disabled-Bindung) und werden entsprechend gedimmt. Fuer Markierung bewusst rot statt dem
+   gruenen Such-Glow (visuell klar getrennt: "wird entfernt" vs. "Treffer"). */
+.stv-node-respec-dim {
+  filter: saturate(0.3) brightness(0.5);
+}
+.stv-node-respec-marked {
+  animation: stv-respec-glow 1.1s ease-in-out infinite;
+}
+@keyframes stv-respec-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--px-red), 0 0 8px 2px var(--px-red-lt), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+  50%      { box-shadow: 0 0 0 3px var(--px-red-lt), 0 0 14px 4px var(--px-red), inset -2px -2px 0 rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.25); }
+}
+
+.stv-toolbar {
   position: absolute; top: 14px; left: 14px; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+}
+.stv-hint {
+  font-size: 11px; font-family: 'Silkscreen', monospace; color: var(--px-tan);
+  background: rgba(16,11,7,.6); padding: 4px 8px;
+}
+
+.stv-respec-bar {
+  position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); z-index: 25;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+}
+.stv-respec-count { font-size: 12px; color: var(--px-tan-ink); }
+.stv-respec-cost { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink); display: flex; align-items: center; }
+
+.stv-search-box {
+  position: absolute; top: 14px; right: 60px; z-index: 20;
   display: flex; align-items: center; gap: 4px;
   padding: 6px 8px;
   background: var(--px-wood3); border: 3px solid var(--px-ink);

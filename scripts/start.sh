@@ -5,6 +5,19 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
+# --balance: kein Server-Start, stattdessen nur das Balance-Report-Tool laufen
+# lassen (frontend/scripts/balance-report.mjs, siehe
+# docs/plans/2026-08-13-open-balance-report-tool.md). Läuft im Live-Modus
+# gegen einen bereits per separatem `start.sh`-Aufruf laufenden Dev-Server,
+# sonst faellt das Tool selbst automatisch auf --static zurueck. Weitere
+# Flags (--static, --out=...) werden 1:1 durchgereicht.
+if [ "$1" = "--balance" ]; then
+  shift
+  cd "$REPO/frontend"
+  npm run balance:report -- "$@"
+  exit $?
+fi
+
 # Java 21 (falls JAVA_HOME nicht gesetzt oder falsch, per which java ableiten)
 if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
   JAVA_BIN="$(command -v java)"

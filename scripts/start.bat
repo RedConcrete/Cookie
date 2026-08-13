@@ -1,4 +1,12 @@
 @echo off
+
+if "%1"=="--balance" (
+  echo Running Balance Report...
+  cd /d %~dp0..\frontend
+  npm run balance:report -- %2 %3 %4
+  exit /b %errorlevel%
+)
+
 echo Starting Cookie Game...
 
 echo [1/2] Starting Backend (Spring Boot on port 9876)...
