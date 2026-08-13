@@ -448,7 +448,8 @@ spezifiziert ist:
     bestehende (geseedete) Nodes verschieben/verbinden, keine komplett
     neuen anlegen. Bräuchte einen neuen `POST /admin/skilltree/nodes`-
     Endpoint (frei wählbare ID) + `DELETE` + Klick-auf-leere-Fläche-
-    erstellt-Node o.ä. im Frontend.
+    erstellt-Node o.ä. im Frontend. Plan:
+    `docs/plans/2026-08-13-open-skillbaum-admin-nodes-crud.md`.
   - [ ] **Ganzen Baum als JSON exportieren/importieren** — damit sich ein
     Skill-Baum für die nächste Season vorab (lokal, ohne Live-Server)
     planen und danach vor Season-Start auf den Server hochladen lässt,
@@ -465,7 +466,8 @@ spezifiziert ist:
     mitkopieren) statt jeden neuen Node einzeln von Hand anzulegen. Baut auf
     dem "Neue Nodes erstellen"-Punkt oben auf (braucht den
     `POST /admin/skilltree/nodes`-Endpoint), spart danach beim Erweitern
-    des Baums viel Klickarbeit.
+    des Baums viel Klickarbeit. Plan:
+    `docs/plans/2026-08-13-open-skillbaum-admin-node-clone.md`.
 - [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
   Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
   Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`
