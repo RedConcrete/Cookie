@@ -20,7 +20,9 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -607,6 +609,88 @@ public class SkillTreeService {
                 allocated.contains(e.getFromNode().equals(nodeId) ? e.getToNode() : e.getFromNode()));
     }
 
+    // ── Respec (Knoten gegen Cookies zurückgeben) ───────────────────────
+    // User-Entscheidung (siehe docs/plans/2026-08-10-open-skillbaum-respec.md): immer derselbe
+    // Flat-Preis pro entferntem Knoten, kein Wachstum wie bei der Skill-Punkt-Kaufkurve.
+
+    @Transactional
+    public SkillTreeDto deallocateNode(String userId, String nodeId) {
+        SkillNodeEntity nodeEntity = nodeCache.get(nodeId);
+        if (nodeEntity == null) throw new NoSuchElementException("Skill node not found: " + nodeId);
+        if (nodeEntity.isRoot()) throw new IllegalArgumentException("Root kann nicht entfernt werden.");
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+
+        Set<String> allocated = allocatedNodeIds(userId);
+        if (!allocated.contains(nodeId)) {
+            throw new IllegalStateException("Knoten ist nicht freigeschaltet.");
+        }
+        if (user.getCookies() < balance.getRespecCostFlat()) {
+            throw new IllegalArgumentException("Nicht genug Cookies für Respec.");
+        }
+
+        Set<String> remaining = new HashSet<>(allocated);
+        remaining.remove(nodeId);
+
+        List<SkillEdgeEntity> allEdges = skillEdgeRepository.findAll();
+        Set<String> reachable = reachableFromRoot(remaining, allEdges);
+        for (String other : allocated) {
+            if (other.equals(nodeId) || other.equals(ROOT_ID)) continue;
+            if (!reachable.contains(other)) {
+                throw new IllegalStateException(
+                        "Knoten kann nicht entfernt werden -- " + other + " würde vom Baum abgeschnitten.");
+            }
+            // Reine Erreichbarkeit reicht bei requiresAllPrereqs-Knoten nicht (Undirected-BFS
+            // findet sie ggf. noch ueber den jeweils ANDEREN Pflicht-Nachbarn) -- deren
+            // AND-Bedingung muss zusaetzlich separat weiterhin erfuellt sein, sonst koennte ein
+            // Respec z.B. bridge_bake_market mit nur noch einem der zwei Pflicht-Vorgaenger
+            // alloziert stehen lassen.
+            SkillNodeEntity otherEntity = nodeCache.get(other);
+            if (otherEntity != null && otherEntity.isRequiresAllPrereqs()) {
+                boolean allPrereqsStillAllocated = allEdges.stream()
+                        .filter(e -> e.getToNode().equals(other))
+                        .allMatch(e -> remaining.contains(e.getFromNode()));
+                if (!allPrereqsStillAllocated) {
+                    throw new IllegalStateException(
+                            "Knoten kann nicht entfernt werden -- " + other + " würde eine Voraussetzung verlieren.");
+                }
+            }
+        }
+
+        user.setCookies(user.getCookies() - balance.getRespecCostFlat());
+        user.setSkillPoints(user.getSkillPoints() + 1);
+        userRepository.save(user);
+        playerSkillNodeRepository.deleteById(userId + "#" + nodeId);
+
+        return getTreeStatus(userId);
+    }
+
+    // BFS ab root, nur ueber Kanten die zu Knoten in allocatedSet (oder root selbst) fuehren --
+    // eigene Methode statt isAdjacentToAllocated()-Wiederverwendung, weil die nur direkte
+    // Nachbarschaft prueft (reicht fuer Allokation), Respec aber echte transitive
+    // Erreichbarkeit ueber den ganzen verbleibenden Baum braucht (sonst uebersieht man z.B.
+    // Ketten wie root-A-B-C, bei denen B entfernt A zwar noch direkt an root haengt, C aber
+    // trotzdem abgeschnitten waere).
+    private Set<String> reachableFromRoot(Set<String> allocatedSet, List<SkillEdgeEntity> allEdges) {
+        Set<String> visited = new HashSet<>();
+        Deque<String> queue = new ArrayDeque<>();
+        queue.add(ROOT_ID);
+        visited.add(ROOT_ID);
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            for (SkillEdgeEntity e : allEdges) {
+                if (!e.getFromNode().equals(current) && !e.getToNode().equals(current)) continue;
+                String neighbor = e.getFromNode().equals(current) ? e.getToNode() : e.getFromNode();
+                if (visited.contains(neighbor)) continue;
+                if (!neighbor.equals(ROOT_ID) && !allocatedSet.contains(neighbor)) continue;
+                visited.add(neighbor);
+                queue.add(neighbor);
+            }
+        }
+        return visited;
+    }
+
     // ── Status-DTO ───────────────────────────────────────────────────
 
     public SkillTreeDto getTreeStatus(String userId) {
@@ -648,6 +732,7 @@ public class SkillTreeService {
         dto.setTotalSkillPointsBought(user.getTotalSkillPointsBought());
         dto.setTotalSkillPointCookiesSpent(user.getTotalSkillPointCookiesSpent());
         dto.setNextPointCost(nextPointCost(user.getTotalSkillPointsBought()));
+        dto.setRespecCostFlat(balance.getRespecCostFlat());
         return dto;
     }
 }

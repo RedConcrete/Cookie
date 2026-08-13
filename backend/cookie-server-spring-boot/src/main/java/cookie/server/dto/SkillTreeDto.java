@@ -9,6 +9,7 @@ public class SkillTreeDto {
     private int totalSkillPointsBought;
     private double totalSkillPointCookiesSpent;
     private double nextPointCost;
+    private double respecCostFlat;
 
     public List<SkillNodeStatusDto> getNodes() { return nodes; }
     public void setNodes(List<SkillNodeStatusDto> nodes) { this.nodes = nodes; }
@@ -27,4 +28,7 @@ public class SkillTreeDto {
 
     public double getNextPointCost() { return nextPointCost; }
     public void setNextPointCost(double nextPointCost) { this.nextPointCost = nextPointCost; }
+
+    public double getRespecCostFlat() { return respecCostFlat; }
+    public void setRespecCostFlat(double respecCostFlat) { this.respecCostFlat = respecCostFlat; }
 }

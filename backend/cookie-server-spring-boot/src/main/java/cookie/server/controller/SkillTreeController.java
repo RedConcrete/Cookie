@@ -32,4 +32,11 @@ public class SkillTreeController {
             @RequestBody AllocateNodeRequestDto request) {
         return ResponseEntity.ok(skillTreeService.allocateNode(userId, request.getNodeId()));
     }
+
+    @PostMapping("/deallocate/{userId}")
+    public ResponseEntity<SkillTreeDto> deallocate(
+            @PathVariable String userId,
+            @RequestBody AllocateNodeRequestDto request) {
+        return ResponseEntity.ok(skillTreeService.deallocateNode(userId, request.getNodeId()));
+    }
 }

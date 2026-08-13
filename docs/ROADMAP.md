@@ -799,10 +799,18 @@ Backlog dokumentiert.
   `docs/cookie-game-design.md` §9),
   `2026-08-10-open-skillbaum-bau-buerger-branch.md`
   (CONSTRUCTION-Branch, Gebäudekosten/Lohn),
-  `2026-08-10-open-skillbaum-respec.md` (Punkte gegen Cookies zurückgeben,
-  fixer Preis, konnektivitäts-sicher),
-  `2026-08-10-open-skillbaum-suche-buildplanung.md` (Such-/Filter-UI +
-  erweiterte Tooltips),
+  `2026-08-10-done-skillbaum-respec.md` — **umgesetzt (2026-08-12)**:
+  flacher Fix-Preis (`respecCostFlat`), ein Knoten pro Aufruf,
+  konnektivitäts-sicher (`reachableFromRoot()` + separater
+  `requiresAllPrereqs`-Check für `bridge_bake_market`), gegen einen
+  Wegwerf-Testnutzer end-to-end verifiziert,
+  `2026-08-10-open-skillbaum-suche-buildplanung.md` — Such-/Filter-UI
+  **umgesetzt (2026-08-12)**, in Spieler- **und** Admin-Baum (Toolbar-Suche,
+  Treffer pulsieren grün, Rest gedimmt). Tooltip-Erweiterung um
+  **Folgeknoten-Namen** (welche Knoten von hier aus als Nächstes erreichbar
+  wären) bewusst zurückgestellt, war nicht angefragt — bei Bedarf später:
+  `nodeRows(n)` in `SkillTreeView.vue` um einen Lookup über `tree.edges`
+  erweitern (kein neuer Backend-Wert nötig, Kanten sind schon geladen).
   `2026-08-10-open-skillbaum-automatisierung.md` (Auto-Sammeln/-Verkauf/
   -Backen + ressourcen-unabhängige Hover-Boni, User-Idee vom 2026-08-10).
   Jede Datei einzeln auf ✅/`-done-` umstellen, sobald umgesetzt.
@@ -916,3 +924,16 @@ Backlog dokumentiert.
   (`composables/useIdleTimeout.js`) schickt bei Inaktivität zurück ins
   Hauptmenü und räumt Bake-Poll/Markt-Websocket ab. Kein Warn-Dialog (bewusst
   weggelassen, siehe `docs/plans/2026-08-11-open-afk-timeout.md`).
+
+## 11. Balancing-Report-Tool (Idee, 2026-08-13)
+
+- [ ] **Wiederholbares Skript, das Markt-, Gebäude-, Bürger/Lohn- und
+  Skill-Punkte/Keystone-Kurven gegen Zielbänder prüft** — aktuell wird an
+  `GameBalanceConfig`/`MarketConfig`/Skill-Node-Werten nach Gefühl gedreht,
+  ohne systematischen Check auf Payback-Perioden, Keystone-Bonus/Malus-
+  Verhältnisse oder Markt-Slippage. Externe Tools (Machinations.io,
+  Google Sheets) recherchiert, aber verworfen — würden ein zweites,
+  driftendes Wirtschaftsmodell neben dem echten Java-Code bedeuten.
+  Stattdessen: `frontend/scripts/balance-report.mjs` liest Live-Werte direkt
+  vom Dev-Server, rechnet die echten Formeln nach, markiert Ausreißer.
+  Plan: `docs/plans/2026-08-13-open-balance-report-tool.md`.

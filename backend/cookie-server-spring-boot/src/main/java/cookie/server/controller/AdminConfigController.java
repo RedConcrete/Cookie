@@ -115,6 +115,7 @@ public class AdminConfigController {
         balanceConfig.setPrestigeMultiplierPerLevel(update.getPrestigeMultiplierPerLevel());
         balanceConfig.setSkillPointBaseCost(update.getSkillPointBaseCost());
         balanceConfig.setSkillPointCostGrowth(update.getSkillPointCostGrowth());
+        balanceConfig.setRespecCostFlat(update.getRespecCostFlat());
 
         return ResponseEntity.ok(balanceConfig);
     }

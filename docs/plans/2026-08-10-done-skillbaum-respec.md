@@ -1,6 +1,22 @@
-# ⏳ Skillbaum: Respec (Punkte zurückgeben)
+# ✅ Skillbaum: Respec (Punkte zurückgeben)
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-12). Genau wie geplant gebaut: flacher
+> Fix-Preis (`respecCostFlat`, Default 300, live-tunbar), ein Knoten pro
+> Aufruf, `totalSkillPointsBought`/`totalSkillPointCookiesSpent`
+> unangetastet. Eine Ergänzung ggü. dem Plan-Entwurf: die
+> Konnektivitäts-Prüfung läuft nicht mehr N-mal BFS (einmal pro noch
+> alloziertem Knoten), sondern einmal `reachableFromRoot()` über den
+> gesamten verbleibenden Baum, danach nur noch ein Mengen-Check pro Knoten
+> -- spart bei ~70 Knoten unnötige wiederholte Traversierungen. Zusätzlich
+> ein Bug im Plan-Entwurf beim Bauen gefunden und geschlossen: reine
+> Erreichbarkeits-Prüfung hätte einen `requiresAllPrereqs`-Knoten (aktuell
+> nur `bridge_bake_market`) fälschlich für entfernbar gehalten, wenn nur
+> einer seiner zwei Pflicht-Vorgänger respeccet wird (der andere hält ihn
+> ja noch "erreichbar") -- eigener Zusatz-Check verhindert das jetzt. Gegen
+> einen echten Wegwerf-Testnutzer verifiziert: Fork-Abschneiden blockiert,
+> Ketten-Abschneiden (mehrere Hops) blockiert, gültiger Blatt-Respec
+> erfolgreich mit korrekter Cookie-/Punkte-Buchung, danach wieder
+> gelöscht.
 
 ## Context
 

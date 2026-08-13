@@ -90,6 +90,12 @@ public class GameBalanceConfig {
      * wieder aktiv ist. Gespiegelt ans Frontend über ConfigController. */
     private int afkTimeoutMinutes = 10;
 
+    /** Flacher Cookie-Preis, um einen einzelnen Skill-Knoten zurückzugeben (Respec) --
+     * bewusst kein Wachstum wie bei skillPointBaseCost/-CostGrowth, User-Entscheidung
+     * (siehe docs/plans/2026-08-10-open-skillbaum-respec.md): jeder Respec kostet immer
+     * denselben Betrag, egal wie oft schon respeccet wurde. */
+    private double respecCostFlat = 300;
+
     public double getBaseStorageCap() { return baseStorageCap; }
     public void setBaseStorageCap(double v) { this.baseStorageCap = v; }
 
@@ -146,4 +152,7 @@ public class GameBalanceConfig {
 
     public double getDebtLimitMultiplier() { return debtLimitMultiplier; }
     public void setDebtLimitMultiplier(double v) { this.debtLimitMultiplier = v; }
+
+    public double getRespecCostFlat() { return respecCostFlat; }
+    public void setRespecCostFlat(double v) { this.respecCostFlat = v; }
 }

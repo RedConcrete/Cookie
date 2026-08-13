@@ -97,6 +97,27 @@
           </div>
         </div>
       </div>
+
+      <!-- ── Respec: Popup, öffnet per Klick auf einen bereits freigeschalteten Knoten ── -->
+      <div v-if="respecTarget" class="stv-buy-overlay" @click.self="respecTarget = null">
+        <div class="stv-buy-panel px-panel">
+          <div class="px-titlebar">
+            <span>{{ nodeName(respecTarget) }}</span>
+            <button class="px-close" @click="respecTarget = null"><ShortcutSlot />&times;</button>
+          </div>
+          <div class="stv-buy-panel-body stv-respec-body">
+            <p class="stv-respec-hint">{{ t('skillTreeView.respecConfirmText') }}</p>
+            <button
+              class="px-btn px-btn-accent"
+              :disabled="!canAffordRespec || respeccing"
+              @click="confirmRespec"
+            >
+              <ShortcutSlot />{{ t('skillTreeView.respecButtonLabel') }} &middot; {{ fmt(tree.respecCostFlat) }}
+              <PixelIcon name="cookie" :size="12" style="margin-left:5px;vertical-align:-2px" />
+            </button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -105,7 +126,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
-import { buySkillPoint, allocateSkillNode, getPlayer } from '../services/api.js'
+import { buySkillPoint, allocateSkillNode, deallocateSkillNode, getPlayer } from '../services/api.js'
 import { fmt2 as fmt } from '../utils/formatNumber.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
@@ -119,9 +140,11 @@ const playerStore = usePlayerStore()
 const loading   = ref(true)
 const buying    = ref(false)
 const allocating = ref(false)
+const respeccing  = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
 const buyDialogOpen = ref(false)
+const respecTarget  = ref(null)
 
 // Suche: durchsucht immer beide Sprachen gleichzeitig (nicht nur die aktive UI-Sprache), damit
 // z.B. "Milch" auch im EN-Modus gefunden wird. Filtert nicht durch Ausblenden (würde Kanten/
@@ -223,7 +246,11 @@ function nodeRows(n) {
   if (n.root) return [{ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.rootBuyHint'), color: 'y' }]
   const rows = effectRows(n)
   const state = nodeState(n)
-  if (state === 'allocated') { rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' }); return rows }
+  if (state === 'allocated') {
+    rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.statusAllocated'), color: 'g' })
+    rows.push({ k: t('skillTreeView.respecLabel'), v: t('skillTreeView.respecClickHint'), color: 'y' })
+    return rows
+  }
   if (state === 'allocatable') {
     rows.push({ k: t('skillTreeView.costLabel'), v: t('skillTreeView.costOnePoint'), color: 'y' })
     if (tree.value.skillPoints < 1) rows.push({ k: t('skillTreeView.statusLabel'), v: t('skillTreeView.noPointsLeft'), color: 'w' })
@@ -249,6 +276,7 @@ async function buyPoint() {
 
 function onNodeClick(n) {
   if (n.root) { buyDialogOpen.value = true; return }
+  if (nodeState(n) === 'allocated') { respecTarget.value = n; return }
   allocate(n)
 }
 
@@ -261,6 +289,23 @@ async function allocate(n) {
     flash(e.message, true)
   } finally {
     allocating.value = false
+  }
+}
+
+const canAffordRespec = computed(() => playerStore.cookies >= (tree.value.respecCostFlat ?? 0))
+
+async function confirmRespec() {
+  if (respeccing.value || !respecTarget.value || !canAffordRespec.value) return
+  respeccing.value = true
+  try {
+    playerStore.skillTree = await deallocateSkillNode(playerStore.steamId, respecTarget.value.id)
+    const dto = await getPlayer(playerStore.steamId)
+    playerStore.updateFromDto(dto)
+    respecTarget.value = null
+  } catch (e) {
+    flash(e.message, true)
+  } finally {
+    respeccing.value = false
   }
 }
 
@@ -408,6 +453,9 @@ onMounted(async () => {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 16px 18px;
 }
+.stv-respec-body { flex-direction: column; align-items: stretch; gap: 14px; }
+.stv-respec-hint { margin: 0; font-size: 13px; line-height: 1.5; color: var(--px-tan-ink); }
+
 .stv-hud-points { display: flex; align-items: center; gap: 6px; }
 .stv-hud-val { font-family: 'Silkscreen', monospace; font-size: 15px; color: #56642e; }
 .stv-hud-label { font-size: 11px; color: var(--px-tan-ink); }

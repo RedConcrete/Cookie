@@ -66,6 +66,11 @@ export function allocateSkillNode(steamId, nodeId) {
   return request('POST', `/api/v1/skilltree/allocate/${steamId}`, { nodeId })
 }
 
+// Respec: give back an allocated skill node (spends respecCostFlat cookies, refunds 1 skill point).
+export function deallocateSkillNode(steamId, nodeId) {
+  return request('POST', `/api/v1/skilltree/deallocate/${steamId}`, { nodeId })
+}
+
 // Fetch global leaderboard sorted by net worth.
 export function getLeaderboard() {
   return request('GET', '/api/v1/leaderboard')

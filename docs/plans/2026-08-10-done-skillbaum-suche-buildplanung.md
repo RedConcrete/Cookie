@@ -1,14 +1,23 @@
-# ⏳ Skillbaum: Suche/Filter + Tooltip-Ausbau (Build-Vorschau-Vorbereitung)
+# ✅ Skillbaum: Suche/Filter + Tooltip-Ausbau (Build-Vorschau-Vorbereitung)
 
-> **Status:** ⏳ Teilweise umgesetzt (2026-08-12). **Suche/Filter fertig** —
-> nicht nur in `SkillTreeView.vue` (Spieler) wie ursprünglich geplant,
-> sondern auf Nutzerwunsch gleich auch in `SkillTreeAdminDialog.vue`
-> (Admin) gebaut: Suchfeld, `matchesSearch(n)` durchsucht alle 4
-> Sprachfelder gleichzeitig, Treffer pulsieren grün, Rest wird gedimmt
-> (`stv-node-search-match/-dim` bzw. `sta-node-search-match/-dim`). **Noch
-> offen:** die Tooltip-Erweiterung um Folgeknoten-Namen (Effekt-Liste im
-> Tooltip war zu dem Zeitpunkt schon aus dem Fundament-Plan vorhanden, siehe
-> unten) — war nicht Teil der aktuellen Anfrage.
+> **Status:** ✅ Suche/Filter umgesetzt (2026-08-12) — Tooltip-Folgeknoten
+> gestrichen, siehe unten.
+
+**Suche/Filter fertig** — nicht nur in `SkillTreeView.vue` (Spieler) wie
+ursprünglich geplant, sondern auf Nutzerwunsch gleich auch in
+`SkillTreeAdminDialog.vue` (Admin) gebaut: Suchfeld, `matchesSearch(n)`
+durchsucht alle 4 Sprachfelder gleichzeitig, Treffer pulsieren grün, Rest
+wird gedimmt (`stv-node-search-match/-dim` bzw.
+`sta-node-search-match/-dim`).
+
+**Tooltip-Erweiterung um Folgeknoten-Namen: bewusst gestrichen (2026-08-12,
+User-Entscheidung)** — nicht gebaut, kein Bedarf aktuell. Kurz-Notiz für
+später in `docs/ROADMAP.md` Abschnitt 4 hinterlegt (Umsetzungsskizze:
+`nodeRows(n)` in `SkillTreeView.vue` um einen Lookup über `tree.edges`
+erweitern, kein neuer Backend-Wert nötig). Die andere Tooltip-Erweiterung
+aus diesem Plan (Mehrfach-Effekt-Anzeige mit Vor-/Nachteil-Farbcodierung)
+war zum Zeitpunkt dieser Entscheidung bereits aus dem Fundament-Plan
+(`2026-08-10-done-skillbaum-wheel-keystones.md`) vorhanden.
 
 ## Context
 

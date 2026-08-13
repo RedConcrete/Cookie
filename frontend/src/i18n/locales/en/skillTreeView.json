@@ -17,5 +17,9 @@
   "effectResourceWageReduction": "Building Wage",
   "effectStorageCapBonus": "Main Storage Capacity",
   "effectBuildingBufferBonus": "Building Buffer",
-  "searchPlaceholder": "Search…"
+  "searchPlaceholder": "Search…",
+  "respecLabel": "Respec",
+  "respecClickHint": "Click to refund",
+  "respecConfirmText": "Refund this node back into a skill point? Costs cookies, no matter how many respecs you've already done.",
+  "respecButtonLabel": "Refund"
 }
