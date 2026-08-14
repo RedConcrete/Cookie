@@ -828,19 +828,28 @@ Backlog dokumentiert.
 
 ---
 
-## 8. AI-Driven Testing (Idee, 2026-08-11)
+## 8. AI-Driven Testing + Balancing (2026-08-11, zusammengeführt 2026-08-14)
 
-- [ ] **Alles im Spiel soll später per KI-Tools testbar sein.** Ziel: MCP-
-  Schnittstellen bauen, die Spielaktionen (klicken, Gebäude kaufen, Markt
-  handeln, Skill-Punkte setzen, etc.) für KI-Agents zugänglich machen, damit
-  ein Agent das Spiel automatisiert durchspielen und dabei Bugs/Balance-
-  Probleme finden kann (v.a. relevant für die AMM-Markt-Wirtschaft, siehe
-  Abschnitt 6 `cookie-game-design.md`). **Ausdrücklich nur Dev-Umgebung,
-  nie aktive Nutzung in Produktiv.** Architektur-Vorschlag (v1: MCP-Server
-  wrappt bestehende REST-API, spielt als Dev-Player, Scope zuerst Markt/Farm;
-  v2: mehrere simulierte Spieler gleichzeitig für Race-Condition-/Pentest-
-  Findung) jetzt in `docs/plans/2026-08-11-open-mcp-ki-testing.md` — noch
-  offene Fragen dort (ein Server vs. mehrere, Playwright-Anbindung ja/nein).
+- [x] **v0: Balance-Report-Skript** (`frontend/scripts/balance-report.mjs`,
+  `npm run balance:report`) — bereits umgesetzt am 2026-08-13, hat u.a.
+  `prestigeBaseThreshold` kalibriert (100.000 → 4500).
+- [x] **v1: MCP-Server, Single-Dev-Player-Tools** (`tools/mcp-testing-server/`)
+  — umgesetzt 2026-08-14. Fünf Tools (`game_get_state`, `market_buy`,
+  `market_sell`, `farm_harvest`, `farm_collect_building`), spielt als
+  `DEV_PLAYER_001` über die normalen Gameplay-Endpunkte. **Ausdrücklich nur
+  Dev-Umgebung** — Leitplanke prüft vor jedem Tool-Call `devMode:true` +
+  Localhost-Whitelist gegen `GET /api/v1/config`, verweigert sonst jede
+  Aktion. Live verifiziert inkl. Negative-Amount-Exploit-Regressionstest.
+- [ ] **v2: Mehrspieler-Simulation & Pentest** — mehrere simulierte
+  Dev-Player gleichzeitig für Race-Condition-/Lost-Update-Bugs (z.B.
+  `MarketService.performAction`, `PassiveIncomeService.collectBuilding`),
+  danach gezielte Exploit-Regressionstests gegen bereits gefixte Bugs.
+- [ ] **v3: Dynamische Balance-Validierung** — echte MCP-Agent-Handelsdaten
+  als neuer `--dynamic`-Modus ins Balance-Report-Skript einspeisen, reale
+  Preisbewegungen/Payback neben die idealisierten Formel-Kurven aus v0
+  stellen.
+  Details/Architektur zu allen vier Stufen:
+  `docs/plans/2026-08-14-open-mcp-ki-testing-balancing.md`.
 
 ---
 

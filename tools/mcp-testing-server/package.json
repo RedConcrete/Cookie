@@ -1,0 +1,15 @@
+{
+  "name": "cookie-mcp-testing-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only MCP server wrapping the Cookie REST API so an AI agent can play as DEV_PLAYER_001 for automated testing. Never usable against a non-dev-mode backend, see src/guardrail.mjs.",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  }
+}
