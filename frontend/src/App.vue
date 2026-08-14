@@ -24,6 +24,7 @@ import { useBakeStore } from './stores/bake.js'
 import { useAudio } from './composables/useAudio.js'
 import { useIdleTimeout } from './composables/useIdleTimeout.js'
 import { disconnectMarketWebSocket } from './services/websocket.js'
+import { authenticateSteamSession, setSessionToken } from './services/api.js'
 import LoadingIndicator from './components/pixel/LoadingIndicator.vue'
 import LandingView from './components/LandingView.vue'
 import MainMenuView from './components/MainMenuView.vue'
@@ -99,10 +100,32 @@ onMounted(async () => {
     mainMenuReady.value = true
     return
   }
+  // Rueckweg vom Steam-OpenID-Web-Login (siehe backend AuthController#steamCallback) --
+  // Session ist server-seitig bereits erstellt, hier nur uebernehmen.
+  if (params.has('webSession')) {
+    setSessionToken(params.get('webSession'))
+    authInfo.value = { steamId: params.get('steamId'), name: params.get('name') || null }
+    mainMenuReady.value = true
+    history.replaceState({}, '', location.pathname)
+    return
+  }
+  if (params.has('authError')) {
+    blocked.value = true
+    history.replaceState({}, '', location.pathname)
+    return
+  }
   if (window.electronAPI) {
-    window.electronAPI.onSteamAuth(({ steamId, name }) => {
-      authInfo.value = { steamId, name }
-      mainMenuReady.value = true
+    window.electronAPI.onSteamAuth(async ({ steamId, name, ticket }) => {
+      try {
+        // Tauscht das Steam-Ticket gegen eine Server-Session (siehe api.js) -- ohne
+        // gueltige Session lehnt der Server in Produktion jeden Gameplay-Call ab.
+        await authenticateSteamSession(steamId, ticket)
+        authInfo.value = { steamId, name }
+        mainMenuReady.value = true
+      } catch (err) {
+        console.error('[Auth] Steam-Session fehlgeschlagen:', err.message)
+        blocked.value = true
+      }
     })
     return
   }

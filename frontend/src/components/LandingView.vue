@@ -14,11 +14,10 @@
         </div>
         <div class="landing-body">
           <p class="landing-text">{{ t('landingView.description') }}</p>
-          <button class="px-btn landing-login-btn" disabled>
+          <button class="px-btn landing-login-btn" @click="loginWithSteam">
             <ShortcutSlot />
             <PixelIcon name="steam" :size="14" style="vertical-align:-2px;margin-right:6px" />{{ t('landingView.loginButton') }}
           </button>
-          <div class="landing-soon">{{ t('landingView.browserLoginSoon') }}</div>
         </div>
       </div>
     </div>
@@ -30,8 +29,15 @@ import { useI18n } from 'vue-i18n'
 import MenuBackground from './MenuBackground.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { BASE_URL } from '../services/api.js'
 
 const { t } = useI18n()
+
+// Echte Navigation (kein Router/fetch) -- Steam OpenID ist ein klassischer
+// Browser-Redirect-Flow, siehe backend AuthController#steamLogin.
+function loginWithSteam() {
+  window.location.href = `${BASE_URL}/api/v1/auth/steam/login`
+}
 </script>
 
 <style scoped>
@@ -61,5 +67,4 @@ const { t } = useI18n()
 .landing-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center; }
 .landing-text { font-size: 15px; color: var(--px-ink-txt); line-height: 1.55; }
 .landing-login-btn { font-size: 13px; padding: 12px 22px; }
-.landing-soon { font-size: 13px; color: var(--px-tan-ink); font-style: italic; }
 </style>

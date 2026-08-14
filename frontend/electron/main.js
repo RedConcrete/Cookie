@@ -49,9 +49,10 @@ function createWindow() {
 // in the frontend/ directory, then launch via npm run electron:dev.
 // ---------------------------------------------------------------------------
 
-function initSteam() {
+async function initSteam() {
   let steamId = 'DEV_PLAYER_001'
   let name = null
+  let ticket = null
 
   try {
     const steamworks = require('steamworks.js')
@@ -59,12 +60,21 @@ function initSteam() {
     steamId = client.localplayer.getSteamId().steamId64.toString()
     name = client.localplayer.getName()
     console.log('[Steam] Authenticated as', steamId, `(${name})`)
+    try {
+      // Server-seitiger Identitaets-Nachweis (siehe backend AuthController#authenticateWithTicket) --
+      // ohne dieses Ticket laesst der Server in Produktion (app.dev-mode=false) keinen einzigen
+      // Gameplay-Call zu, egal welche steamId der Client behauptet.
+      const authTicket = await steamworks.auth.getAuthTicketForWebApi('cookie')
+      ticket = authTicket.getBytes().toString('hex')
+    } catch (ticketErr) {
+      console.warn('[Steam] Auth-Ticket konnte nicht erzeugt werden:', ticketErr.message)
+    }
   } catch (err) {
     console.warn('[Steam] Not available, using stub ID:', err.message)
   }
 
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('steam-auth', { steamId, name })
+    mainWindow.webContents.send('steam-auth', { steamId, name, ticket })
   })
 }
 

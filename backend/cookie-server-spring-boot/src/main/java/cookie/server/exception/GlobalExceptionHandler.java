@@ -53,6 +53,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
     }
 
+    // Fehlende/ungueltige/nicht-passende Steam-Session (siehe SteamAuthInterceptor).
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<Map<String, String>> handleAuth(AuthException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+    }
+
     // Alles andere: echter Serverfehler -- geloggt, aber ohne Stacktrace an den Client.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleUnexpected(Exception e) {

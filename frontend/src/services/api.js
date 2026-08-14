@@ -5,11 +5,30 @@ export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9
 // sondern als eigener "Server nicht erreichbar"-Zustand behandelt werden.
 const GATEWAY_STATUS = new Set([502, 503, 504])
 
+// Steam-Session-Token (siehe backend AuthController/SteamAuthInterceptor) -- nur relevant
+// bei app.dev-mode=false auf dem Server, wird dort sonst ignoriert. Gesetzt entweder ueber
+// authenticateSteamSession() (Electron-Ticket-Flow) oder setSessionToken() (Web-OpenID-Flow,
+// siehe App.vue).
+let sessionToken = null
+
+export function setSessionToken(token) {
+  sessionToken = token
+}
+
+/** Tauscht ein Steam-Auth-Ticket (Electron, siehe electron/main.js initSteam) gegen eine
+ * Server-Session. Wirft bei ungueltigem/nicht-passendem Ticket (siehe request()-Fehlerpfad). */
+export async function authenticateSteamSession(steamId, ticket) {
+  const res = await request('POST', '/api/v1/auth/steam', { steamId, ticket })
+  sessionToken = res.sessionToken
+  return res
+}
+
 async function request(method, path, body) {
   const options = {
     method,
     headers: { 'Content-Type': 'application/json' }
   }
+  if (sessionToken) options.headers['X-Session-Token'] = sessionToken
   if (body !== undefined) options.body = JSON.stringify(body)
 
   let res

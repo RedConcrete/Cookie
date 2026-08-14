@@ -1,6 +1,5 @@
 {
   "welcomeTitle": "WILLKOMMEN",
-  "description": "Cookie ist ein Idle-Game mit geteiltem Online-Markt — Login läuft aktuell nur über den Steam-Client.",
-  "loginButton": "MIT STEAM ANMELDEN",
-  "browserLoginSoon": "Browser-Login noch nicht verfügbar."
+  "description": "Cookie ist ein Idle-Game mit geteiltem Online-Markt — melde dich mit deinem Steam-Account an, um zu spielen.",
+  "loginButton": "MIT STEAM ANMELDEN"
 }

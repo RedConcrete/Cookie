@@ -35,6 +35,16 @@ public class SteamAvatarService {
 
     /** Liefert die avatarfull-URL oder null (kein Key konfiguriert / Fehler / unbekannte SteamID). */
     public String fetchAvatarUrl(String steamId64) {
+        Profile profile = fetchProfile(steamId64);
+        return profile == null ? null : profile.avatarUrl();
+    }
+
+    public record Profile(String avatarUrl, String personaName) {}
+
+    /** Wie fetchAvatarUrl, liefert zusaetzlich den Steam-Anzeigenamen (personaname) --
+     * genutzt vom OpenID-Web-Login (siehe AuthController), der anders als der
+     * Electron-Client keinen lokalen Namen ueber steamworks.js hat. */
+    public Profile fetchProfile(String steamId64) {
         String key = appConfig.getSteamWebApiKey();
         if (key == null || key.isBlank()) return null;
 
@@ -52,10 +62,15 @@ public class SteamAvatarService {
             }
             JsonNode players = mapper.readTree(response.body()).path("response").path("players");
             if (!players.isArray() || players.isEmpty()) return null;
-            JsonNode avatar = players.get(0).path("avatarfull");
-            return avatar.isMissingNode() ? null : avatar.asText();
+            JsonNode player = players.get(0);
+            JsonNode avatar = player.path("avatarfull");
+            JsonNode name = player.path("personaname");
+            return new Profile(
+                    avatar.isMissingNode() ? null : avatar.asText(),
+                    name.isMissingNode() ? null : name.asText()
+            );
         } catch (Exception e) {
-            log.warn("Steam-Avatar-Abruf fehlgeschlagen fuer {}: {}", steamId64, e.getMessage());
+            log.warn("Steam-Profil-Abruf fehlgeschlagen fuer {}: {}", steamId64, e.getMessage());
             return null;
         }
     }

@@ -91,34 +91,30 @@ Priorität grob absteigend pro Abschnitt. Abgehakt = erledigt, nicht löschen
   **Merke für künftige `String`-Spalten mit viel Text:** nie `@Lob` bei
   Postgres, immer `columnDefinition = "text"` direkt am `@Column`.
 
-- [ ] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
-  `app.dev-mode=false` schaltet aktuell NUR die Admin-Token-Pflicht scharf
-  (`AdminConfigController`, `AdminController`) sowie Bake-Dauer/Dev-Reset —
-  alle normalen Gameplay-Endpunkte (`game/init`, `farm/*`, `market/*`) nehmen
-  die `steamId` ungeprüft als Parameter entgegen. Jeder Client (curl, o.ä.)
-  kann sich als beliebige `steamId` ausgeben, fremde Ressourcen/Cookies
-  ändern oder im geteilten Markt handeln. `electron/main.js` holt zwar über
-  `steamworks.js` eine echte SteamID vom Client, reicht sie aber nur
-  ungeprüft weiter — keine serverseitige Verifizierung.
-  **Fix (noch offen):** `GetAuthSessionTicket` client-seitig (via
-  `steamworks.js`) + serverseitige Validierung über Steamworks Web API
-  (`ISteamUserAuth/AuthenticateUserTicket`) vor jedem Request, der eine
-  `steamId` entgegennimmt. Für eine geschlossene Freundes-Beta (kleine,
-  vertraute Testgruppe, kein Fremd-Traffic) vorerst zurückgestellt —
-  zwingend vor jedem Early-Access-/Public-Release nachholen.
+- [x] **Keine echte Steam-Auth-Verifizierung (kritisch vor Public/Early-Access).**
+  — behoben 2026-08-14. War: `app.dev-mode=false` schaltete nur die
+  Admin-Token-Pflicht scharf, alle Gameplay-Endpunkte nahmen `steamId`
+  ungeprüft entgegen. **Fix:** `SteamAuthInterceptor` erzwingt bei
+  `devMode=false` auf jedem `/api/v1/**`-Call (außer `/config`, `/auth/**`,
+  `/admin/**`) eine gültige Session + Owner-Match zwischen Session und
+  behaupteter `userId`/`steamId`. Session entsteht aus einem echten
+  Steam-Ticket (`electron/main.js` → `steamworks.js
+  auth.getAuthTicketForWebApi` → `POST /api/v1/auth/steam` →
+  `SteamAuthService.verifyTicket` gegen `ISteamUserAuth
+  /AuthenticateUserTicket`). `app.dev-mode=true` unverändert (kein Check,
+  `DEV_PLAYER_001`, MCP-Testserver funktioniert weiter). Details/Architektur:
+  `docs/plans/2026-08-14-done-steam-auth-produktion.md`.
 
-- [ ] **Browser-Zugang (ohne Electron) — Steam OpenID-Login.**
-  Aktuell nur über Electron+`steamworks.js` spielbar; der Web-Fallback in
-  `App.vue` (kein `window.electronAPI`) nutzt nur `DEV_PLAYER_001` bei
-  `dev-mode=true` — kein echter Login im Browser. Separater Mechanismus
-  von obigem Ticket-Auth-Punkt: Steam OpenID (`login.steampowered.com/openid`,
-  klassisches "Sign in through Steam"-Redirect), läuft komplett im Browser,
-  kein natives SDK nötig. Server verifiziert die OpenID-Antwort → echte
-  SteamID. Achtung: OpenID bestätigt nur die Identität, nicht den
-  Spielbesitz — für Kaufpflicht zusätzlich Ownership-Check über die Steam
-  Web API (`CheckAppOwnership` o.ä.) mit der verifizierten SteamID. Eigener
-  Implementierungsaufwand, kommt on top zum Ticket-Auth-Punkt oben, nicht
-  parallel nebenbei einflicken.
+- [x] **Browser-Zugang (ohne Electron) — Steam OpenID-Login.**
+  — behoben 2026-08-14, zusammen mit obigem Punkt. `LandingView.vue`
+  (Button war schon vorbereitet, nur `disabled`) → `GET /api/v1/auth/steam
+  /login` → Steam-OpenID-Redirect → `GET /api/v1/auth/steam/callback`
+  verifiziert (`check_authentication`) und prüft zusätzlich
+  `SteamAuthService.ownsGame()` (`ISteamUser/CheckAppOwnership`) — OpenID
+  bestätigt nur Identität, nicht Kauf, das war hier bewusst als eigener
+  Schritt mit eingebaut, nicht zurückgestellt. Bei Erfolg Redirect zurück
+  zum Frontend mit Session-Token. Details:
+  `docs/plans/2026-08-14-done-steam-auth-produktion.md`.
 
 - [x] **Negative-Amount-Exploit im Markt (kritisch).** — behoben 2026-08-02.
   `MarketService.performAction()` prüfte `amount` nie auf `> 0`. Ein `BUY`
