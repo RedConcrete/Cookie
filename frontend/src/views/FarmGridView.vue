@@ -37,8 +37,8 @@
       </div>
 
       <PixelInfoPopover :rows="netWorthRows" :title="t('farmGridView.netWorthTitle')" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
-        <div class="hud-networth" @click="dialog = 'networth'" :title="t('farmGridView.netWorthHint')">
-          <ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.networth) : ''" />
+        <div class="hud-networth" @click="dialog = 'networth'">
+          <ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.networth) : ''" :gamepad-button="actionGamepadButtons.networth" />
           <div class="hud-networth-label">{{ t('farmGridView.netWorthTitle') }}</div>
           <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
         </div>
@@ -46,10 +46,12 @@
 
       <div class="hud-actions">
         <div class="hud-menu-wrap" ref="hudMenuRef">
-          <button class="px-btn" @click="menuOpen = !menuOpen" :title="t('farmGridView.menuTitle')">
-            &#9776;
-            <ShortcutSlot />
-          </button>
+          <NestedTooltip :content="t('farmGridView.menuTitle')" silent>
+            <button class="px-btn" @click="menuOpen = !menuOpen">
+              &#9776;
+              <ShortcutSlot />
+            </button>
+          </NestedTooltip>
           <div v-if="menuOpen" class="hud-menu">
             <button class="hud-menu-item" @click="selectMenu('profile')">
               <span class="hud-menu-avatar">
@@ -59,7 +61,7 @@
               {{ t('farmGridView.profileTitle') }}
               <ShortcutSlot />
             </button>
-            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}<ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.skilltree) : ''" /></button>
+            <button class="hud-menu-item" @click="selectMenu('skilltree')">{{ t('farmGridView.skillTreeLabel') }}<ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.skilltree) : ''" :gamepad-button="actionGamepadButtons.skilltree" /></button>
             <button class="hud-menu-item" @click="selectMenu('stats')">{{ t('farmGridView.statsLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}<ShortcutSlot /></button>
@@ -72,12 +74,12 @@
     <!-- Fixed screen-space overlay for the falling red wage number -- NOT inside .hof-canvas,
          since the cookie chip lives in the fixed .hud layer, not the pannable world. -->
     <WageNumbers />
-    <button
-      v-if="playerStore.skillTree.skillPoints > 0"
-      class="hud-skillpoint-star"
-      :title="t('farmGridView.skillTreeLabel')"
-      @click="dialog = 'skilltree'"
-    ><PixelIcon name="stern" :size="20" /></button>
+    <NestedTooltip v-if="playerStore.skillTree.skillPoints > 0" :content="t('farmGridView.skillTreeLabel')" silent>
+      <button
+        class="hud-skillpoint-star"
+        @click="dialog = 'skilltree'"
+      ><PixelIcon name="stern" :size="20" /></button>
+    </NestedTooltip>
     <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
     <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
@@ -129,12 +131,16 @@
 
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
-      <button class="cam-center" :title="t('farmGridView.centerTitle')" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot key-label="␣" /></button>
+      <NestedTooltip :content="t('farmGridView.centerTitle')" silent>
+        <button class="cam-center" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot key-label="␣" :gamepad-button="CENTER_GAMEPAD_BUTTON" /></button>
+      </NestedTooltip>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
 
     <!-- Floating build button (bottom-right) -->
-    <button class="build-fab" :title="t('farmGridView.buildTitle')" @click="dialog = 'buildshop'">+<ShortcutSlot /></button>
+    <NestedTooltip :content="t('farmGridView.buildTitle')" silent>
+      <button class="build-fab" @click="dialog = 'buildshop'">+<ShortcutSlot /></button>
+    </NestedTooltip>
 
     <!-- Mobile bottom nav -->
     <div class="mobile-nav">
@@ -177,6 +183,7 @@ import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { spawnWageNumber } from '../composables/useWageNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import { useActionHotkeys } from '../composables/useActionHotkeys.js'
+import { useAudio } from '../composables/useAudio.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import WageNumbers from '../components/WageNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
@@ -260,12 +267,17 @@ import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
 import SkillTreeAdminDialog from '../components/SkillTreeAdminDialog.vue'
 import HardResetDialog from '../components/HardResetDialog.vue'
+import NestedTooltip from '../components/NestedTooltip.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
+
+// Ingame-Shuffle-Playlist statt zwei_left_socks (exklusiv fuers Hauptmenue).
+const audio = useAudio()
+onMounted(() => audio.setMusicMode('game'))
 
 // Avatar: falls back to the placeholder icon if the cached image ever fails
 // to load, instead of showing a broken image forever.
@@ -779,6 +791,16 @@ function triggerAction(action) {
   if (action === 'networth') dialog.value = 'networth'
   if (action === 'skilltree') dialog.value = 'skilltree'
 }
+
+// Fixed (not rebindable) gamepad equivalents of Escape/Space, same indices
+// ControllerButtonIcon.vue shows as B/Circle and Y/Triangle -- gives
+// controller-only players a way to close dialogs and center the camera,
+// which they'd otherwise have no input for at all.
+const CLOSE_GAMEPAD_BUTTON = 1
+const CENTER_GAMEPAD_BUTTON = 3
+let closeButtonPressed = false
+let centerButtonPressed = false
+
 function readGamepadActions() {
   if (gamepadIndex.value === null) return
   const pad = navigator.getGamepads?.()[gamepadIndex.value]
@@ -789,6 +811,19 @@ function readGamepadActions() {
     if (pressed && !gamepadActionPressed[action]) triggerAction(action)
     gamepadActionPressed[action] = pressed
   }
+
+  const closePressed = !!pad.buttons[CLOSE_GAMEPAD_BUTTON]?.pressed
+  if (closePressed && !closeButtonPressed && (dialog.value || detailBuilding.value)) {
+    dialog.value = null
+    detailBuilding.value = null
+  }
+  closeButtonPressed = closePressed
+
+  const centerPressed = !!pad.buttons[CENTER_GAMEPAD_BUTTON]?.pressed
+  if (centerPressed && !centerButtonPressed && !dialog.value && !detailBuilding.value) {
+    resetView()
+  }
+  centerButtonPressed = centerPressed
 }
 
 function camTick(now) {
@@ -1135,17 +1170,19 @@ onUnmounted(() => {
 .build-cost  { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); margin-top: 3px; }
 
 /* ── Camera / ticker (outside canvas, fixed overlays) ── */
-.cam-controls { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
+.cam-controls { position: absolute; right: 18px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
 .cam-center {
   position: relative;
-  width: 48px; height: 48px; background: var(--px-cream2); border: 4px solid var(--px-ink);
-  box-shadow: inset -2px -2px 0 #aea47e; display: flex; align-items: center; justify-content: center;
-  font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); cursor: pointer;
+  width: 48px; height: 48px; background: var(--px-orange); border: 4px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-cream); cursor: pointer;
 }
-.zoom-readout { position: absolute; right: 16px; bottom: 16px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff1a9; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
+.cam-center:hover { filter: brightness(1.08); }
+.zoom-readout { position: absolute; right: 74px; bottom: 30px; font-family: 'Silkscreen', monospace; font-size: 11px; color: #fff1a9; text-shadow: 2px 2px 0 var(--px-ink); z-index: 50; }
 
 .build-fab {
-  position: absolute; right: 16px; bottom: 56px; z-index: 55;
+  position: absolute; right: 16px; bottom: 80px; z-index: 55;
   width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 26px; line-height: 1; padding: 0;
   background: var(--px-orange); border: 4px solid var(--px-ink); color: var(--px-cream);

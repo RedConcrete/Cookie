@@ -1,6 +1,8 @@
 <template>
   <div class="sd-root" @wheel.stop @mousedown.stop @mousemove.stop>
-    <button class="sd-close" @click="emit('close')" :title="t('statsDialog.title')"><ShortcutSlot />&times;</button>
+    <NestedTooltip :content="t('statsDialog.title')" silent>
+      <button class="sd-close" @click="emit('close')"><ShortcutSlot />&times;</button>
+    </NestedTooltip>
     <div class="sd-title">{{ t('statsDialog.title') }}</div>
     <PixelScrollBox class="sd-body">
       <StatsView />
@@ -15,6 +17,7 @@ import StatsView from './StatsView.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useAudio } from '../composables/useAudio.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()

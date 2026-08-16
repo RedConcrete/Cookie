@@ -1,13 +1,13 @@
 {
   "title": "CREDITS",
   "developmentTitle": "ENTWICKLUNG",
-  "developmentEntry": "TODO: Namen eintragen",
+  "developmentEntry": "",
   "artTitle": "PIXEL-ART",
-  "artEntry": "TODO: Namen eintragen",
+  "artEntry": "",
   "audioTitle": "MUSIK & SOUND",
-  "audioEntry": "TODO: Namen eintragen",
+  "audioEntry": "<a href=\"https://opengameart.org/users/matthew-pablo\" target=\"_blank\" rel=\"noopener noreferrer\">Matthew Pablo</a>, <a href=\"https://opengameart.org/users/congusbongus\" target=\"_blank\" rel=\"noopener noreferrer\">CongusBongus</a>",
   "toolsTitle": "TOOLS & BIBLIOTHEKEN",
-  "toolsEntry": "TODO: Namen eintragen",
+  "toolsEntry": "",
   "thanksTitle": "DANKSAGUNG",
-  "thanksEntry": "TODO: Text eintragen"
+  "thanksEntry": "Elias Libelt, Christina Büttner"
 }

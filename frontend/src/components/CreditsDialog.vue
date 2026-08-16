@@ -10,7 +10,7 @@
         <div class="cd-body">
           <div v-for="section in sections" :key="section.titleKey" class="cd-section">
             <div class="cd-section-title">{{ t(section.titleKey) }}</div>
-            <div class="cd-section-entry">{{ t(section.entryKey) }}</div>
+            <div class="cd-section-entry" v-html="t(section.entryKey)"></div>
           </div>
         </div>
       </PixelScrollBox>
@@ -45,4 +45,6 @@ const sections = [
   color: var(--px-orange-dk); margin-bottom: 4px;
 }
 .cd-section-entry { font-size: 14px; color: var(--px-ink-txt); line-height: 1.5; }
+.cd-section-entry :deep(a) { color: var(--px-orange-dk); }
+.cd-section-entry :deep(a:hover) { color: var(--px-orange); }
 </style>

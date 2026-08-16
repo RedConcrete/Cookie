@@ -23,6 +23,7 @@ import { usePlayerStore } from './stores/player.js'
 import { useBakeStore } from './stores/bake.js'
 import { useAudio } from './composables/useAudio.js'
 import { useIdleTimeout } from './composables/useIdleTimeout.js'
+import { useInputMethod } from './composables/useInputMethod.js'
 import { disconnectMarketWebSocket } from './services/websocket.js'
 import { authenticateSteamSession, setSessionToken } from './services/api.js'
 import LoadingIndicator from './components/pixel/LoadingIndicator.vue'
@@ -34,6 +35,7 @@ const playerStore = usePlayerStore()
 const bakeStore   = useBakeStore()
 const audio       = useAudio()
 const idle        = useIdleTimeout()
+const inputMethod = useInputMethod()
 const { t } = useI18n()
 
 const blocked = ref(false)
@@ -48,6 +50,7 @@ async function startGame() {
   started.value = true
   await playerStore.init(authInfo.value.steamId, authInfo.value.name)
   idle.start(authInfo.value.steamId)
+  inputMethod.start()
 }
 
 // Zurueck ins Hauptmenue nach laengerer Inaktivitaet (siehe useIdleTimeout.js) -- verhindert
@@ -59,6 +62,7 @@ watch(() => idle.isAfk.value, (afk) => {
   bakeStore.stop()
   disconnectMarketWebSocket()
   idle.stop()
+  inputMethod.stop()
 })
 
 function retry() {

@@ -3,9 +3,11 @@ import { ref, watch } from 'vue'
 // Music — keep as streaming Audio (large files, one at a time)
 import music1 from '../assets/Music/Caketown 1.mp3'
 import music2 from '../assets/Music/Deliciously Sour.mp3'
-import music3 from '../assets/Music/ElevatorMusic.wav'
 import music4 from '../assets/Music/Shake and Bake.mp3'
 import music5 from '../assets/Music/Snowland.mp3'
+import music6 from '../assets/Music/headscratcher.mp3'
+import music7 from '../assets/Music/my_street.ogg'
+import menuTrack from '../assets/Music/two_left_socks.ogg'
 
 // SFX URLs — fetched once, decoded into AudioBuffers (no repeated HTTP requests)
 import clickUrl     from '../assets/Sounds/zipclick.flac'
@@ -18,7 +20,9 @@ import coins1Url    from '../assets/Sounds/RPGsounds/OGG/handleCoins.ogg'
 import coins2Url    from '../assets/Sounds/RPGsounds/OGG/handleCoins2.ogg'
 import chopUrl      from '../assets/Sounds/RPGsounds/OGG/chop.ogg'
 
-const TRACKS = [music1, music2, music3, music4, music5]
+// two_left_socks ist exklusiv fuers Hauptmenue (kein Shuffle) -- deshalb
+// separat von der Ingame-Playlist gehalten.
+const GAME_TRACKS = [music1, music2, music4, music5, music6, music7]
 
 function loadNum(key, fallback) {
   const v = parseFloat(localStorage.getItem(key))
@@ -36,6 +40,7 @@ let musicEl      = null
 let shuffled     = []
 let trackIdx     = 0
 let musicStarted = false
+let musicMode    = 'menu' // 'menu' (two_left_socks, loop) | 'game' (Shuffle-Playlist)
 
 function shuffle(arr) {
   const a = [...arr]
@@ -47,7 +52,7 @@ function shuffle(arr) {
 }
 
 function nextTrack() {
-  if (!shuffled.length || trackIdx >= shuffled.length) { shuffled = shuffle(TRACKS); trackIdx = 0 }
+  if (!shuffled.length || trackIdx >= shuffled.length) { shuffled = shuffle(GAME_TRACKS); trackIdx = 0 }
   if (musicEl) { musicEl.pause(); musicEl.onended = null }
   musicEl = new Audio(shuffled[trackIdx++])
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
@@ -60,11 +65,31 @@ function nextTrack() {
   musicEl.play().catch(() => { musicStarted = false })
 }
 
+function playMenuTrack() {
+  if (musicEl) { musicEl.pause(); musicEl.onended = null }
+  musicEl = new Audio(menuTrack)
+  musicEl.loop = true
+  musicEl.volume = musicMuted.value ? 0 : musicVolume.value
+  musicEl.play().catch(() => { musicStarted = false })
+}
+
+function playForMode() {
+  if (musicMode === 'menu') playMenuTrack(); else nextTrack()
+}
+
 function startMusic() {
   if (musicStarted) return
   musicStarted = true
   ensureCtx()
-  nextTrack()
+  playForMode()
+}
+
+// Wechselt zwischen Hauptmenue-Track (two_left_socks, exklusiv & geloopt) und
+// Ingame-Shuffle-Playlist -- kein Track darf im jeweils anderen Kontext laufen.
+function setMusicMode(mode) {
+  if (mode === musicMode) return
+  musicMode = mode
+  if (musicStarted) playForMode()
 }
 
 // ── AudioContext SFX (pre-decoded, zero network after init) ─
@@ -149,7 +174,7 @@ watch(sfxMuted, v => localStorage.setItem('cookieSfxMuted', v))
 export function useAudio() {
   return {
     musicVolume, sfxVolume, musicMuted, sfxMuted,
-    startMusic, playClick, playHover,
+    startMusic, setMusicMode, playClick, playHover,
     playBookOpen, playBookClose, playCoins, playChop,
   }
 }

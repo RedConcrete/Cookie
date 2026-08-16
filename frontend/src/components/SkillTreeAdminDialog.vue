@@ -1,6 +1,8 @@
 <template>
   <div class="sta-root" @wheel.stop @mousedown.stop @mousemove.stop>
-    <button class="sta-close" @click="emit('close')" :title="t('skillTreeAdminDialog.title')"><ShortcutSlot />&times;</button>
+    <NestedTooltip :content="t('skillTreeAdminDialog.title')" silent>
+      <button class="sta-close" @click="emit('close')"><ShortcutSlot />&times;</button>
+    </NestedTooltip>
 
     <div v-if="loading" class="sta-loading"><LoadingIndicator /></div>
 
@@ -75,19 +77,22 @@
               <option v-for="r in RESOURCES" :key="r" :value="r">{{ resourceLabel(r, t) }}</option>
             </select>
             <div class="sta-effect-value">
-              <button
-                class="sta-sign-btn"
-                :class="{ 'sta-sign-neg': eff.effectValue < 0 }"
-                :title="t('skillTreeAdminDialog.signToggleTitle')"
-                @click="eff.effectValue = -eff.effectValue"
-              >{{ eff.effectValue < 0 ? '−' : '+' }}</button>
+              <NestedTooltip :content="t('skillTreeAdminDialog.signToggleTitle')" silent>
+                <button
+                  class="sta-sign-btn"
+                  :class="{ 'sta-sign-neg': eff.effectValue < 0 }"
+                  @click="eff.effectValue = -eff.effectValue"
+                >{{ eff.effectValue < 0 ? '−' : '+' }}</button>
+              </NestedTooltip>
               <input
                 type="number" step="0.001" min="0" class="sta-num-input"
                 :value="Math.abs(eff.effectValue)"
                 @input="setEffectMagnitude(eff, $event.target.value)"
               />
             </div>
-            <button class="sta-effect-del" :title="t('skillTreeAdminDialog.removeEffectTitle')" @click="selectedNode.effects.splice(idx, 1)">&times;</button>
+            <NestedTooltip :content="t('skillTreeAdminDialog.removeEffectTitle')" silent>
+              <button class="sta-effect-del" @click="selectedNode.effects.splice(idx, 1)">&times;</button>
+            </NestedTooltip>
           </div>
           <div class="sta-effects-actions">
             <button class="px-btn" @click="addEffect">{{ t('skillTreeAdminDialog.addEffectLabel') }}</button>
@@ -96,7 +101,7 @@
         </div>
 
         <div class="sta-cam-controls" @mousedown.stop>
-          <button class="sta-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
+          <button class="sta-cam-btn" @click="resetView"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="sta-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
 
@@ -115,6 +120,7 @@ import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 // Effekt-Editor: Dropdown-Optionen wiederverwenden dieselben i18n-Keys wie das Spieler-Info-Panel
 // (SkillTreeView.vue EFFECT_LABEL_KEY) statt eigener Duplikate.

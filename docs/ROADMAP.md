@@ -326,6 +326,15 @@ spezifiziert ist:
     mitte. Kamera-Pan via Stick ist jetzt da (s.o.) — offen ist noch der
     Crosshair selbst: Position bleibt zentriert, die Welt bewegt sich
     darunter.
+    **Visuelle Vorlage vorhanden (2026-08-16):** Für die Playwright-
+    Trailer-Aufnahmen wurde ein Ring-Cursor mit Klick-Puls-Animation gebaut
+    (weißer Ring, `box-shadow`-Puls beim Klick), reines CSS+JS-Overlay, kein
+    Asset. CSS in `docs/steam-website/trailer/record-clips.js`
+    (`OVERLAY_CSS`-Konstante, `#__cursor`/`.click`-Keyframes). Passt als
+    Ausgangspunkt für den echten Crosshair, ist aber ein Playwright-Dev-
+    Tool außerhalb des Frontend-Builds — für den echten Einsatz als eigene
+    Vue-Komponente (z. B. `GamepadCrosshair.vue`) neu umsetzen, nicht
+    direkt importierbar.
   - **Interaktion:** Wenn Crosshair über einem Gebäude steht und Spieler
     A drückt → selbes Verhalten wie Klick (`BuildingFrame.vue` `@open`).
     Braucht Hit-Test von Bildschirmmitte gegen die aktuell sichtbaren
@@ -1037,3 +1046,57 @@ Backlog dokumentiert.
   das entfällt jetzt (alle 6 Gebäude kosten bei gleichem `n` gleich viel),
   muss beim Umsetzen neu durch den Fortschritts-Simulator laufen.
   Plan: `docs/plans/2026-08-13-open-grundstuecke-paywall.md`.
+
+---
+
+## 14. Priorisierter Fahrplan Richtung Early Access (2026-08-16)
+
+Konsolidiert die oben verstreuten offenen Punkte zu einer Reihenfolge.
+Beschreibt nur die Sequenz/Begründung, keine Wiederholung der Details —
+siehe jeweils verlinkten Abschnitt.
+
+**Phase A — Polish & Cleanup (schnell, wenig Risiko, jederzeit einschiebbar):**
+- Unity-Reste + toter Frontend-Code (`MarketTable.vue`/`TradePanel.vue`) raus (§2)
+- Markt-Hover-Popup: statische 8%-Gebühr-Anzeige fixen (§2)
+- Vollständiger Gelb-Kontrast-Sweep (§7.2)
+- Linux-Build (#14) einmal isoliert mit `--publish=never` laufen lassen,
+  Root Cause klären (§1)
+
+**Phase B — Kernwirtschaft abschließen (mittel, größte Gameplay-Wirkung):**
+1. **Grundstücke-Paywall (§13)** zuerst — Design ist bereits entschieden
+   (Kostenkurve, Rathaus-Dialog-Sektion, kein neuer Endpoint nötig), macht
+   die vom Balance-Simulator vorausgesetzte "1-Gebäude-Start"-Phase (§11)
+   erst zur echten Regel statt Spieler-Selbstbeschränkung.
+2. Danach **Balancing-Testrunden** (§4) neu durch den Fortschritts-Simulator
+   laufen lassen — die Paywall ändert `prestigeBaseThreshold`-Annahmen mit
+   (in §13 bereits vermerkt).
+3. **Skillbaum-Ausbau-Rest**: `2026-08-10-open-skillbaum-automatisierung.md`
+   und `2026-08-10-open-skillbaum-bau-buerger-branch.md` (§7.2) — einzige
+   noch offenen der 8 Skillbaum-Pläne.
+4. **Prestige Passive Tree (§12)** — offene Designfragen zuerst klären
+   (`hardReset()`-Verhalten, Punkt-Skalierung pro Run, Meta- vs.
+   Standard-Effekte, `prestige_nodes`-Tabelle vs. Discriminator), danach
+   eigener `docs/plans/`-Eintrag. Braucht Phase B.1–B.3 als stabile
+   Baseline, da Prestige direkt auf die Threshold-/Skillbaum-Balance
+   aufsetzt.
+
+**Phase C — Steam-Readiness (vor Early-Access-Release):**
+- Windows-Build testen (`npm run build:win`) + `app_build_2816100.vdf`
+  (AppID, Depots Client/Server), erst Branch "beta" (§5)
+- **AI-Testing v2** (§8) — Mehrspieler-Pentest gegen Race-Conditions
+  (`MarketService.performAction`, `PassiveIncomeService.collectBuilding`)
+  VOR echter Mehrspieler-Last im Early Access, nicht danach
+- Echtes Steam-Avatar über `ISteamUser/GetPlayerSummaries` (§4)
+- Fenstermodus + Auflösungs-Einstellung (§7.2) — Machbarkeits-Recherche
+  zum Cursor-Containment zuerst
+- Steam-Deck-Rest: R1/L1-Gebäude-Zyklus (§7.2)
+
+**Phase D — Post-Launch / große Features (nicht release-blockierend):**
+- Rezepte-Rotation + Entdecken-Minigame (§7.2) — eigene Design-Session
+- Spieler-Fusion (§9) — abhängig von Phase C (Steam-Auth muss sauber sein,
+  bereits erledigt) plus eigener Design-Session
+- Season-Automatisierung (§4)
+- AI-Testing v3, dynamische Balance-Validierung (§8)
+
+**Nicht eingeordnet, bei Bedarf einschieben:** Kosmetik-System (§4, braucht
+zuerst eine Design-Entscheidung "was ist Kosmetik überhaupt").

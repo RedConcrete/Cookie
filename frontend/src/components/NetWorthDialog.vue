@@ -78,7 +78,9 @@
                 <span class="dot"></span>{{ t(ds.labelKey) }}
               </button>
             </div>
-            <button class="pct-btn" @click="resetZoom" :title="t('netWorthDialog.resetZoomTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
+            <NestedTooltip :content="t('netWorthDialog.resetZoomTitle')" silent>
+              <button class="pct-btn" @click="resetZoom"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
+            </NestedTooltip>
           </div>
 
           <div class="chart-wrap">
@@ -108,6 +110,7 @@ import { usePlayerStore } from '../stores/player.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 

@@ -24,12 +24,14 @@
     </div>
 
     <div class="menu-footer-left">
-      <a
-        class="px-btn menu-discord-btn" :href="DISCORD_URL" target="_blank" rel="noopener noreferrer"
-        :aria-label="t('mainMenuView.discordButton')" :title="t('mainMenuView.discordButton')"
-      >
-        <ShortcutSlot /><PixelIcon name="discord" :size="18" />
-      </a>
+      <NestedTooltip :content="t('mainMenuView.discordButton')" silent>
+        <a
+          class="px-btn menu-discord-btn" :href="DISCORD_URL" target="_blank" rel="noopener noreferrer"
+          :aria-label="t('mainMenuView.discordButton')"
+        >
+          <ShortcutSlot /><PixelIcon name="discord" :size="18" />
+        </a>
+      </NestedTooltip>
     </div>
 
     <SettingsDialog v-if="dialog === 'settings'" @close="dialog = null" />
@@ -47,6 +49,7 @@ import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import { useAudio } from '../composables/useAudio.js'
 import { DISCORD_URL } from '../discord.js'
+import NestedTooltip from './NestedTooltip.vue'
 
 const emit = defineEmits(['start'])
 
@@ -57,7 +60,9 @@ const dialog = ref(null)
 // Soll schon im Menu laufen, nicht erst nach dem ersten Klick (App.vue's
 // globaler mousedown-Handler ist der Browser-Autoplay-Fallback fuer den
 // Fall, dass der Browser diesen Versuch hier ohne User-Geste ablehnt).
-onMounted(() => audio.startMusic())
+// two_left_socks ist exklusiv fuers Menue -- setMusicMode('menu') schaltet
+// bei Rueckkehr aus dem Spiel (Idle-Timeout) von der Ingame-Playlist zurueck.
+onMounted(() => { audio.setMusicMode('menu'); audio.startMusic() })
 </script>
 
 <style scoped>

@@ -18,7 +18,9 @@
           <div class="bd-crew">
             <!-- Active worker slots — each has a red X to unassign -->
             <div v-for="i in workerCount" :key="'a'+i" class="bd-crew-cell bd-crew-cell-active">
-              <button class="bd-crew-x" @click="adjustWorkers(-1)" :title="t('buildingDetailDialog.remove')">×</button>
+              <NestedTooltip :content="t('buildingDetailDialog.remove')" silent>
+                <button class="bd-crew-x" @click="adjustWorkers(-1)">×</button>
+              </NestedTooltip>
               <PixelWorker variant="work"
                 :anim="isBuildingIdle ? 'bob' : bodyAnim"
                 :dur="1.1"
@@ -29,12 +31,12 @@
               </div>
             </div>
             <!-- Add slot — shown if available citizens exist and slots remain -->
-            <button
-              v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0"
-              class="bd-crew-add"
-              @click="adjustWorkers(1)"
-              :title="t('buildingDetailDialog.assign')"
-            ><ShortcutSlot />+</button>
+            <NestedTooltip v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0" :content="t('buildingDetailDialog.assign')" silent>
+              <button
+                class="bd-crew-add"
+                @click="adjustWorkers(1)"
+              ><ShortcutSlot />+</button>
+            </NestedTooltip>
             <!-- Locked slot hint -->
             <div v-else-if="workerCount < maxWorkers" class="bd-crew-locked">
               {{ playerStore.ownedCitizens === 0 ? t('buildingDetailDialog.noResidents') : t('buildingDetailDialog.allAssigned') }}
@@ -110,6 +112,7 @@ import PixelWorker from './pixel/PixelWorker.vue'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import { fmt } from '../utils/formatNumber.js'
+import NestedTooltip from './NestedTooltip.vue'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])

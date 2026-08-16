@@ -58,7 +58,7 @@
 
         <!-- ── Kamera zentrieren ──────────────────────────────── -->
         <div class="stv-cam-controls">
-          <button class="stv-cam-btn" @click="resetView" :title="t('skillTreeView.centerTitle')"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
+          <button class="stv-cam-btn" @click="resetView"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
         </div>
 

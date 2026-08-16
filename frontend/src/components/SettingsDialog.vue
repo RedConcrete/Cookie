@@ -46,39 +46,43 @@
           <div class="sd-hotkey-row">
             <span>{{ t('settings.openNetWorth') }}</span>
             <div class="sd-hotkey-combo">
-              <button
-                class="sd-hotkey-key sd-hotkey-btn"
-                :class="{ listening: listeningForAction === 'networth' }"
-                :disabled="!actionHotkeys.enabled.value"
-                :title="t('settings.keyboardTitle')"
-                @click="startListenAction('networth')"
-              ><ShortcutSlot />{{ listeningForAction === 'networth' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.networth) }}</button>
-              <button
-                class="sd-hotkey-key sd-hotkey-btn"
-                :class="{ listening: listeningForGamepad === 'networth' }"
-                :disabled="!actionHotkeys.enabled.value"
-                :title="t('settings.controllerTitle')"
-                @click="startListenGamepad('networth')"
-              ><ShortcutSlot />{{ listeningForGamepad === 'networth' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.networth) }}</button>
+              <NestedTooltip :content="t('settings.keyboardTitle')" silent>
+                <button
+                  class="sd-hotkey-key sd-hotkey-btn"
+                  :class="{ listening: listeningForAction === 'networth' }"
+                  :disabled="!actionHotkeys.enabled.value"
+                  @click="startListenAction('networth')"
+                ><ShortcutSlot />{{ listeningForAction === 'networth' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.networth) }}</button>
+              </NestedTooltip>
+              <NestedTooltip :content="t('settings.controllerTitle')" silent>
+                <button
+                  class="sd-hotkey-key sd-hotkey-btn"
+                  :class="{ listening: listeningForGamepad === 'networth' }"
+                  :disabled="!actionHotkeys.enabled.value"
+                  @click="startListenGamepad('networth')"
+                ><ShortcutSlot />{{ listeningForGamepad === 'networth' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.networth) }}</button>
+              </NestedTooltip>
             </div>
           </div>
           <div class="sd-hotkey-row">
             <span>{{ t('settings.openSkillTree') }}</span>
             <div class="sd-hotkey-combo">
-              <button
-                class="sd-hotkey-key sd-hotkey-btn"
-                :class="{ listening: listeningForAction === 'skilltree' }"
-                :disabled="!actionHotkeys.enabled.value"
-                :title="t('settings.keyboardTitle')"
-                @click="startListenAction('skilltree')"
-              ><ShortcutSlot />{{ listeningForAction === 'skilltree' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.skilltree) }}</button>
-              <button
-                class="sd-hotkey-key sd-hotkey-btn"
-                :class="{ listening: listeningForGamepad === 'skilltree' }"
-                :disabled="!actionHotkeys.enabled.value"
-                :title="t('settings.controllerTitle')"
-                @click="startListenGamepad('skilltree')"
-              ><ShortcutSlot />{{ listeningForGamepad === 'skilltree' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.skilltree) }}</button>
+              <NestedTooltip :content="t('settings.keyboardTitle')" silent>
+                <button
+                  class="sd-hotkey-key sd-hotkey-btn"
+                  :class="{ listening: listeningForAction === 'skilltree' }"
+                  :disabled="!actionHotkeys.enabled.value"
+                  @click="startListenAction('skilltree')"
+                ><ShortcutSlot />{{ listeningForAction === 'skilltree' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.skilltree) }}</button>
+              </NestedTooltip>
+              <NestedTooltip :content="t('settings.controllerTitle')" silent>
+                <button
+                  class="sd-hotkey-key sd-hotkey-btn"
+                  :class="{ listening: listeningForGamepad === 'skilltree' }"
+                  :disabled="!actionHotkeys.enabled.value"
+                  @click="startListenGamepad('skilltree')"
+                ><ShortcutSlot />{{ listeningForGamepad === 'skilltree' ? t('settings.pressButton') : actionHotkeys.gamepadButtonLabel(actionHotkeys.actionGamepadButtons.skilltree) }}</button>
+              </NestedTooltip>
             </div>
           </div>
         </PixelSection>
@@ -111,9 +115,11 @@
       </PixelScrollBox>
 
       <div class="sd-footer">
-        <button class="px-btn sd-lang-toggle" @click="cycleLocale" :aria-label="t('settings.language')" :title="t('settings.language')">
-          <ShortcutSlot /><PixelIcon :name="`flag-${locale}`" :size="20" />
-        </button>
+        <NestedTooltip :content="t('settings.language')" silent>
+          <button class="px-btn sd-lang-toggle" @click="cycleLocale" :aria-label="t('settings.language')">
+            <ShortcutSlot /><PixelIcon :name="`flag-${locale}`" :size="20" />
+          </button>
+        </NestedTooltip>
       </div>
     </div>
 
@@ -133,6 +139,7 @@ import PixelSection from './pixel/PixelSection.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import HardResetDialog from './HardResetDialog.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 const emit = defineEmits(['close'])
 const showHardReset = ref(false)

@@ -31,9 +31,11 @@
           <button class="pp-link" @click="ordenOpen = true"><ShortcutSlot />{{ t('playerProfileView.viewAll') }}</button>
         </div>
         <div class="pp-badges">
-          <div v-for="m in badges.slice(0, 6)" :key="m.id" class="pp-badge-chip" :style="{ background: m.color }" :title="m.name">
-            <PixelIcon :name="m.icon" :size="24" />
-          </div>
+          <NestedTooltip v-for="m in badges.slice(0, 6)" :key="m.id" :content="m.name" silent>
+            <div class="pp-badge-chip" :style="{ background: m.color }">
+              <PixelIcon :name="m.icon" :size="24" />
+            </div>
+          </NestedTooltip>
           <div v-if="!badges.length" class="pp-no-badges">{{ t('playerProfileView.noBadges') }}</div>
         </div>
       </div>
@@ -63,6 +65,7 @@ import { useBadges } from '../composables/useBadges.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import OrdenDialog from './OrdenDialog.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 const props = defineProps({ steamId: { type: String, required: true } })
 

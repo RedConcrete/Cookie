@@ -1,0 +1,100 @@
+
+Übersicht:	
+Verwenden Sie diesen Platz, um Ihr Produkt zu beschreiben. Normalerweise ist es eine gute Idee, mit einem kurzen Überblick zu beginnen, damit Kunden, die sich nichts anderes dazu durchlesen, einen guten Eindruck erhalten, was Ihr Produkt überhaupt ist. Danach können Sie weiter ins Detail gehen und eine Liste an Schlüsselmerkmalen hinzufügen und, wenn Sie möchten, weitere relevante Informationen anführen, die Ihr Produkt beschreiben.
+
+Hinweis: Dieser Bereich sollte keine Links zu anderen Websites, QR-Codes oder Bilder zur Bewerbung Ihrer sozialen Medien enthalten. Bitte nutzen Sie dafür die Felder im Tab „Allgemeine Informationen“ oder verlinken Sie andere Seiten in Ihrem Communityhub.
+Lokalisierung:	
+Um übersetzte Versionen Ihres Textes hinzuzufügen, wählen Sie die gewünschte Sprache aus dem Menü rechts aus und fügen Sie Ihren Text in das Beschreibungsfeld für diese Sprache ein. Alternativ können Sie lokalisierte Texte auch über den Lokalisierungs-Tab oben massenhaft hochladen.
+
+Eigene Bilder hochladen
+Übersicht:	
+Nutzen Sie den unteren Bereich, um benutzerdefinierte Bilder hochzuladen und zu verwalten, die Sie in den Infos zum Spiel, den Sonderankündigungen sowie im Bereich für Auszeichnungen verwenden möchten. Die hochgeladenen Bilder können per Klick auf die Bildschaltfläche  in der Reihe der Formatierungsoptionen oberhalb des Beschreibungseditors eingefügt werden.
+
+Design:	
+Bitte beachten Sie die Größe der Bilder, die Sie auf Ihrer Shopseite hochladen und anzeigen möchten. Jedes Bild erhöht die Ladezeit für die Seite, wodurch ungeduldige Kunden ggf. den Seitenaufruf vorzeitig abbrechen.
+
+Format:	
+Dateiformate für statische Elemente: PNG, JPG, GIF, WebP.
+Dateiformate für animierte Elemente: Zurzeit werden nur MP4- und WebM-Dateien unterstützt. Animierte Elemente werden auf Ihrer Shopseite nur in den Bereichen „Infos zum Spiel“ sowie „Kürzliche Events und Ankündigungen“ angezeigt. Für animierte Elemente mit Transparenz empfehlen wir folgende Dateiformate zu verwenden: WebM (mit VP9-Kodierung), APNG oder GIF.
+
+Größe:	
+Auf Desktop-Computern beträgt die Breite des Beschreibungsbereichs 780 Pixel. Wir empfehlen jedoch, höher auflösende Elemente hochzuladen.
+Elemente, die breiter als 1600 Pixel sind, können auf der Shopseite angeklickt werden, um eine Vorschau der größeren Version zu öffnen.
+Elemente in beliebiger Abmessung können hochgeladen werden, werden aber auf maximal 4096 × 8192 Pixel skaliert.
+Animierte Elemente dürfen maximal 12 Sekunden lang sein.
+
+Lokalisierung:	
+Wenn Sie dem Namen Ihrer Elemente einen Steam-Sprachcode (z. B. meinbild_german.jpg) hinzufügen, werden diese automatisch nach Sprache gruppiert. In der Beschreibung können Sie auf die Gruppe verweisen, wodurch automatisch das Bild in der korrekten Sprache ausgewählt wird.
+
+Weitere Informationen finden Sie in der Dokumentation zur Verwaltung für Zusatzelemente der Shopseite.
+
+Vorschaumodus:
+Desktop/Client
+Mobilgerät
+Steam Deck / Big-Picture-Modus
+INFOS ZUM SPIEL
+Cookie is an engaging idle game where players step into the role of a skilled baker, producing both ingredients and delicious cookies. These items can either be sold on a dynamic online marketplace to other players or used directly to bake even more tempting cookies. With each transaction, market prices fluctuate, creating a constant rise and fall in value.
+
+When you sell your last batch of flour right before the prices crash...
+
+{STEAM_APP_IMAGE}/extras/STONKS.png
+
+Players have the power to influence the economy by strategically buying or selling to maximize their profits. Through clever trading and efficient management, they can dominate the market and expand their cookie empire. The cycle of production, sales, and market influence creates an immersive, interactive world where every decision can shift the balance of the marketplace.
+
+
+
+
+Eigene Bilder hochladen
+Ihre benutzerdefinierten Bilder:
+
+backgroundMain_600.gif
+backgroundMain_500.gif
+backgroundMain.gif
+
+STONKS.png
+Ziehen Sie Elemente hierher, um sie zur Verwendung auf Ihrer Shopseite hochzuladen.
+Oder durchsuchen
+Datei auswählen
+Informationen zu unterstützten Formaten und Sprachen finden Sie in den Anweisungen oben.
+Kurzbeschreibung*
+Übersicht:	
+Die Kurzbeschreibung erscheint direkt unter Ihrem Markenbild in der oberen rechten Ecke Ihrer Shopseite. Sie kann auch für Sonderangebote oder Aktionen verwendet werden, an denen Ihr Spiel teilnimmt. Die Kurzbeschreibung sollte in ganzen Sätzen und in Klartext formatiert sein. Vermeiden Sie Leerzeichenformatierungen, Aufführungspunkte oder andere stilistische Elemente, die nicht korrekt dargestellt werden können.
+
+Design:	
+Benutzen Sie diesen Platz, um die Mechanismen und das Genre Ihres Spiels zu beschreiben. Hier ein paar Tipps zur Erstellung Ihrer Kurzbeschreibung:
+
+Identifizieren Sie das Genre und Thema Ihres Spiels (z. B. „Ein rundenbasiertes Science-Fiction-Strategiespiel“).
+Verwenden Sie bestimmte Verben, die detailliert die primären Spielmechanismen und Spieleraktionen Ihres Spiels beschreiben.
+Vermitteln Sie, was Ihr Spiel so reizvoll macht.
+Heben Sie sich die Details zur Handlung und zum Hintergrund Ihres Spiels für Ihre längere Beschreibung auf.
+Lokalisierung:	
+Um übersetzte Versionen Ihres Textes hinzuzufügen, wählen Sie die gewünschte Sprache aus dem Menü rechts aus und fügen Sie Ihren Text in das Beschreibungsfeld für diese Sprache ein. Alternativ können Sie lokalisierte Texte auch über den Lokalisierungs-Tab oben massenhaft hochladen.
+
+
+Länge: 200-300 Zeichen
+
+
+Englisch
+Cookie is an idle game where players can produce ingredients and cookies. These items can either be sold on an online marketplace or used to bake more cookies. The act of buying and selling affects the market prices, allowing players to influence the economy as they trade.
+273/300
+Rezensionen
+Fügen Sie Texte und Links für Rezensionen von diesem Produkt bei, von denen Sie denken, dass sie Ihnen beim Verkauf Ihres Produkts helfen. Diese Rezensionen erscheinen weltweit.
+Rezensionen hinzufügen
+Auszeichnungen
+Hat dieses Produkt irgendwelche signifikanten Auszeichnungen oder Anerkennungen erhalten, die auf der Produktseite angezeigt werden sollen?
+Auszeichnungsinformationen hinzufügen
+Bereich für spezielle Ankündigungen
+Dies ist für spezielle Ankündigungen oder Features, die Sie über Ihrer Produktbeschreibung anzeigen lassen wollen. Diese werden genutzt, um beispielsweise Informationen über Sondereditionen und Vorbestellerboni oder Banner für Workshop-Integration anzuzeigen.
+Sie können mehr als eine hinzufügen, indem Sie die Informationen eingeben und auf die Schaltfläche "Speichern" klicken.
+Sie können eigene Bilder hochladen, indem Sie diese in das entsprechende Feld hineinziehen oder über die Einfügen-Funktion hinzufügen. Details zu unterstützten Formaten, Größen und Designs finden Sie oben unter Eigene Bilder hochladen.
+Abschnitt hinzufügen
+
+
+Cookie is an engaging idle game where players step into the role of a skilled baker, producing both ingredients and delicious cookies. These items can either be sold on a dynamic online marketplace to other players or used directly to bake even more tempting cookies. With each transaction, market prices fluctuate, creating a constant rise and fall in value.
+
+When you sell your last batch of flour right before the prices crash...
+
+
+
+Players have the power to influence the economy by strategically buying or selling to maximize their profits. Through clever trading and efficient management, they can dominate the market and expand their cookie empire. The cycle of production, sales, and market influence creates an immersive, interactive world where every decision can shift the balance of the marketplace.
+

@@ -1,8 +1,12 @@
 <template>
   <div class="chart-root">
     <div class="chart-toolbar">
-      <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode" :title="t('priceChart.pctChangeTitle')"><ShortcutSlot />%</button>
-      <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }" :title="t('priceChart.resetZoomTitle')"><ShortcutSlot />RESET</button>
+      <NestedTooltip :content="t('priceChart.pctChangeTitle')" silent>
+        <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode"><ShortcutSlot />%</button>
+      </NestedTooltip>
+      <NestedTooltip :content="t('priceChart.resetZoomTitle')" silent>
+        <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }"><ShortcutSlot />RESET</button>
+      </NestedTooltip>
     </div>
     <div class="chart-wrap" @mouseleave="onChartLeave">
       <canvas ref="canvasRef"></canvas>
@@ -22,6 +26,7 @@ import ZoomPlugin from 'chartjs-plugin-zoom'
 import { useMarketStore } from '../stores/market.js'
 import { getFullMarketHistory } from '../services/api.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import NestedTooltip from './NestedTooltip.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
