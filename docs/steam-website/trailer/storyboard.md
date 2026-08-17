@@ -1,63 +1,66 @@
 # Trailer-Storyboard
 
-Plant die Aufnahmen bewusst, bevor wieder aufgenommen wird. Ziel:
-30-45 Sekunden fertig geschnittener Trailer. Kein eingebrannter Text mehr
-(siehe Entscheidung 2026-08-16) — die Bilder müssen für sich sprechen,
-Kamera-Framing und Timing sind deshalb wichtiger als beim Text-Cut.
-Cursor-Overlay (weißer Ring, Klick-Puls) bleibt, macht Klicks lesbar ohne
-Text.
+**Richtung (2026-08-17 korrigiert):** Kein ruhiger, erklärender Trailer —
+ein schnelles, meme-getriebenes Video. Harte Schnitte, Escalation/Punchline-
+Struktur statt "System X erklären, System Y erklären". Ziel: 15-25
+Sekunden Kernmaterial, Editor (DaVinci) packt drumherum Musik/Timing.
+Die vorherige Version dieses Dokuments (ruhiger Feature-Showcase mit
+langen Haltezeiten pro Dialog) passt nicht zu diesem Ziel — verworfen,
+nicht nur ergänzt.
 
-Faustregel fürs Aufnehmen: jede Szene doppelt so lang roh aufnehmen wie
-die geplante Länge im fertigen Schnitt — gibt beim Schneiden Auswahl
-(Ein-/Ausstiegspunkt, beste 2-3 Sekunden rausschneiden) statt bei exakter
-Ziellänge aufzunehmen und dann nichts mehr wählen zu können.
+Aufnahme bleibt textfrei (Cursor-Ring-Overlay ja, eingebrannte Captions
+nein, siehe letzte Entscheidung) — Meme-Text/Impact-Schrift kommt beim
+Schnitt in DaVinci dazu, nicht aus dem Playwright-Skript. Spalte
+"Text-Idee" unten ist ein Vorschlag fürs Editing, keine Aufnahme-Vorgabe.
 
-## Erzählbogen
+Faustregel: pro Beat 3-4 Sekunden roh aufnehmen, auch wenn der Schnitt nur
+0.5-1.5 Sekunden davon nutzt — harte Schnitte brauchen den einen perfekten
+Frame, nicht die ganze Aktion in Echtzeit.
 
-Hook → Welt → Kernloop → Alleinstellungsmerkmal (Markt) → Tiefe
-(Skillbaum) → Payoff (Backen) → Wettbewerb (Rangliste) → Ausstieg.
-Der Markt ist das Herzstück (geteilter Online-Markt ist das, was Cookie
-von anderen Idle-Spielen unterscheidet) — kriegt den längten Slot und
-sitzt in der stärksten Position (nach dem Hook, vor der Tiefe).
+## Beat-Liste (Escalation → Punchline → Tag)
 
-## Szenenliste
+| # | Beat | Zeigt | Länge im Schnitt | Text-Idee (optional, im Editing) |
+|---|---|---|---|---|
+| 1 | Cold Open, Zahl explodiert | Extreme Nahaufnahme auf HUD-Cookie-Zahl, tickt beim Ernten/Einsammeln schnell hoch | 0.5-1s | — (kein Text, Zahl spricht für sich) |
+| 2 | Klick-Spam | Schneller Schnitt: Hover-Ernte + 2-3 Collect-Badges direkt hintereinander, Cursor-Ring pulst mehrfach | 1-1.5s | "cookie go brrr" o.ä. |
+| 3 | Markt-Chart Rakete | Zoom auf Preisgraph, grüne Linie schießt hoch (Kauf-Trade timen, damit der Sprung im Frame liegt) | 1-1.5s | "STONKS" |
+| 4 | Harter Cut: Meme-Bild | Vollbild STONKS-Recreation (`screenshots/full/STONKS.png`), 1 Frame Freeze-Gefühl | 0.5-0.8s | (Bild ist der Text) |
+| 5 | Subversion: Chart crasht | Sofort zurück zum Graph, jetzt rote Linie runter (Verkauf/Preisfall timen) | 0.8-1s | "not stonks" |
+| 6 | Gebäude-Montage | 3-4 harte Schnitte zwischen Gebäuden (Zuckerteich → Kuhstall → Backofen → Plantage), je < 0.5s | 1.5-2s | — |
+| 7 | Skillbaum-Reveal | Schneller Zoom-out von der Mitte (Stern) auf den vollen Baum in einer Bewegung | 1-1.5s | "brain expands" / Galaxy-Brain-Meme-Timing |
+| 8 | Cookie-Payoff | Harter Cut direkt auf "+100 COOKIES EINLÖSEN"-Button-Klick (Bake-Job vorher fast-forwarden, siehe unten) | 0.8-1s | — |
+| 9 | Rangliste-Flash | Kurzer Frame auf #1-Platzierung | 0.5-0.8s | "#1" |
+| 10 | Logo-Slam | Cookie-Wordmark, harter Zoom-Punch rein, letzter Frame steht | 1-1.5s | — |
 
-| # | Szene | Zeigt | Ziel im Schnitt | Rohaufnahme | Kamera/Aktion |
-|---|---|---|---|---|---|
-| 1 | Cold Open | Voll entwickelter Hof, bereits in Bewegung | 2-3s | 6s | Kein Menü-Screen zu Beginn. Direkt in die Farm-Ansicht schneiden, Kamera pannt bereits (kein statischer erster Frame) |
-| 2 | Gebäude-Etablierung | 2-3 Gebäude nacheinander, Arbeiter sichtbar | 3-4s | 8s | Kurze Schwenks/Zooms auf Zuckerteich, Kuhstall, Backofen — Vielfalt zeigen, nicht Vollständigkeit |
-| 3 | Hover-Ernte | Ressourcenzahl tickt hoch beim Hover | 2s | 5s | Cursor bewegt sich sichtbar zum Gebäude, hält kurz — der Ring-Puls macht den Moment lesbar |
-| 4 | Einsammeln | Collect-Badge-Klick, Betrag springt ins Lager | 2s | 5s | Badge muss im Frame sichtbar+lesbar sein (großer Zahlwert, z. B. 800+) bevor geklickt wird |
-| 5 | Markt öffnen | Preisgraph, mehrere Ressourcen-Linien in Bewegung | 3s | 8s | Dialog öffnet, 1-2 Sekunden nur Graph zeigen bevor irgendwas geklickt wird — Graph ist der eigentliche Star, nicht der Klick |
-| 6 | Markt-Trade | Ein Kauf, Preis bewegt sich sichtbar | 3-4s | 8s | Ein einzelner klarer Klick auf KAUFEN bei einer Ressource mit sichtbarer %-Änderung. Nicht mehrere Trades hintereinander — verwässert den Moment |
-| 7 | Skillbaum | Voller Baum, Zoom/Pan über mehrere Zweige | 4-5s | 10s | Rein zoomen von der Mitte (Root/Stern) nach außen zu einem Keystone-Knoten (Diamant-Icon), zeigt Umfang des Baums |
-| 8 | Backen | Zutaten → Rezept → Fortschrittsbalken → fertig | 4s | 10s (nur Anfang+Ende brauchbar, 30s echte Backzeit dazwischen wegschneiden) | Zwei Aufnahmen statt einer: (a) Rezept-Klick + Start, (b) separat den fertigen Zustand mit "+100 Cookies einlösen"-Button anfahren (Bake-Job vorher per Zeit/API weit genug vorspulen, nicht 30s Realzeit mitfilmen) |
-| 9 | Rangliste | Eigener Eintrag mit Gesamtwert | 2s | 5s | Kurzer, ruhiger Shot — keine Aktion nötig, Zahl muss nur lesbar sein |
-| 10 | Outro | Weiter Hof-Shot, zentriert, ruhige Kamera | 3-4s | 6s | Letzter Frame muss als Standbild funktionieren (Trailer-Enddate/Steam-Wishlist-Card wird oft draufgelegt) |
+Gesamt Zielschnitt: ca. 12-16 Sekunden. Mit Puffer/Wiederholung beim
+Schneiden realistisch 15-25s Endlänge.
 
-Gesamt Rohmaterial: ca. 70s, Zielschnitt: 30-45s.
+## Bewusst rausgelassen (für dieses Video)
 
-## Bewusst rausgelassen
+- **Rathaus, Lager, Statistiken** — zu ruhig/listig für Meme-Tempo, bleiben
+  reines Screenshot-Material.
+- **Mehrere Markt-Trades, Recipe-Auswahl im Detail, Backzeit-Warten** — aus
+  der vorherigen (verworfenen) Storyboard-Version übernommen: alles, was
+  "Erklärung" statt "Payoff" ist, raus.
+- **Hauptmenü als Opener** — Cold Open direkt auf Beat 1 ist der Hook,
+  kein Aufwärmen.
 
-- **Rathaus/Lager** — informativ, aber visuell wenig Bewegung (Listen/
-  Balken), trägt den Trailer nicht. Bleiben Screenshot-Material
-  (`docs/steam-website/screenshots/`), kein Trailer-Slot.
-- **Hauptmenü** — kein Mehrwert als Trailer-Opener, der Hook (Szene 1)
-  ersetzt es bewusst.
-- **Mehrere Markt-Trades hintereinander** — aus v1/v2-Aufnahmen gelernt:
-  mehrere Käufe/Verkäufe in Folge (mit Cooldown dazwischen) ziehen die
-  Szene ohne visuellen Mehrwert in die Länge. Ein einzelner, klarer Trade
-  reicht.
+## Technische Notiz fürs Recording
 
-## Technische Notiz fürs nächste Recording
-
-`docs/steam-website/trailer/record-clips.js` ist die Basis (Cursor-Ring +
-Klick-Puls-Overlay, ProRes-`.mov`-Export). Für diese Runde:
-- Alle `caption(...)`-Aufrufe entfernen (kein Text mehr).
-- Szene 8 (Backen) in zwei Clips splitten statt einen 30s-Clip — Bake-Job
-  vor der zweiten Aufnahme direkt per Backend-API/DB auf `done` setzen
-  (`lastSettledAt`/`bakeDurationSeconds` in der Vergangenheit), nicht die
-  echten 30 Sekunden mitfilmen.
-- Dev-Save-State vor jeder Aufnahme frisch aufsetzen (Gebäude nicht
-  `INAKTIV`, Hauptlager nicht voll) — siehe wiederkehrende Fallstricke in
+`docs/steam-website/trailer/record-clips.js` als Basis, angepasst auf
+diese Beat-Liste:
+- Keine `caption(...)`-Aufrufe (siehe oben).
+- Beat 4 braucht keine eigene Aufnahme — `STONKS.png` wird beim Schnitt
+  als Standbild eingefügt, nicht gefilmt.
+- Beat 8 (Bake-Payoff): Bake-Job direkt fertig aufsetzen statt 30s
+  Echtzeit filmen — `POST /api/v1/game/bake/start/{userId}` aufrufen,
+  danach `last_settled_at`/Timing in der DB so weit zurückdatieren, dass
+  `GET /api/v1/game/bake/status/{userId}` sofort `"done":true` zeigt, dann
+  erst mit der Aufnahme starten (Dialog zeigt direkt den Claim-Button).
+- Dev-Save-State-Fallstricke (Hauptlager voll, Gebäude-Lager voll,
+  unabgeholter Back-Job) vor jeder Aufnahme prüfen — siehe
   `docs/steam-website/README.md`.
+- Cursor-Bewegungen für Beat 2/3/5 bewusst SCHNELLER als die bisherige
+  550ms-Gleitzeit im Overlay (`moveCursor()` in `record-clips.js`) — für
+  Meme-Tempo eher 150-200ms Übergang, sonst wirkt der Cursor selbst wieder
+  gemütlich statt hektisch.

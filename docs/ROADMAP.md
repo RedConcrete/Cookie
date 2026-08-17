@@ -317,6 +317,17 @@ spezifiziert ist:
     `gamepadconnected` (Browser meldet das erst nach echter Eingabe am
     Controller — passt zu "wenn ein Controller genutzt wird"), kein
     Deck-spezifischer Erkennungs-Code nötig dafür.
+  - [x] **Hotkey-Badges zeigen automatisch das passende Controller-Symbol** —
+    erledigt 2026-08-17 (`docs/plans/2026-08-17-done-controller-hotkey-icons.md`).
+    Neuer Composable `useInputMethod.js` erkennt per rAF-Polling auf
+    `navigator.getGamepads()`, ob zuletzt Tastatur/Maus oder Controller
+    benutzt wurde, plus Controller-Familie (Xbox/PlayStation/generisch) aus
+    `Gamepad.id`. `ShortcutSlot.vue` zeigt dann statt Text-Badge ein
+    `ControllerButtonIcon.vue` (farbiges Label je Familie, keine neuen
+    SVG-Assets). B/Circle schließt jetzt global Dialoge, Y/Triangle
+    zentriert die Kamera — vorher hatte ein reiner Controller-Spieler dafür
+    gar keine Eingabe. Live-Test mit echtem Pad steht noch aus (kein
+    Browser/Gamepad in der Dev-Umgebung verfügbar).
   - **Erkennung:** `steamworks.js` bringt `isSteamRunningOnSteamDeck()`
     fertig mit (`client.d.ts`) — automatischer Check beim Start in
     `electron/main.js`, Ergebnis per IPC (analog `steam-auth`) ans Frontend
