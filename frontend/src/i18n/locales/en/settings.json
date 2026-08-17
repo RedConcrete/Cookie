@@ -18,6 +18,7 @@
   "controllerTitle": "Controller",
   "camera": "CAMERA MOVEMENT",
   "speed": "Speed",
+  "zoomSpeed": "Controller zoom speed",
   "dirUp": "Move up",
   "dirDown": "Move down",
   "dirLeft": "Move left",

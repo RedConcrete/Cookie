@@ -128,12 +128,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buySkillPoint, allocateSkillNode, deallocateSkillNode, getPlayer } from '../services/api.js'
 import { fmt2 as fmt } from '../utils/formatNumber.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
+import { useCameraControls } from '../composables/useCameraControls.js'
+import { useGamepadCursor } from '../composables/useGamepadCursor.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
@@ -460,10 +462,66 @@ function onWheel(e) {
   clampPan()
 }
 
+// ── Gamepad: mirrors FarmGridView.vue's stick-pan/D-pad-zoom/A-click, but
+// self-contained -- this view has its own independent camera (panX/panY/zoom
+// above), so it polls the gamepad itself rather than reaching into
+// FarmGridView's private gamepadIndex. Shares useGamepadCursor.js's mode/
+// cursor state though, so R3 (toggled centrally in FarmGridView.vue) and the
+// on-screen cursor overlay behave identically here.
+const { cameraSpeed, zoomSpeed } = useCameraControls()
+const gamepadCursor = useGamepadCursor()
+const GAMEPAD_DEADZONE = 0.2
+const DPAD_UP = 12, DPAD_DOWN = 13
+const INTERACT_GAMEPAD_BUTTON = 0
+let interactButtonPressed = false
+let gpFrame = null
+let lastGpTime = 0
+
+function gamepadTick(now) {
+  const dt = Math.min(0.05, (now - lastGpTime) / 1000)
+  lastGpTime = now
+  const pad = (navigator.getGamepads?.() ?? []).find(p => p)
+  if (pad) {
+    if (gamepadCursor.mode.value === 'fixed') {
+      const ax = pad.axes[0] ?? 0
+      const ay = pad.axes[1] ?? 0
+      const mag = Math.hypot(ax, ay)
+      if (mag >= GAMEPAD_DEADZONE) {
+        const scale = Math.min(1, (mag - GAMEPAD_DEADZONE) / (1 - GAMEPAD_DEADZONE)) / mag
+        panX.value += -ax * scale * cameraSpeed.value * dt
+        panY.value += -ay * scale * cameraSpeed.value * dt
+        clampPan()
+      }
+      let zoomDir = 0
+      if (pad.buttons[DPAD_UP]?.pressed) zoomDir = -1
+      else if (pad.buttons[DPAD_DOWN]?.pressed) zoomDir = 1
+      if (zoomDir !== 0) {
+        zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value * (1 + zoomDir * zoomSpeed.value * dt)))
+        clampPan()
+      }
+    }
+    // A clicks whatever's at the crosshair/cursor point -- .stv-node buttons
+    // (fixed mode, tree centered under the crosshair) and toolbar/search/
+    // buy-panel buttons (free mode) are all plain @click handlers.
+    const interactPressed = !!pad.buttons[INTERACT_GAMEPAD_BUTTON]?.pressed
+    if (interactPressed && !interactButtonPressed) {
+      const { x, y } = gamepadCursor.currentPoint.value
+      document.elementFromPoint(x, y)?.click()
+    }
+    interactButtonPressed = interactPressed
+  }
+  gpFrame = requestAnimationFrame(gamepadTick)
+}
+
 onMounted(async () => {
   loading.value = true
   try { await playerStore.loadSkillTree() }
   finally { loading.value = false }
+  lastGpTime = performance.now()
+  gpFrame = requestAnimationFrame(gamepadTick)
+})
+onUnmounted(() => {
+  if (gpFrame != null) cancelAnimationFrame(gpFrame)
 })
 </script>
 

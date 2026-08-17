@@ -46,12 +46,10 @@
 
       <div class="hud-actions">
         <div class="hud-menu-wrap" ref="hudMenuRef">
-          <NestedTooltip :content="t('farmGridView.menuTitle')" silent>
-            <button class="px-btn" @click="menuOpen = !menuOpen">
-              &#9776;
-              <ShortcutSlot />
-            </button>
-          </NestedTooltip>
+          <button class="px-btn" @click="menuOpen = !menuOpen">
+            &#9776;
+            <ShortcutSlot :gamepad-button="MENU_GAMEPAD_BUTTON" />
+          </button>
           <div v-if="menuOpen" class="hud-menu">
             <button class="hud-menu-item" @click="selectMenu('profile')">
               <span class="hud-menu-avatar">
@@ -68,18 +66,17 @@
             <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectMenu('skilltreeadmin')">{{ t('farmGridView.skillTreeAdminLabel') }}<ShortcutSlot /></button>
             <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectDevReset">{{ t('farmGridView.devResetLabel') }}</button>
           </div>
+          <button
+            v-if="playerStore.skillTree.skillPoints > 0"
+            class="hud-skillpoint-star"
+            @click="dialog = 'skilltree'"
+          ><PixelIcon name="stern" :size="20" /><ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.skilltree) : ''" :gamepad-button="actionGamepadButtons.skilltree" /></button>
         </div>
       </div>
     </div>
     <!-- Fixed screen-space overlay for the falling red wage number -- NOT inside .hof-canvas,
          since the cookie chip lives in the fixed .hud layer, not the pannable world. -->
     <WageNumbers />
-    <NestedTooltip v-if="playerStore.skillTree.skillPoints > 0" :content="t('farmGridView.skillTreeLabel')" silent>
-      <button
-        class="hud-skillpoint-star"
-        @click="dialog = 'skilltree'"
-      ><PixelIcon name="stern" :size="20" /></button>
-    </NestedTooltip>
     <!-- ══ World canvas (pannable + zoomable, no overflow clip) ══ -->
     <div ref="canvasEl" class="hof-canvas" :style="canvasStyle">
 
@@ -132,7 +129,7 @@
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
       <NestedTooltip :content="t('farmGridView.centerTitle')" silent>
-        <button class="cam-center" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot key-label="␣" :gamepad-button="CENTER_GAMEPAD_BUTTON" /></button>
+        <button class="cam-center" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot :key-label="actionHotkeysEnabled ? '␣' : ''" :gamepad-button="actionHotkeysEnabled ? CENTER_GAMEPAD_BUTTON : null" /></button>
       </NestedTooltip>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
@@ -168,6 +165,9 @@
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
     <SkillTreeAdminDialog v-if="dialog === 'skilltreeadmin'" @close="dialog = null" />
     <HardResetDialog     v-if="showBankruptcyDialog" mode="bankruptcy" @close="showBankruptcyDialog = false" />
+
+    <GamepadCursor :pulse="gamepadPulse" />
+    <GamepadToast />
   </div>
 </template>
 
@@ -183,12 +183,15 @@ import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { spawnWageNumber } from '../composables/useWageNumbers.js'
 import { useCameraControls } from '../composables/useCameraControls.js'
 import { useActionHotkeys } from '../composables/useActionHotkeys.js'
+import { useGamepadCursor } from '../composables/useGamepadCursor.js'
 import { useAudio } from '../composables/useAudio.js'
 import FarmNumbers from '../components/FarmNumbers.vue'
 import WageNumbers from '../components/WageNumbers.vue'
 import PixelIcon from '../components/pixel/PixelIcon.vue'
 import PixelInfoPopover from '../components/pixel/PixelInfoPopover.vue'
 import ShortcutSlot from '../components/pixel/ShortcutSlot.vue'
+import GamepadCursor from '../components/pixel/GamepadCursor.vue'
+import GamepadToast from '../components/pixel/GamepadToast.vue'
 import BuildingFrame from '../components/buildings/BuildingFrame.vue'
 import TravelingWorker from '../components/buildings/TravelingWorker.vue'
 import { BASE, HGT, SCENE_H, WORLD, dropOk as dropOkLayout, snapOffset } from '../components/buildings/farmLayout.js'
@@ -570,6 +573,20 @@ function onOpenBuilding(b) {
   else detailBuilding.value = b
 }
 
+// Gamepad-crosshair "click": which building (if any) sits under the given
+// screen point. Can't reuse elementFromPoint()+.click() here like the
+// generic dialog fallback does -- BuildingFrame's .bf-root only reacts to
+// useHoldDrag.js's pointerdown/pointerup sequence, no plain click handler.
+function hitTestBuilding(point) {
+  for (const b of buildings.value) {
+    const el = buildingFrameEls[b.id]
+    if (!el) continue
+    const rect = el.getBoundingClientRect()
+    if (point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom) return b
+  }
+  return null
+}
+
 // ── HUD data ─────────────────────────────────────────────
 const cookieRows = computed(() => [
   { k: t('farmGridView.rowStock'), v: fmt(playerStore.cookies) + ' C', color: 'w' },
@@ -705,8 +722,20 @@ function onWheel(e) {
 
 // ── Camera movement (continuous while held, same feel as mouse-drag) ──
 // Keybinds + speed are user-configurable in SettingsDialog, shared via useCameraControls.
-const { cameraKeys, cameraSpeed } = useCameraControls()
+const { cameraKeys, cameraSpeed, zoomSpeed: cameraZoomSpeed } = useCameraControls()
 const { actionKeys, actionGamepadButtons, enabled: actionHotkeysEnabled, keyLabel: actionKeyLabel } = useActionHotkeys()
+const gamepadCursor = useGamepadCursor()
+const gamepadPulse = ref(false)
+function pulseGamepadCursor() {
+  gamepadPulse.value = false
+  // Re-add on the next tick so the CSS animation restarts even if it's
+  // already mid-pulse from a rapid double-press (same idea as
+  // BuildingFrame.vue's collect-shake toggle).
+  requestAnimationFrame(() => {
+    gamepadPulse.value = true
+    setTimeout(() => { gamepadPulse.value = false }, 300)
+  })
+}
 const camPressed = { up: false, down: false, left: false, right: false }
 let camFrame = null
 let lastFrameTime = 0
@@ -771,7 +800,6 @@ function readGamepadPan() {
 // as '↑'/'↓' via GAMEPAD_BUTTON_LABELS, but hardcoded here (not user-rebindable)
 // since it mirrors the mouse wheel rather than being a discrete UI action.
 const DPAD_UP = 12, DPAD_DOWN = 13
-const ZOOM_SPEED = 0.8 // multiplicative rate per second, same feel as onWheel's 1.1/0.9 step
 
 function readGamepadZoom() {
   if (gamepadIndex.value === null || dialog.value || detailBuilding.value) return 0
@@ -798,8 +826,23 @@ function triggerAction(action) {
 // which they'd otherwise have no input for at all.
 const CLOSE_GAMEPAD_BUTTON = 1
 const CENTER_GAMEPAD_BUTTON = 3
+// Start -- toggles the hamburger HUD menu, same as clicking it. Always active
+// regardless of actionHotkeysEnabled (like A/R3, see readGamepadActions below):
+// it's the only controller path into Settings, so gating it off could strand
+// a controller-only player with no way back to the toggle that re-enables it.
+const MENU_GAMEPAD_BUTTON = 9
+// A -- context-dependent "interact with whatever the crosshair/cursor is
+// on": opens a building at screen-center in world mode, or clicks whatever's
+// under the cursor once a dialog is open. R3 -- toggles gamepadCursor
+// between fixed-center and free-roaming (see useGamepadCursor.js). Both
+// always active regardless of actionHotkeysEnabled, same reasoning as Start.
+const INTERACT_GAMEPAD_BUTTON = 0
+const TOGGLE_CURSOR_GAMEPAD_BUTTON = 11
 let closeButtonPressed = false
 let centerButtonPressed = false
+let menuButtonPressed = false
+let interactButtonPressed = false
+let toggleCursorButtonPressed = false
 
 function readGamepadActions() {
   if (gamepadIndex.value === null) return
@@ -813,17 +856,42 @@ function readGamepadActions() {
   }
 
   const closePressed = !!pad.buttons[CLOSE_GAMEPAD_BUTTON]?.pressed
-  if (closePressed && !closeButtonPressed && (dialog.value || detailBuilding.value)) {
+  if (closePressed && !closeButtonPressed && actionHotkeysEnabled.value && (dialog.value || detailBuilding.value)) {
     dialog.value = null
     detailBuilding.value = null
   }
   closeButtonPressed = closePressed
 
   const centerPressed = !!pad.buttons[CENTER_GAMEPAD_BUTTON]?.pressed
-  if (centerPressed && !centerButtonPressed && !dialog.value && !detailBuilding.value) {
+  if (centerPressed && !centerButtonPressed && actionHotkeysEnabled.value && !dialog.value && !detailBuilding.value) {
     resetView()
   }
   centerButtonPressed = centerPressed
+
+  const menuPressed = !!pad.buttons[MENU_GAMEPAD_BUTTON]?.pressed
+  if (menuPressed && !menuButtonPressed) menuOpen.value = !menuOpen.value
+  menuButtonPressed = menuPressed
+
+  const toggleCursorPressed = !!pad.buttons[TOGGLE_CURSOR_GAMEPAD_BUTTON]?.pressed
+  if (toggleCursorPressed && !toggleCursorButtonPressed) gamepadCursor.toggle()
+  toggleCursorButtonPressed = toggleCursorPressed
+
+  const interactPressed = !!pad.buttons[INTERACT_GAMEPAD_BUTTON]?.pressed
+  if (interactPressed && !interactButtonPressed) {
+    const point = gamepadCursor.currentPoint.value
+    if (!dialog.value && !detailBuilding.value) {
+      const b = hitTestBuilding(point)
+      if (b) onOpenBuilding(b)
+    } else if (dialog.value !== 'skilltree') {
+      // Generic click-through for every other dialog (Settings, Market, ...) --
+      // their buttons are all plain @click handlers, so a synthetic click works.
+      // Skilltree is skipped: SkillTreeView.vue reads A itself (see there),
+      // otherwise this would double-fire.
+      document.elementFromPoint(point.x, point.y)?.click()
+    }
+    pulseGamepadCursor()
+  }
+  interactButtonPressed = interactPressed
 }
 
 function camTick(now) {
@@ -847,6 +915,10 @@ function camTick(now) {
 
   readGamepadActions()
 
+  // Free-cursor movement (right stick) -- runs regardless of dialog state,
+  // it's the one central place driving the shared cursor overlay app-wide.
+  gamepadCursor.tick(gamepadIndex.value !== null ? navigator.getGamepads?.()[gamepadIndex.value] : null, dt)
+
   if (dx !== 0 || dy !== 0) {
     panX.value += dx * cameraSpeed.value * dt
     panY.value += dy * cameraSpeed.value * dt
@@ -855,7 +927,7 @@ function camTick(now) {
 
   const zoomDir = readGamepadZoom()
   if (zoomDir !== 0) {
-    zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value * (1 + zoomDir * ZOOM_SPEED * dt)))
+    zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value * (1 + zoomDir * cameraZoomSpeed.value * dt)))
     clampPan()
   }
   if (camActive() || gamepadIndex.value !== null) camFrame = requestAnimationFrame(camTick)
@@ -872,7 +944,7 @@ function stopCamKeys() {
 }
 // Release held keys if a dialog opens or the window loses focus, so keys
 // stuck "down" (e.g. Alt-Tab while holding a movement key) don't pan forever.
-watch([dialog, detailBuilding], () => stopCamKeys())
+watch([dialog, detailBuilding], () => { stopCamKeys(); gamepadCursor.reset() })
 
 // ── Hotkeys ──────────────────────────────────────────────
 async function sellAll() {
@@ -1023,6 +1095,12 @@ onMounted(() => {
   window.addEventListener('blur', stopCamKeys)
   window.addEventListener('gamepadconnected', onGamepadConnected)
   window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
+  // A gamepad already connected/activated before this view mounted (e.g. the
+  // player pressed a button while still in the main menu) never refires
+  // 'gamepadconnected' -- pick it up here too, otherwise gamepadIndex stays
+  // null forever and stick-pan/D-pad/action-buttons/close-center never work.
+  const existingPad = (navigator.getGamepads?.() ?? []).find(p => p)
+  if (existingPad) { gamepadIndex.value = existingPad.index; startCamLoop() }
 })
 onUnmounted(() => {
   clearInterval(liveNowTimer)
@@ -1116,7 +1194,7 @@ onUnmounted(() => {
    einem Icon drin sah sie klein/leer aus) -- gleiches quadratisches Icon-Button-Muster wie
    .cam-center/.build-fab, nur mit Gold-Akzent, damit der Hinweis auffaellt. */
 .hud-skillpoint-star {
-  position: absolute; top: 88px; right: 14px; z-index: 51;
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 51;
   width: 48px; height: 48px;
   display: flex; align-items: center; justify-content: center;
   background: var(--px-gold); border: 4px solid var(--px-ink); color: var(--px-ink-txt);

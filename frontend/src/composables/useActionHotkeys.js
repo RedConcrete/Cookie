@@ -6,7 +6,10 @@ import { reactive, ref, watch } from 'vue'
 // press. Mirrors that composable's storage/rebind pattern.
 const ACTIONS = ['networth', 'skilltree']
 const DEFAULT_KEYS = { networth: 'n', skilltree: 'p' }
-const DEFAULT_GAMEPAD_BUTTONS = { networth: null, skilltree: null } // null = unbound
+// X (skilltree, important) and D-Pad-right (networth, less important) --
+// A/B/Y/R3/Start are reserved (interact/close/center/cursor-toggle/menu),
+// see FarmGridView.vue.
+const DEFAULT_GAMEPAD_BUTTONS = { networth: 15, skilltree: 2 }
 
 // Standard Gamepad API button order (Xbox-style layout; most controllers,
 // including PlayStation/Steam Deck, map to this via the browser's standard mapping).

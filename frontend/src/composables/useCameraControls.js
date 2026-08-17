@@ -3,6 +3,9 @@ import { reactive, ref, watch } from 'vue'
 const DIRECTIONS = ['up', 'down', 'left', 'right']
 const DEFAULT_KEYS = { up: 'w', down: 's', left: 'a', right: 'd' }
 const DEFAULT_SPEED = 1200 // px/sec, screen space
+// Multiplicative rate per second for gamepad D-pad zoom (FarmGridView.vue +
+// SkillTreeView.vue), same feel as the mouse wheel's 1.1/0.9 step.
+const DEFAULT_ZOOM_SPEED = 0.8
 
 function loadKeys() {
   try {
@@ -17,12 +20,19 @@ function loadSpeed() {
   return isNaN(v) ? DEFAULT_SPEED : v
 }
 
-// ── Singleton state (shared between FarmGridView and SettingsDialog) ──
+function loadZoomSpeed() {
+  const v = parseFloat(localStorage.getItem('cookieCameraZoomSpeed'))
+  return isNaN(v) ? DEFAULT_ZOOM_SPEED : v
+}
+
+// ── Singleton state (shared between FarmGridView, SkillTreeView and SettingsDialog) ──
 const cameraKeys  = reactive(loadKeys())
 const cameraSpeed = ref(loadSpeed())
+const zoomSpeed    = ref(loadZoomSpeed())
 
 watch(cameraKeys, v => localStorage.setItem('cookieCameraKeys', JSON.stringify(v)), { deep: true })
 watch(cameraSpeed, v => localStorage.setItem('cookieCameraSpeed', v))
+watch(zoomSpeed, v => localStorage.setItem('cookieCameraZoomSpeed', v))
 
 function keyLabel(key) {
   if (!key) return '—'
@@ -43,5 +53,5 @@ function rebind(direction, newKey) {
 }
 
 export function useCameraControls() {
-  return { cameraKeys, cameraSpeed, keyLabel, rebind, DEFAULT_SPEED }
+  return { cameraKeys, cameraSpeed, zoomSpeed, keyLabel, rebind, DEFAULT_SPEED }
 }

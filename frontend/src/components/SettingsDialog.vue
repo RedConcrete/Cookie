@@ -96,6 +96,14 @@
             <span class="sd-slider-val">{{ camera.cameraSpeed.value }}</span>
           </div>
 
+          <div class="sd-slider-row sd-cam-speed-row">
+            <div class="sd-slider-label">{{ t('settings.zoomSpeed') }}</div>
+            <input type="range" min="0.2" max="2" step="0.1" :value="camera.zoomSpeed.value"
+              @input="camera.zoomSpeed.value = +$event.target.value" class="sd-slider"
+              :style="{ '--fill': zoomSpeedFillPct + '%' }" />
+            <span class="sd-slider-val">{{ camera.zoomSpeed.value.toFixed(1) }}</span>
+          </div>
+
           <div class="sd-hotkey-row" v-for="d in camDirections" :key="d.dir">
             <span>{{ t(d.labelKey) }}</span>
             <button
@@ -164,6 +172,8 @@ const camDirections = [
 ]
 const CAM_SPEED_MIN = 120, CAM_SPEED_MAX = 3000
 const camSpeedFillPct = computed(() => (camera.cameraSpeed.value - CAM_SPEED_MIN) / (CAM_SPEED_MAX - CAM_SPEED_MIN) * 100)
+const ZOOM_SPEED_MIN = 0.2, ZOOM_SPEED_MAX = 2
+const zoomSpeedFillPct = computed(() => (camera.zoomSpeed.value - ZOOM_SPEED_MIN) / (ZOOM_SPEED_MAX - ZOOM_SPEED_MIN) * 100)
 const listeningFor = ref(null)
 const listeningForAction = ref(null)
 const listeningForGamepad = ref(null)

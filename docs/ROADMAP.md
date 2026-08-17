@@ -333,31 +333,34 @@ spezifiziert ist:
     `electron/main.js`, Ergebnis per IPC (analog `steam-auth`) ans Frontend
     durchreichen, z.B. `steam-deck-mode` Event oder Teil des bestehenden
     `steam-auth`-Payloads.
-  - **Fadenkreuz-Modus (Standard auf Deck):** Crosshair fix in Bildschirm-
-    mitte. Kamera-Pan via Stick ist jetzt da (s.o.) — offen ist noch der
-    Crosshair selbst: Position bleibt zentriert, die Welt bewegt sich
-    darunter.
-    **Visuelle Vorlage vorhanden (2026-08-16):** Für die Playwright-
-    Trailer-Aufnahmen wurde ein Ring-Cursor mit Klick-Puls-Animation gebaut
-    (weißer Ring, `box-shadow`-Puls beim Klick), reines CSS+JS-Overlay, kein
-    Asset. CSS in `docs/steam-website/trailer/record-clips.js`
-    (`OVERLAY_CSS`-Konstante, `#__cursor`/`.click`-Keyframes). Passt als
-    Ausgangspunkt für den echten Crosshair, ist aber ein Playwright-Dev-
-    Tool außerhalb des Frontend-Builds — für den echten Einsatz als eigene
-    Vue-Komponente (z. B. `GamepadCrosshair.vue`) neu umsetzen, nicht
-    direkt importierbar.
-  - **Interaktion:** Wenn Crosshair über einem Gebäude steht und Spieler
-    A drückt → selbes Verhalten wie Klick (`BuildingFrame.vue` `@open`).
-    Braucht Hit-Test von Bildschirmmitte gegen die aktuell sichtbaren
-    Gebäude-Bounding-Boxes.
-  - **Umschalten Fadenkreuz ↔ Maus:** Klick auf linken Stick (L3) togglet
-    Modus. Im Maus-Modus steuert der linke Stick einen echten Mauszeiger
-    (Standard-Gamepad-zu-Maus-Verhalten), damit UI-Buttons/Dialoge normal
-    bedienbar bleiben, die kein Gamepad-Konzept haben.
-  - Braucht generell: Gamepad-Input-Handling im Frontend (`Gamepad API` des
-    Browsers reicht i.d.R., kein natives SDK nötig), neuer Composable
-    (z.B. `useGamepadCursor.js`) analog zu `useHotkeys.js`.
-  Zurückgestellt, User will das später angehen.
+  - [x] **Fadenkreuz-/Cursor-Modus + Skilltree-Gamepad-Parität** — Code
+    steht (2026-08-17, `docs/plans/2026-08-17-open-controller-crosshair-
+    cursor.md`), **noch nicht live mit Controller getestet**. Neuer
+    Composable `useGamepadCursor.js` (`mode`: `'fixed'`/`'free'`) +
+    `GamepadCursor.vue` (Ring-Cursor-Overlay, palette-konforme Neufassung
+    der Playwright-Trailer-Vorlage aus `docs/steam-website/trailer/
+    record-clips.js`, kein Asset). `FarmGridView.vue`: A hit-testet
+    Gebäude-Bounding-Boxes (`fixed`-Modus, kein Dialog offen) bzw. klickt
+    generisch per `elementFromPoint().click()` (jeder offene Dialog außer
+    Skilltree). R3 (nicht L3 wie ursprünglich geplant — User-Entscheidung)
+    togglet `fixed`↔`free`. `SkillTreeView.vue` hat jetzt dieselbe
+    Stick-Pan/D-Pad-Zoom/A-Klick-Logik in einer eigenen kleinen rAF-Schleife
+    (eigene Pan/Zoom-Welt, teilt sich aber `useGamepadCursor`s Zustand mit
+    FarmGridView). Zoom-Geschwindigkeit jetzt einstellbar
+    (`useCameraControls.js` `zoomSpeed`, Settings-Slider) statt
+    hartkodierter Konstante.
+  - [ ] **Settings-Hotkey-Liste als zwei beschriftete Spalten** (Tastatur/
+    Maus links, Controller rechts) statt der aktuellen Buttons ohne klare
+    Spalten-Beschriftung — Feedback aus dem 2026-08-17-Testlauf.
+  - [ ] **`NestedTooltip.vue`s 1s-Appear/Close-Timer für kurze
+    Namens-Tooltips entfernen** (z.B. Skilltree-Node-Namen) — sollen sofort
+    erscheinen/verschwinden statt verzögert. Zwei akut kaputte Fälle (HUD-
+    Skill-Stern, Hamburger-Button) sind am 2026-08-17 schon gefixt (Tooltip
+    dort komplett entfernt statt repariert), das Tooltip-System selbst ist
+    aber unverändert.
+  - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
+    nur FarmGridView).
+  L1/R1-Gebäude-Zyklus siehe §7.2 Backlog weiter unten.
 - [x] **Passiver Skill-Baum ersetzt Upgrade-System (2026-08-06).** Das alte
   3-Upgrade-Regal (`boost_harvest`, `boost_harvest_speed`, `boost_bake`) war
   kaum ein Cookie-Sink und bot keine echte Wahl. Komplett ersetzt durch

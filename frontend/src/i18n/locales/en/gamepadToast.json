@@ -1,0 +1,8 @@
+{
+  "connected": "Controller connected: {family}",
+  "family": {
+    "xbox": "Xbox",
+    "playstation": "PlayStation",
+    "generic": "Generic"
+  }
+}

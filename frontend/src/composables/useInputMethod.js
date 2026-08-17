@@ -10,6 +10,10 @@ const GAMEPAD_DEADZONE = 0.5 // higher than the camera-pan deadzone (0.2) -- thi
 
 const activeMethod = ref('keyboard') // 'keyboard' | 'gamepad'
 const controllerFamily = ref('generic') // 'xbox' | 'playstation' | 'generic'
+// Increments on every real connect event -- GamepadToast.vue watches this
+// (not controllerFamily directly) so reconnecting the same controller
+// re-triggers the toast instead of silently no-op'ing on an unchanged value.
+const connectNonce = ref(0)
 
 function detectFamily(padId) {
   if (!padId) return 'generic'
@@ -46,6 +50,7 @@ function pollGamepads() {
 
 function onGamepadConnected(e) {
   controllerFamily.value = detectFamily(e.gamepad.id)
+  connectNonce.value++
   if (pollFrame == null) pollFrame = requestAnimationFrame(pollGamepads)
 }
 function onGamepadDisconnected() {
@@ -86,5 +91,5 @@ function stop() {
 }
 
 export function useInputMethod() {
-  return { activeMethod, controllerFamily, start, stop }
+  return { activeMethod, controllerFamily, connectNonce, start, stop }
 }
