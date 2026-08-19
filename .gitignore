@@ -68,3 +68,10 @@ sysinfo.txt
 # Balance-Report-Tool Output (siehe docs/plans/2026-08-13-open-balance-report-tool.md)
 # ============================================================
 docs/balance-reports/
+
+# ============================================================
+# Trailer-Rohmaterial -- per record-clips.js regenerierbar, teils >100MB
+# (GitHub-Hardlimit), gehoert nicht in den Git-Verlauf. Nur der fertige
+# Trailer-Schnitt wird versioniert/hochgeladen, nicht die Rohaufnahmen.
+# ============================================================
+docs/steam-website/trailer/raw-clips/
