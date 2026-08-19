@@ -193,6 +193,19 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
 - [ ] Große Audio-Assets im Build prüfen (`ElevatorMusic-*.wav` ~16.9 MB,
   mehrere `.mp3` >3–5 MB) — für Steam-Distribution ok, aber ggf. auf OGG/
   niedrigere Bitrate umstellen, wenn Downloadgröße relevant wird
+- [x] **Markt-Preisgraph folgte nach Zoom/Pan nie wieder der Live-Kante
+  (2026-08-19).** `PriceChart.vue`s Zoom- UND Pan-Handler setzten beide
+  `userHasMoved=true` — danach blieb das X-Fenster für immer an der Zoom-
+  /Pan-Zeit eingefroren, neue Marktdaten liefen zwar weiter in
+  `fullHistory` ein (`rebuildChart()` läuft unconditional), tauchten aber
+  nie mehr im sichtbaren Bereich auf → sah wie "Graph aktualisiert sich
+  nicht mehr" aus, besonders beim Rauszoomen. **Fix:** `onZoomComplete`
+  setzt `userHasMoved` nicht mehr — nur ein echtes Pan (Wegziehen in die
+  Vergangenheit) gilt jetzt als Signal "User schaut sich bewusst einen
+  fixen Zeitpunkt an" und stoppt die Live-Verfolgung; Zoom (rein/raus)
+  behält die gewählte Fensterbreite, rutscht aber weiter mit der Live-
+  Kante mit (siehe `watch(marketStore.history, ...)`, das den bisherigen
+  `viewWidth` beibehält und nur `max` auf die neueste Zeit nachzieht).
 - [ ] **`MarketView.vue`s Verkaufsvorschau zeigt den flachen Config-
   `sellFeeRate` statt der effektiven, level-/skill-abhängigen Gebühr**
   (`netPayout()`, `frontend/src/views/MarketView.vue`) — der tatsächliche

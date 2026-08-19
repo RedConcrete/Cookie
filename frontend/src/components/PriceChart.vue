@@ -258,7 +258,12 @@ function initChart() {
             wheel: { enabled: true },
             pinch: { enabled: true },
             mode: 'x',
-            onZoomComplete: () => { userHasMoved = true; applyYRange(); chart.update('none') },
+            // Absichtlich KEIN userHasMoved=true hier (anders als beim Pan) -- Rein-/
+            // Rauszoomen aendert nur die Fensterbreite, soll aber weiter der Live-Kante
+            // folgen (siehe watch(marketStore.history) unten). Nur ein echtes Pan
+            // (Wegziehen in die Vergangenheit) ist das Signal "User schaut sich bewusst
+            // einen fixen Zeitpunkt an", das die Live-Verfolgung stoppen soll.
+            onZoomComplete: () => { applyYRange(); chart.update('none') },
           },
         },
       },
