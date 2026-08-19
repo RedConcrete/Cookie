@@ -652,6 +652,23 @@ spezifiziert ist:
   frei verschiebbare Gebäude), nicht explizit vom Dev bestätigt. Falls doch
   noch PixiJS/Phaser mit freier Kamera geplant ist: Design-Doc Abschnitt 8
   entsprechend zurückstufen.
+- [ ] **Discord-Integration (Idee, 2026-08-20).** Aktuell nur ein
+  statischer Einladungs-Link im Hauptmenü (`frontend/src/discord.js`,
+  `DISCORD_URL`), keine echte Anbindung. Drei Ausbaustufen, aufsteigender
+  Aufwand — können unabhängig voneinander umgesetzt werden:
+  - [ ] **Rich Presence.** Electron zeigt im Discord-Status "spielt
+    Cookie, Hof-Level X" o. ä. — rein clientseitig (`discord-rpc`-Paket
+    im Electron-Main-Prozess), kein Backend-Bezug. Kleinster Aufwand,
+    größte Sichtbarkeit — guter Einstiegspunkt.
+  - [ ] **Webhooks.** Backend postet Events (Rangliste-Änderungen,
+    Season-Reset, Meilensteine) per Discord-Webhook-URL in einen Channel
+    des Servers — einfacher Server-seitiger POST, kein Bot-Hosting nötig.
+  - [ ] **Bot mit Steam↔Discord-Account-Verknüpfung.** Slash-Commands im
+    Discord-Server fragen Spieler-Stats/Rangliste direkt ab. Deutlich
+    mehr Aufwand: eigener Bot-Host/-Prozess + OAuth-Linking zwischen
+    Discord- und Steam-Account (ähnliches Muster wie die bestehende
+    Steam-OpenID-Anbindung, siehe
+    `docs/plans/2026-08-14-done-steam-auth-produktion.md`).
 
 ---
 
