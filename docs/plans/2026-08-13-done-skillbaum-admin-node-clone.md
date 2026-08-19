@@ -1,6 +1,6 @@
 # ✅ Skill-Baum Admin-Editor: Nodes klonen
 
-> **Status:** ✅ Umgesetzt (2026-08-19)
+> **Status:** ✅ Umgesetzt (2026-08-19, Commit dff5ba6)
 
 ## Context
 
