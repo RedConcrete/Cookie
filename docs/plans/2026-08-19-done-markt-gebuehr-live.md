@@ -1,6 +1,6 @@
 # ✅ Markt-Gebühr live statt statisch (8%)
 
-> **Status:** ✅ Umgesetzt (2026-08-19)
+> **Status:** ✅ Umgesetzt (2026-08-19, Commit 1d48c05)
 
 ## Context
 
