@@ -1,6 +1,6 @@
 # ✅ Skill-Baum Admin-Editor: Name/Branch/Tier/Icon editierbar, native Dialoge raus
 
-> **Status:** ✅ Umgesetzt (2026-08-19)
+> **Status:** ✅ Umgesetzt (2026-08-19, Commit 140734c)
 
 ## Context
 
