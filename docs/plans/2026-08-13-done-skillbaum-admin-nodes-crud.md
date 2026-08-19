@@ -1,6 +1,6 @@
 # ✅ Skill-Baum Admin-Editor: Neue Nodes erstellen/löschen
 
-> **Status:** ✅ Umgesetzt (2026-08-19)
+> **Status:** ✅ Umgesetzt (2026-08-19, Commit 7bea3fb)
 
 **Umsetzungs-Hinweise (Abweichungen vom ursprünglichen Plan):**
 `SkillEdgeRepository.findByFromNodeOrToNode` existierte bereits (in
