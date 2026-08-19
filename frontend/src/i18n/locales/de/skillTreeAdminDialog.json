@@ -22,5 +22,8 @@
   "nodeCreatedNotice": "Knoten erstellt",
   "deleteNodeLabel": "Knoten löschen",
   "deleteNodeConfirm": "Knoten \"{id}\" wirklich löschen?",
-  "nodeDeletedNotice": "Knoten gelöscht"
+  "nodeDeletedNotice": "Knoten gelöscht",
+  "cloneNodeLabel": "Klonen",
+  "cloneNodePrompt": "ID des geklonten Knotens:",
+  "nodeClonedNotice": "Knoten geklont"
 }

@@ -104,7 +104,10 @@
             <button class="px-btn" @click="addEffect">{{ t('skillTreeAdminDialog.addEffectLabel') }}</button>
             <button class="px-btn px-btn-accent" @click="saveEffects">{{ t('skillTreeAdminDialog.saveLabel') }}</button>
           </div>
-          <button v-if="!selectedNode.root" class="px-btn sta-delete-btn" @click="deleteNode(selectedNode)">{{ t('skillTreeAdminDialog.deleteNodeLabel') }}</button>
+          <div class="sta-info-actions">
+            <button class="px-btn" @click="cloneNode(selectedNode)">{{ t('skillTreeAdminDialog.cloneNodeLabel') }}</button>
+            <button v-if="!selectedNode.root" class="px-btn sta-delete-btn" @click="deleteNode(selectedNode)">{{ t('skillTreeAdminDialog.deleteNodeLabel') }}</button>
+          </div>
         </div>
 
         <div class="sta-cam-controls" @mousedown.stop>
@@ -248,6 +251,31 @@ async function createNodeAt(worldX, worldY) {
     nodes.value.push(saved)
     selectedId.value = saved.id
     flash(t('skillTreeAdminDialog.nodeCreatedNotice'))
+  } catch (err) {
+    flash(err.message, true)
+  }
+}
+
+const CLONE_OFFSET = 40
+
+async function cloneNode(source) {
+  if (!source) return
+  const id = window.prompt(t('skillTreeAdminDialog.cloneNodePrompt'))
+  if (!id || !id.trim()) return
+  const clone = {
+    id: id.trim(),
+    nameDe: source.nameDe, nameEn: source.nameEn,
+    descriptionDe: source.descriptionDe, descriptionEn: source.descriptionEn,
+    branch: source.branch, nodeTier: source.nodeTier,
+    requiresAllPrereqs: source.requiresAllPrereqs, root: false,
+    x: source.x + CLONE_OFFSET, y: source.y + CLONE_OFFSET,
+    effects: (source.effects || []).map(e => ({ ...e })),
+  }
+  try {
+    const saved = await adminCreateSkillNode(clone)
+    nodes.value.push(saved)
+    selectedId.value = saved.id
+    flash(t('skillTreeAdminDialog.nodeClonedNotice'))
   } catch (err) {
     flash(err.message, true)
   }
@@ -586,8 +614,9 @@ onMounted(async () => {
 .sta-effects-actions { display: flex; gap: 6px; margin-top: 4px; }
 .sta-effects-actions .px-btn { flex: 1; font-size: 11px; padding: 6px 4px; }
 
+.sta-info-actions { display: flex; gap: 6px; margin-top: 10px; }
+.sta-info-actions .px-btn { flex: 1; font-size: 11px; padding: 6px 4px; }
 .sta-delete-btn {
-  margin-top: 10px; font-size: 11px; padding: 6px 4px;
   background: var(--px-red); border-color: var(--px-red-dk); color: var(--px-cream);
 }
 .sta-delete-btn:hover { background: var(--px-red-dk); }

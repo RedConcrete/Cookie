@@ -1,6 +1,6 @@
-# ⏳ Skill-Baum Admin-Editor: Nodes klonen
+# ✅ Skill-Baum Admin-Editor: Nodes klonen
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-19)
 
 ## Context
 

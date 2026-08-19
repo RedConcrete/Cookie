@@ -22,5 +22,8 @@
   "nodeCreatedNotice": "Node created",
   "deleteNodeLabel": "Delete node",
   "deleteNodeConfirm": "Really delete node \"{id}\"?",
-  "nodeDeletedNotice": "Node deleted"
+  "nodeDeletedNotice": "Node deleted",
+  "cloneNodeLabel": "Clone",
+  "cloneNodePrompt": "Cloned node ID:",
+  "nodeClonedNotice": "Node cloned"
 }

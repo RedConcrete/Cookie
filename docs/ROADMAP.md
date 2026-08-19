@@ -512,13 +512,13 @@ spezifiziert ist:
     Transaktion/Validierung, nicht einfach `seedTree()` wiederverwenden).
     Passt zeitlich am besten neben den Season-Reset-Admin-Endpoint (siehe
     `docs/cookie-game-design.md` Abschnitt 9).
-  - [ ] **Nodes klonen** — bestehenden Node duplizieren (Werte/Effekte
-    übernehmen, neue ID, leicht versetzte Position, keine Kanten
-    mitkopieren) statt jeden neuen Node einzeln von Hand anzulegen. Baut auf
-    dem "Neue Nodes erstellen"-Punkt oben auf (braucht den
-    `POST /admin/skilltree/nodes`-Endpoint), spart danach beim Erweitern
-    des Baums viel Klickarbeit. Plan:
-    `docs/plans/2026-08-13-open-skillbaum-admin-node-clone.md`.
+  - [x] **Nodes klonen (2026-08-19).** Neuer "Klonen"-Button im Info-Panel
+    (neben "Knoten löschen"), fragt neue ID per Prompt ab, übernimmt Name/
+    Branch/Tier/Effekte (tiefe Kopie) der Quell-Node mit `+40/+40`
+    Positions-Versatz, immer `root: false`, keine Kanten. Reiner
+    Frontend-Feature auf Basis des bestehenden
+    `POST /admin/skilltree/nodes`-Endpoints, kein Backend-Change nötig.
+    Details: `docs/plans/2026-08-13-done-skillbaum-admin-node-clone.md`.
 - [x] **Auto-Verkauf bei vollem Lager entfernt (2026-08-07).** Bisher wurde
   Überschuss beim Hover-Ernten (`UserService#harvest`) und bei passiver
   Produktion (`PassiveIncomeService#collectBuilding`, damals noch `creditUser`
