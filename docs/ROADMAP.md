@@ -182,9 +182,10 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
   - 51 `.sfk`-Dateien, alle unter `frontend/src/assets/Sounds/RPGsounds/OGG/`
   - Vor dem Löschen kurz gegenchecken, ob irgendein Build-Schritt sie
     referenziert (sollte nicht der Fall sein — reine Unity-Editor-Artefakte)
-- [ ] **Toten Frontend-Code entfernen:** `MarketTable.vue` und
-  `TradePanel.vue` — durch `MarketView.vue`/`MarketDialog.vue` ersetzt,
-  keine Referenzen mehr im Code (siehe #21 oben)
+- [x] **Toten Frontend-Code entfernt:** `MarketTable.vue`/`TradePanel.vue` —
+  bereits am 2026-08-03 in Commit `b7904ac` gelöscht (durch
+  `MarketView.vue`/`MarketDialog.vue` ersetzt), Roadmap-Eintrag war nur
+  nicht abgehakt (siehe #21 oben)
 - [ ] **`frontend/src/assets` durchsehen** (214 MB) auf ungenutzte
   Sprites/Sounds aus der alten Unity-Optik — insbesondere nach dem
   Pixel-Art-Rework (`2142ecc`, `493354a`) dürften alte Sprite-Sets aus dem
