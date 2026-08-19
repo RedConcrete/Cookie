@@ -485,10 +485,25 @@ spezifiziert ist:
     kompletten Node per `PUT /admin/skilltree/nodes/{id}` (Endpoint konnte
     das schon). Getestet gegen die laufende API (Wert geändert, Effekt
     hinzugefügt, per GET verifiziert, wieder zurückgesetzt).
-  - [ ] **Werte-Editor: Name/Beschreibung/Branch/Tier** — nur Effekte sind
-    editierbar, `nameDe/nameEn/descriptionDe/descriptionEn/branch/nodeTier`
-    im Info-Panel noch reiner Anzeigetext. Backend nimmt das über denselben
-    `PUT`-Endpoint bereits entgegen, fehlt nur die restlichen Formularfelder.
+  - [x] **Werte-Editor: Name/Beschreibung/Branch/Tier + Icon (2026-08-19).**
+    Info-Panel hat jetzt Name DE/EN, Beschreibung DE/EN, Branch/Tier
+    (Dropdowns) und ein frei wählbares Icon (Dropdown, "(automatisch)"
+    fällt auf die bestehende Branch-Ableitung zurück) — alles per
+    "Speichern" persistiert. Neues nullable `SkillNodeEntity.icon`-Feld,
+    auch im Spieler-Baum (`SkillNodeStatusDto`/`SkillTreeView.vue`)
+    berücksichtigt. Dabei gefunden und mitgefixt: Effekt-Editor ließ für
+    JEDEN Effekttyp jede Ressource wählen, obwohl `BAKE_OUTPUT`,
+    `MARKET_FEE_REDUCTION`, `WAGE_INTEREST_REDUCTION`, `STORAGE_CAP_BONUS`,
+    `BUILDING_BUFFER_BONUS` serverseitig NUR global abgefragt werden
+    (`getEffectTotal(..., targetResource=null)`) — eine gesetzte Ressource
+    auf einem dieser Typen war ein stiller Dead-Node ohne Fehlermeldung.
+    Ressourcen-Dropdown für diese Typen jetzt gesperrt + Hinweistext.
+    Zusätzlich `window.prompt`/`window.confirm` (Node-ID, Lösch-Bestätigung)
+    durch auto-generierte IDs bzw. neue wiederverwendbare
+    `PixelConfirmDialog.vue`-Komponente ersetzt (native Browser-Popups
+    passten nicht zum Pixel-Art-Design). Details:
+    `docs/plans/2026-08-19-done-skillbaum-admin-node-editor-ausbau.md`.
+    **Live-DB-Test steht noch aus** (Sandbox ohne Postgres).
   - [x] **Neue Nodes erstellen/löschen (2026-08-19).** Editor konnte bisher
     nur bestehende (geseedete) Nodes verschieben/verbinden. Neu:
     `POST /admin/skilltree/nodes` (frei wählbare ID, Duplikat → 409,

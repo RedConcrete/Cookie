@@ -203,6 +203,7 @@ const KEYSTONE_ICON = {
   storage_4: 'keystoneStorage4',
 }
 function nodeIcon(n) {
+  if (n.icon) return n.icon
   if (n.root) return 'stern'
   if (n.nodeTier === 'KEYSTONE') return KEYSTONE_ICON[n.id] || BRANCH_ICON[n.branch] || 'einw'
   return BRANCH_ICON[n.branch] || 'einw'

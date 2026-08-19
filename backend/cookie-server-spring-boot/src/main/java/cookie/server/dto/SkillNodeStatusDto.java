@@ -10,6 +10,7 @@ public class SkillNodeStatusDto {
     private String descriptionEn;
     private String branch;
     private String nodeTier;
+    private String icon;
     private List<SkillEffectDto> effects;
     private int x;
     private int y;
@@ -37,6 +38,9 @@ public class SkillNodeStatusDto {
 
     public String getNodeTier() { return nodeTier; }
     public void setNodeTier(String nodeTier) { this.nodeTier = nodeTier; }
+
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
 
     public List<SkillEffectDto> getEffects() { return effects; }
     public void setEffects(List<SkillEffectDto> effects) { this.effects = effects; }

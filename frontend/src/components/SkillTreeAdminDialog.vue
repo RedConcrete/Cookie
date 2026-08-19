@@ -69,19 +69,51 @@
 
         <div v-if="selectedNode && !connectMode" class="sta-info px-panel" @mousedown.stop>
           <div class="sta-info-row"><span>ID</span><strong>{{ selectedNode.id }}</strong></div>
-          <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.branchLabel') }}</span><strong>{{ selectedNode.branch }}</strong></div>
-          <div class="sta-info-row"><span>{{ t('skillTreeAdminDialog.tierLabel') }}</span><strong>{{ selectedNode.nodeTier || '—' }}</strong></div>
           <div class="sta-info-row"><span>X / Y</span><strong>{{ selectedNode.x }} / {{ selectedNode.y }}</strong></div>
+
+          <div class="sta-field-label">{{ t('skillTreeAdminDialog.nameDeLabel') }}</div>
+          <input type="text" class="sta-text-input" v-model="selectedNode.nameDe" />
+          <div class="sta-field-label">{{ t('skillTreeAdminDialog.nameEnLabel') }}</div>
+          <input type="text" class="sta-text-input" v-model="selectedNode.nameEn" />
+          <div class="sta-field-label">{{ t('skillTreeAdminDialog.descriptionDeLabel') }}</div>
+          <textarea class="sta-textarea" rows="2" v-model="selectedNode.descriptionDe"></textarea>
+          <div class="sta-field-label">{{ t('skillTreeAdminDialog.descriptionEnLabel') }}</div>
+          <textarea class="sta-textarea" rows="2" v-model="selectedNode.descriptionEn"></textarea>
+
+          <div class="sta-field-row">
+            <div class="sta-field-col">
+              <div class="sta-field-label">{{ t('skillTreeAdminDialog.branchLabel') }}</div>
+              <select class="sta-select" v-model="selectedNode.branch">
+                <option v-for="b in BRANCH_OPTIONS" :key="b" :value="b">{{ b }}</option>
+              </select>
+            </div>
+            <div class="sta-field-col">
+              <div class="sta-field-label">{{ t('skillTreeAdminDialog.tierLabel') }}</div>
+              <select class="sta-select" v-model="selectedNode.nodeTier">
+                <option v-for="tier in TIER_OPTIONS" :key="tier" :value="tier">{{ tier }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sta-field-label">{{ t('skillTreeAdminDialog.iconLabel') }}</div>
+          <select class="sta-select" :value="selectedNode.icon || ''" @change="selectedNode.icon = $event.target.value || null">
+            <option value="">{{ t('skillTreeAdminDialog.iconAutoOption') }}</option>
+            <option v-for="ic in ICON_OPTIONS" :key="ic" :value="ic">{{ ic }}</option>
+          </select>
 
           <div class="sta-effects-title">{{ t('skillTreeAdminDialog.effectsLabel') }}</div>
           <div v-for="(eff, idx) in selectedNode.effects" :key="idx" class="sta-effect-row">
-            <select class="sta-select" v-model="eff.effectType">
+            <select class="sta-select" v-model="eff.effectType" @change="onEffectTypeChange(eff)">
               <option v-for="et in EFFECT_TYPES" :key="et.value" :value="et.value">{{ t(et.labelKey) }}</option>
             </select>
-            <select class="sta-select" :value="eff.targetResource || ''" @change="eff.targetResource = $event.target.value || null">
+            <select
+              class="sta-select" :disabled="isGlobalOnly(eff.effectType)"
+              :value="eff.targetResource || ''" @change="eff.targetResource = $event.target.value || null"
+            >
               <option value="">{{ t('skillTreeAdminDialog.effectGlobalOption') }}</option>
               <option v-for="r in RESOURCES" :key="r" :value="r">{{ resourceLabel(r, t) }}</option>
             </select>
+            <div v-if="isGlobalOnly(eff.effectType)" class="sta-effect-hint">{{ t('skillTreeAdminDialog.effectGlobalOnlyHint') }}</div>
             <div class="sta-effect-value">
               <NestedTooltip :content="t('skillTreeAdminDialog.signToggleTitle')" silent>
                 <button
@@ -102,11 +134,11 @@
           </div>
           <div class="sta-effects-actions">
             <button class="px-btn" @click="addEffect">{{ t('skillTreeAdminDialog.addEffectLabel') }}</button>
-            <button class="px-btn px-btn-accent" @click="saveEffects">{{ t('skillTreeAdminDialog.saveLabel') }}</button>
+            <button class="px-btn px-btn-accent" @click="saveNode">{{ t('skillTreeAdminDialog.saveLabel') }}</button>
           </div>
           <div class="sta-info-actions">
             <button class="px-btn" @click="cloneNode(selectedNode)">{{ t('skillTreeAdminDialog.cloneNodeLabel') }}</button>
-            <button v-if="!selectedNode.root" class="px-btn sta-delete-btn" @click="deleteNode(selectedNode)">{{ t('skillTreeAdminDialog.deleteNodeLabel') }}</button>
+            <button v-if="!selectedNode.root" class="px-btn sta-delete-btn" @click="pendingDelete = selectedNode">{{ t('skillTreeAdminDialog.deleteNodeLabel') }}</button>
           </div>
         </div>
 
@@ -118,6 +150,16 @@
         <div v-if="notice" class="sta-notice" :class="{ error: noticeError }">{{ notice }}</div>
       </div>
     </template>
+
+    <PixelConfirmDialog
+      v-if="pendingDelete"
+      :title="t('skillTreeAdminDialog.deleteNodeLabel')"
+      :body="t('skillTreeAdminDialog.deleteNodeConfirm', { id: pendingDelete.id })"
+      :confirm-label="t('skillTreeAdminDialog.deleteNodeLabel')"
+      danger
+      @confirm="confirmDeleteNode"
+      @close="pendingDelete = null"
+    />
   </div>
 </template>
 
@@ -129,6 +171,7 @@ import { useAudio } from '../composables/useAudio.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
+import PixelConfirmDialog from './pixel/PixelConfirmDialog.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import NestedTooltip from './NestedTooltip.vue'
 
@@ -145,6 +188,32 @@ const EFFECT_TYPES = [
 ]
 const RESOURCES = ['SUGAR', 'FLOUR', 'EGGS', 'BUTTER', 'CHOCOLATE', 'MILK']
 
+// Serverseitig werden diese Effekttypen NUR global abgefragt (targetResource=null, siehe
+// BuildingService/WageService/BakeService) -- HARVEST_YIELD und RESOURCE_WAGE_REDUCTION sind
+// die einzigen echten pro-Ressource-Typen. Ein hier gesetztes targetResource auf einem dieser
+// Typen wuerde vom Backend nie gematcht -> stiller Dead-Node ohne jede Fehlermeldung.
+const GLOBAL_ONLY_EFFECTS = new Set([
+  'BAKE_OUTPUT', 'MARKET_FEE_REDUCTION', 'WAGE_INTEREST_REDUCTION',
+  'STORAGE_CAP_BONUS', 'BUILDING_BUFFER_BONUS',
+])
+function isGlobalOnly(effectType) { return GLOBAL_ONLY_EFFECTS.has(effectType) }
+function onEffectTypeChange(eff) {
+  if (isGlobalOnly(eff.effectType)) eff.targetResource = null
+}
+
+const BRANCH_OPTIONS = ['MILK', 'BAKING', 'MARKET', 'CORE', 'DISPO', 'SUGAR', 'FLOUR', 'EGGS', 'BUTTER', 'CHOCOLATE', 'STORAGE']
+const TIER_OPTIONS = ['PASSIVE', 'NOTABLE', 'KEYSTONE']
+// Kuratierte Teilmenge von PixelIcon.vue's ICONS -- nur thematisch passende Icons, kein
+// UI-Chrome (zentrieren/check/sanduhr/music/steam/flag-*/discord).
+const ICON_OPTIONS = [
+  'milch', 'ofen', 'stand', 'einw', 'lohn', 'zucker', 'mehl', 'eier', 'butter', 'schoko',
+  'lager', 'stern', 'haus', 'shop', 'pokal', 'medal', 'krone',
+  'keystoneMilk4', 'keystoneBake4', 'keystoneMarket4', 'keystoneDispo4', 'keystoneAlleskoenner',
+  'keystoneSugar4', 'keystoneFlour4', 'keystoneEggs4', 'keystoneButter4', 'keystoneChocolate4',
+  'keystoneStorage4', 'keystoneSugarW3', 'keystoneFlourW3', 'keystoneEggsW3',
+  'keystoneButterW3', 'keystoneChocolateW3',
+]
+
 const emit = defineEmits(['close'])
 const { t } = useI18n()
 const audio = useAudio()
@@ -156,6 +225,7 @@ const selectedId = ref(null)
 const connectMode = ref(false)
 const pendingFrom = ref(null)
 const createMode = ref(false)
+const pendingDelete = ref(null)
 
 const notice = ref('')
 const noticeError = ref(false)
@@ -186,6 +256,7 @@ const BRANCH_ICON = {
   STORAGE: 'lager',
 }
 function nodeIcon(n) {
+  if (n.icon) return n.icon
   if (n.root) return 'stern'
   return BRANCH_ICON[n.branch] || 'einw'
 }
@@ -238,12 +309,16 @@ async function deleteEdge(id) {
   }
 }
 
+// Rein technische ID (nicht spielerlesbar) -- der eigentliche Name wird direkt danach im
+// Info-Panel gesetzt, kein Eingabedialog fuer die ID noetig.
+function generateNodeId(prefix = 'node') {
+  return `${prefix}_${Date.now().toString(36)}`
+}
+
 async function createNodeAt(worldX, worldY) {
-  const id = window.prompt(t('skillTreeAdminDialog.createNodePrompt'))
-  if (!id || !id.trim()) return
   const node = {
-    id: id.trim(), nameDe: id.trim(), nameEn: id.trim(), descriptionDe: '', descriptionEn: '',
-    branch: 'CORE', nodeTier: 'PASSIVE', root: false, requiresAllPrereqs: false,
+    id: generateNodeId(), nameDe: '', nameEn: '', descriptionDe: '', descriptionEn: '',
+    branch: 'CORE', nodeTier: 'PASSIVE', root: false, requiresAllPrereqs: false, icon: null,
     x: Math.round(worldX), y: Math.round(worldY), effects: [],
   }
   try {
@@ -260,13 +335,11 @@ const CLONE_OFFSET = 40
 
 async function cloneNode(source) {
   if (!source) return
-  const id = window.prompt(t('skillTreeAdminDialog.cloneNodePrompt'))
-  if (!id || !id.trim()) return
   const clone = {
-    id: id.trim(),
+    id: generateNodeId(`${source.id}_copy`),
     nameDe: source.nameDe, nameEn: source.nameEn,
     descriptionDe: source.descriptionDe, descriptionEn: source.descriptionEn,
-    branch: source.branch, nodeTier: source.nodeTier,
+    branch: source.branch, nodeTier: source.nodeTier, icon: source.icon || null,
     requiresAllPrereqs: source.requiresAllPrereqs, root: false,
     x: source.x + CLONE_OFFSET, y: source.y + CLONE_OFFSET,
     effects: (source.effects || []).map(e => ({ ...e })),
@@ -281,9 +354,10 @@ async function cloneNode(source) {
   }
 }
 
-async function deleteNode(n) {
+async function confirmDeleteNode() {
+  const n = pendingDelete.value
+  pendingDelete.value = null
   if (!n || n.root) return
-  if (!window.confirm(t('skillTreeAdminDialog.deleteNodeConfirm', { id: n.id }))) return
   try {
     await adminDeleteSkillNode(n.id)
     nodes.value = nodes.value.filter(x => x.id !== n.id)
@@ -317,9 +391,9 @@ function addEffect() {
   selectedNode.value.effects.push({ effectType: EFFECT_TYPES[0].value, targetResource: null, effectValue: 0.01 })
 }
 
-async function saveEffects() {
+async function saveNode() {
   if (!selectedNode.value) return
-  await persistNode(selectedNode.value, 'skillTreeAdminDialog.effectsSavedNotice')
+  await persistNode(selectedNode.value, 'skillTreeAdminDialog.nodeSavedNotice')
 }
 
 // ── Node-Drag: eigener mousedown-Handler pro Node (stoppt Propagation, damit
@@ -576,6 +650,19 @@ onMounted(async () => {
 }
 .sta-info-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--px-tan-ink); gap: 8px; }
 .sta-info-row strong { color: var(--px-ink); }
+
+.sta-field-label {
+  margin-top: 4px; font-size: 10px; color: var(--px-tan-ink); text-transform: uppercase;
+}
+.sta-text-input, .sta-textarea {
+  width: 100%; font-family: 'Silkscreen', monospace; font-size: 11px;
+  background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
+  padding: 4px 6px; box-sizing: border-box;
+}
+.sta-textarea { resize: vertical; font-family: inherit; }
+.sta-field-row { display: flex; gap: 8px; }
+.sta-field-col { flex: 1; min-width: 0; }
+.sta-effect-hint { font-size: 9px; color: var(--px-tan-ink); font-style: italic; }
 
 .sta-effects-title {
   margin-top: 8px; padding-top: 6px; border-top: 2px solid var(--px-ink);

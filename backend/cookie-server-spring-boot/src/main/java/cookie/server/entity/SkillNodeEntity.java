@@ -26,6 +26,10 @@ public class SkillNodeEntity {
     private int x;
     private int y;
 
+    // Frei waehlbares Icon (PixelIcon-Name), nullable -- bei null leitet das Frontend das Icon
+    // weiterhin aus branch ab (bestehendes Verhalten fuer alle Nodes ohne explizite Wahl).
+    private String icon;
+
     // Normale Knoten: isAdjacentToAllocated() reicht EIN alloziierter Nachbar (OR). Cross-
     // Branch-Bruecken sollen dagegen ALLE eingehenden Kanten alloziert brauchen (AND) --
     // sonst waere "in beiden angrenzenden Branches vorgearbeitet" nicht erzwingbar. Default
@@ -74,4 +78,7 @@ public class SkillNodeEntity {
 
     public boolean isRequiresAllPrereqs() { return requiresAllPrereqs; }
     public void setRequiresAllPrereqs(boolean requiresAllPrereqs) { this.requiresAllPrereqs = requiresAllPrereqs; }
+
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
 }

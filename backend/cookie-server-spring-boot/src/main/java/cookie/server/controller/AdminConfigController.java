@@ -154,6 +154,7 @@ public class AdminConfigController {
         existing.setX(update.getX());
         existing.setY(update.getY());
         existing.setRequiresAllPrereqs(update.isRequiresAllPrereqs());
+        existing.setIcon(update.getIcon());
         if (update.getEffects() != null) {
             existing.getEffects().clear();
             existing.getEffects().addAll(update.getEffects());

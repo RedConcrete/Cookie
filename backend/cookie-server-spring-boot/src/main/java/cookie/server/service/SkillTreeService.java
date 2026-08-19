@@ -709,6 +709,7 @@ public class SkillTreeService {
                     dto.setDescriptionEn(n.getDescriptionEn());
                     dto.setBranch(n.getBranch());
                     dto.setNodeTier(n.getNodeTier() != null ? n.getNodeTier().name() : NodeTier.PASSIVE.name());
+                    dto.setIcon(n.getIcon());
                     dto.setEffects(n.getEffects().stream()
                             .map(e -> new SkillEffectDto(e.getEffectType(), e.getTargetResource(), e.getEffectValue()))
                             .collect(Collectors.toList()));
