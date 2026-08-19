@@ -192,6 +192,15 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
 - [ ] Große Audio-Assets im Build prüfen (`ElevatorMusic-*.wav` ~16.9 MB,
   mehrere `.mp3` >3–5 MB) — für Steam-Distribution ok, aber ggf. auf OGG/
   niedrigere Bitrate umstellen, wenn Downloadgröße relevant wird
+- [ ] **`MarketView.vue`s Verkaufsvorschau zeigt den flachen Config-
+  `sellFeeRate` statt der effektiven, level-/skill-abhängigen Gebühr**
+  (`netPayout()`, `frontend/src/views/MarketView.vue`) — der tatsächliche
+  Verkauf serverseitig (`MarketService.performAction`) rechnet schon
+  korrekt mit `BuildingService#getEffectiveSellFeeRate`, nur die
+  Vorschau im Dialog nicht. Gefunden beim Fix des analogen Hof-Popup-Bugs
+  (siehe unten), bewusst nicht mitgezogen (anderer Fix-Ort, braucht die
+  effektive Rate im Dialog-Kontext statt am Gebäude-DTO — z. B. über
+  `getBuildings()`s neues `markt.feeRate` im MarketView nachladen).
 - [ ] **Gebäude-Szenen auf Fruitpunch24-Palette migrieren** (siehe
   `cookie-game-design.md` Abschnitt 8). Alle aktuellen Gebäude-SVGs
   (`frontend/src/assets/buildings/*.svg`) sind Platzhalter und nutzen
@@ -200,12 +209,28 @@ Zusätzlich offen, nicht im Scope dieser Session geprüft:
   Neue Referenz-Assets liegen bereits unter
   `frontend/src/assets/buildings/StorageBuildng/` (Lager-Gebäude,
   Testbilder, noch nicht verdrahtet).
-- [ ] **Markt-Hover-Popup zeigt statische 8%-Marktgebühr** (`buildingInfo.js`,
-  `BUILDING_INFO.markt.rows`), obwohl die echte Gebühr mit Markt-Level sinkt
-  (`BuildingService#getEffectiveSellFeeRate`, −2%/Stufe über Stufe 1). Gleiches
-  Bug-Muster wie bei den Produktionsgebäuden (Lohn/Ertrag, 2026-08-09 gefixt) —
-  nur das Markt-Gebäude selbst wurde dabei bewusst ausgeklammert (kein
-  Arbeiter-/Lohn-Bezug, eigenständiges Thema).
+- [x] **Markt-Hover-Popup zeigte statische 8%-Marktgebühr (2026-08-19).**
+  `BUILDING_INFO.markt.rows`/`overlayRate` in `buildingInfo.js` waren
+  hardcoded und obendrein falsch (echter Default `MarketConfig.sellFeeRate`
+  ist `0.15`, nicht `0.08`), während die echte Gebühr mit Markt-Level sinkt
+  (`BuildingService#getEffectiveSellFeeRate`, −2%/Stufe über Stufe 1) und
+  durch den DISPO-Skillbaum-Zweig (`MARKET_FEE_REDUCTION`) weiter reduziert
+  werden kann. Gleiches Bug-Muster wie bei den Produktionsgebäuden
+  (Lohn/Ertrag, 2026-08-09 gefixt).
+  **Fix:** `PlayerBuildingDto` bekommt ein neues `feeRate`-Feld, von
+  `BuildingService#toDto` nur für `markt` per
+  `getEffectiveSellFeeRate(userId, level, marketConfig.getSellFeeRate())`
+  befüllt (neue dritte Overload, nimmt direkt das Markt-Level statt der
+  Owned-Map). `FarmGridView.vue`s `buildings`-Computed baut Popup-Zeile +
+  Overlay-Badge für `markt` jetzt live aus `owned.feeRate` statt aus den
+  statischen `info.rows`, analog zum bestehenden Live-Branch für
+  Produktionsgebäude. Statischer Fallback-Text in `buildingInfo.js` auf den
+  korrekten Basiswert `15 %` korrigiert (nur noch als kurzer Lade-Flash
+  sichtbar). Details: `docs/plans/2026-08-19-done-markt-gebuehr-live.md`.
+  **Bewusst nicht mit angefasst:** `MarketView.vue`s Verkaufsvorschau
+  (`netPayout`) nutzt weiterhin den flachen Config-Satz statt des
+  effektiven — gleiche Bug-Klasse, aber eigener Fix-Ort (Dialog-Kontext
+  statt Gebäude-DTO), als Folge-Punkt offen.
 
 ---
 

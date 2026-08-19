@@ -344,22 +344,32 @@ const SCENE_COMP = {
 
 // Produktionsgebäude bekommen ihre Hof-Popup-Zeilen live aus den echten Store-Werten statt
 // den statischen Platzhalter-rows aus BUILDING_INFO (die waren Mockup-Reste, nie an
-// Stufe/Arbeiterzahl gekoppelt -- siehe docs/ROADMAP.md/Plan). Nicht-Produktionsgebäude
-// (rathaus/markt/lager) haben keinen Arbeiter-/Lohn-Bezug und behalten ihre statischen rows.
+// Stufe/Arbeiterzahl gekoppelt -- siehe docs/ROADMAP.md/Plan). Markt bekommt dieselbe
+// Live-Behandlung für seine Gebühr (owned.feeRate, siehe BuildingService#getEffectiveSellFeeRate)
+// statt der alten statischen "8%". Rathaus/Lager haben keinen live-relevanten Wert und
+// behalten ihre statischen rows.
 const buildings = computed(() =>
   Object.keys(BUILDING_INFO)
     .map(id => {
       const owned = playerStore.ownedBuildings.find(b => b.id === id)
       if (!owned || owned.level === 0) return null
       const info = BUILDING_INFO[id]
-      const rows = info.resource ? [
-        { k: t('farmGridView.rowPassive'), v: `+${fmt(owned.passiveRatePerSec ?? 0)}/s`, color: 'g' },
-        { k: t('farmGridView.rowHover'), v: `+${fmt(hoverRatePerSec(info.resource))}/s`, color: 'y' },
-        { k: t('farmGridView.rowWorkers'), v: `${owned.workers ?? 0}`, color: 'w' },
-        { k: t('farmGridView.rowWage'), v: `${fmt(owned.wagePerMin ?? 0)} C/min`, color: 'o' },
-      ] : info.rows
+      let rows = info.rows
+      let overlayRate = info.overlayRate
+      if (info.resource) {
+        rows = [
+          { k: t('farmGridView.rowPassive'), v: `+${fmt(owned.passiveRatePerSec ?? 0)}/s`, color: 'g' },
+          { k: t('farmGridView.rowHover'), v: `+${fmt(hoverRatePerSec(info.resource))}/s`, color: 'y' },
+          { k: t('farmGridView.rowWorkers'), v: `${owned.workers ?? 0}`, color: 'w' },
+          { k: t('farmGridView.rowWage'), v: `${fmt(owned.wagePerMin ?? 0)} C/min`, color: 'o' },
+        ]
+      } else if (id === 'markt') {
+        const feePct = (owned.feeRate ?? 0) * 100
+        rows = [{ k: t('farmGridView.rowMarketFee'), v: `${feePct.toFixed(1)} %`, color: 'o' }]
+        overlayRate = `GEB. ${feePct.toFixed(0)}%`
+      }
       return {
-        id, comp: SCENE_COMP[id], ...info, rows, title: buildingTitle(id, t), workers: owned.workers ?? 0,
+        id, comp: SCENE_COMP[id], ...info, rows, overlayRate, title: buildingTitle(id, t), workers: owned.workers ?? 0,
         pendingAmount: owned.pendingAmount ?? 0, storageCapacity: owned.storageCapacity ?? 0,
         passiveRatePerSec: owned.passiveRatePerSec ?? 0, lastSettledAtEpochMs: owned.lastSettledAtEpochMs ?? 0,
       }

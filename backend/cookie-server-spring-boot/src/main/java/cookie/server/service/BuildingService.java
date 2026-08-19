@@ -1,6 +1,7 @@
 package cookie.server.service;
 
 import cookie.server.config.GameBalanceConfig;
+import cookie.server.config.MarketConfig;
 import cookie.server.dto.PlayerBuildingDto;
 import cookie.server.entity.PlayerBuildingEntity;
 import cookie.server.entity.UserEntity;
@@ -57,13 +58,16 @@ public class BuildingService {
     private final UserRepository userRepo;
     private final GameBalanceConfig balance;
     private final SkillTreeService skillTreeService;
+    private final MarketConfig marketConfig;
 
     public BuildingService(PlayerBuildingRepository buildingRepo, UserRepository userRepo,
-                           GameBalanceConfig balance, SkillTreeService skillTreeService) {
+                           GameBalanceConfig balance, SkillTreeService skillTreeService,
+                           MarketConfig marketConfig) {
         this.buildingRepo = buildingRepo;
         this.userRepo = userRepo;
         this.balance = balance;
         this.skillTreeService = skillTreeService;
+        this.marketConfig = marketConfig;
     }
 
     public static Map<String, BuildingDef> getDefMap() { return DEF_MAP; }
@@ -261,6 +265,11 @@ public class BuildingService {
     /** Overload fuer Aufrufer, die die Gebaeude-Map schon geladen haben. */
     public double getEffectiveSellFeeRate(String userId, Map<String, PlayerBuildingEntity> owned, double baseRate) {
         int marktLevel = owned.containsKey("markt") ? owned.get("markt").getLevel() : 0;
+        return getEffectiveSellFeeRate(userId, marktLevel, baseRate);
+    }
+
+    /** Overload fuer Aufrufer, die das Markt-Level schon kennen (z.B. toDto beim Bauen des Markt-DTOs). */
+    public double getEffectiveSellFeeRate(String userId, int marktLevel, double baseRate) {
         double discount = Math.max(0, marktLevel - 1) * 0.02;
         double skillDiscount = skillTreeService.getEffectTotal(userId, EffectType.MARKET_FEE_REDUCTION, null);
         return Math.max(0.01, baseRate - discount - skillDiscount);
@@ -331,6 +340,9 @@ public class BuildingService {
         dto.setLastSettledAtEpochMs(ent != null && ent.getLastSettledAt() != null
                 ? ent.getLastSettledAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() : 0);
         dto.setPreBuilt(def.preBuilt());
+        if (def.id().equals("markt")) {
+            dto.setFeeRate(getEffectiveSellFeeRate(userId, level, marketConfig.getSellFeeRate()));
+        }
         return dto;
     }
 

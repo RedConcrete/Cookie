@@ -51,4 +51,10 @@ public class PlayerBuildingDto {
     private boolean preBuilt;
     public boolean isPreBuilt() { return preBuilt; }
     public void setPreBuilt(boolean preBuilt) { this.preBuilt = preBuilt; }
+
+    // Effektive Verkaufsgebühr (Markt-Level-Discount + Skillbaum), nur für "markt" gesetzt,
+    // sonst 0 -- siehe BuildingService#getEffectiveSellFeeRate.
+    private double feeRate;
+    public double getFeeRate() { return feeRate; }
+    public void setFeeRate(double feeRate) { this.feeRate = feeRate; }
 }

@@ -35,9 +35,9 @@ export const BUILDING_INFO = {
     ],
   },
   markt: {
-    titleKey: 'buildingInfo.markt', icon: 'stand', side: 'left', overlayRate: 'GEB. 8%', workers: 0, wagePerMin: 0,
+    titleKey: 'buildingInfo.markt', icon: 'stand', side: 'left', overlayRate: 'GEB. 15%', workers: 0, wagePerMin: 0,
     rows: [
-      { k: 'Marktgebühr', v: '8 %', color: 'o' },
+      { k: 'Marktgebühr', v: '15 %', color: 'o' },
     ],
   },
   lager: {

@@ -33,5 +33,6 @@
   "rowPassive": "Passive · with workers",
   "rowHover": "Hover · no wage",
   "rowWorkers": "Workers",
-  "rowWage": "Wage"
+  "rowWage": "Wage",
+  "rowMarketFee": "Market fee"
 }
