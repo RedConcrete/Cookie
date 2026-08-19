@@ -15,5 +15,12 @@
   "addEffectLabel": "+ Effekt",
   "saveLabel": "Speichern",
   "effectsSavedNotice": "Effekte gespeichert",
-  "searchPlaceholder": "Suchen…"
+  "searchPlaceholder": "Suchen…",
+  "createNodeLabel": "+ Node",
+  "createNodeHint": "Klick auf leere Fläche legt neuen Knoten an",
+  "createNodePrompt": "ID des neuen Knotens:",
+  "nodeCreatedNotice": "Knoten erstellt",
+  "deleteNodeLabel": "Knoten löschen",
+  "deleteNodeConfirm": "Knoten \"{id}\" wirklich löschen?",
+  "nodeDeletedNotice": "Knoten gelöscht"
 }

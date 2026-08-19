@@ -1,6 +1,17 @@
-# ⏳ Skill-Baum Admin-Editor: Neue Nodes erstellen/löschen
+# ✅ Skill-Baum Admin-Editor: Neue Nodes erstellen/löschen
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-08-19)
+
+**Umsetzungs-Hinweise (Abweichungen vom ursprünglichen Plan):**
+`SkillEdgeRepository.findByFromNodeOrToNode` existierte bereits (in
+`SkillTreeService.isAdjacentToAllocated` genutzt) — keine neue Query nötig.
+`PlayerSkillNodeRepository` bekam neu `existsByNodeId(String)`. Neue
+Endpunkte folgen dem `ResponseEntity`-Direkt-Stil der bestehenden
+Edge-Endpunkte (kein `GlobalExceptionHandler`). effectType-Validierung aus
+`updateSkillNode` in private `validateEffectTypes()`-Helper extrahiert, von
+`createSkillNode` mitgenutzt. Frontend: Node-Erstellung per `prompt()` für
+die ID, Weltkoordinaten aus Klick-Position via Pan/Zoom-Rücktransformation
+(`panEnd` in `SkillTreeAdminDialog.vue`).
 
 ## Context
 

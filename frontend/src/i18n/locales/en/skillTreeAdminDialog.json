@@ -15,5 +15,12 @@
   "addEffectLabel": "+ Effect",
   "saveLabel": "Save",
   "effectsSavedNotice": "Effects saved",
-  "searchPlaceholder": "Search…"
+  "searchPlaceholder": "Search…",
+  "createNodeLabel": "+ Node",
+  "createNodeHint": "Click empty space to place a new node",
+  "createNodePrompt": "New node ID:",
+  "nodeCreatedNotice": "Node created",
+  "deleteNodeLabel": "Delete node",
+  "deleteNodeConfirm": "Really delete node \"{id}\"?",
+  "nodeDeletedNotice": "Node deleted"
 }

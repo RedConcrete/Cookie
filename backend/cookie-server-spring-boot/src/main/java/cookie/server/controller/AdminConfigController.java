@@ -8,6 +8,7 @@ import cookie.server.entity.SkillEdgeEntity;
 import cookie.server.entity.SkillNodeEffectEntity;
 import cookie.server.entity.SkillNodeEntity;
 import cookie.server.enums.EffectType;
+import cookie.server.repository.PlayerSkillNodeRepository;
 import cookie.server.repository.RecipeRepository;
 import cookie.server.repository.SkillEdgeRepository;
 import cookie.server.repository.SkillNodeRepository;
@@ -34,6 +35,7 @@ public class AdminConfigController {
     private final GameBalanceConfig balanceConfig;
     private final SkillNodeRepository skillNodeRepository;
     private final SkillEdgeRepository skillEdgeRepository;
+    private final PlayerSkillNodeRepository playerSkillNodeRepository;
     private final SkillTreeService skillTreeService;
     private final RecipeRepository recipeRepository;
 
@@ -41,6 +43,7 @@ public class AdminConfigController {
                                   GameBalanceConfig balanceConfig,
                                   SkillNodeRepository skillNodeRepository,
                                   SkillEdgeRepository skillEdgeRepository,
+                                  PlayerSkillNodeRepository playerSkillNodeRepository,
                                   SkillTreeService skillTreeService,
                                   RecipeRepository recipeRepository) {
         this.appConfig = appConfig;
@@ -48,6 +51,7 @@ public class AdminConfigController {
         this.balanceConfig = balanceConfig;
         this.skillNodeRepository = skillNodeRepository;
         this.skillEdgeRepository = skillEdgeRepository;
+        this.playerSkillNodeRepository = playerSkillNodeRepository;
         this.skillTreeService = skillTreeService;
         this.recipeRepository = recipeRepository;
     }
@@ -138,18 +142,8 @@ public class AdminConfigController {
         SkillNodeEntity existing = skillNodeRepository.findById(id).orElseThrow(
                 () -> new java.util.NoSuchElementException("Skill node not found: " + id));
 
-        // effectType kommt hier als externer String rein (kein @Enumerated mehr, siehe
-        // SkillNodeEffectEntity) -- das ist die einzige Stelle, die ihn validieren muss, der
-        // Seed-Pfad (buildNodes()) kommt immer aus kompiliertem Enum-Code.
-        if (update.getEffects() != null) {
-            for (SkillNodeEffectEntity e : update.getEffects()) {
-                try {
-                    EffectType.valueOf(e.getEffectType());
-                } catch (IllegalArgumentException | NullPointerException ex) {
-                    return ResponseEntity.badRequest().body("Unbekannter effectType: " + e.getEffectType());
-                }
-            }
-        }
+        String effectTypeError = validateEffectTypes(update.getEffects());
+        if (effectTypeError != null) return ResponseEntity.badRequest().body(effectTypeError);
 
         existing.setNameDe(update.getNameDe());
         existing.setNameEn(update.getNameEn());
@@ -167,6 +161,56 @@ public class AdminConfigController {
         SkillNodeEntity saved = skillNodeRepository.save(existing);
         skillTreeService.refreshCache();
         return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/skilltree/nodes")
+    public ResponseEntity<?> createSkillNode(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token,
+            @RequestBody SkillNodeEntity node) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        String id = node.getId();
+        if (id == null || id.isBlank()) return ResponseEntity.badRequest().body("id fehlt");
+        if (skillNodeRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Skill-Node existiert bereits: " + id);
+        }
+        String effectTypeError = validateEffectTypes(node.getEffects());
+        if (effectTypeError != null) return ResponseEntity.badRequest().body(effectTypeError);
+
+        SkillNodeEntity saved = skillNodeRepository.save(node);
+        skillTreeService.refreshCache();
+        return ResponseEntity.ok(saved);
+    }
+
+    @DeleteMapping("/skilltree/nodes/{id}")
+    public ResponseEntity<?> deleteSkillNode(
+            @PathVariable String id,
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        SkillNodeEntity node = skillNodeRepository.findById(id).orElse(null);
+        if (node == null) return ResponseEntity.notFound().build();
+        if (node.isRoot()) return ResponseEntity.badRequest().body("Root-Node kann nicht gelöscht werden");
+        if (playerSkillNodeRepository.existsByNodeId(id)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Node ist bereits von mindestens einem Spieler alloziert");
+        }
+        skillEdgeRepository.deleteAll(skillEdgeRepository.findByFromNodeOrToNode(id, id));
+        skillNodeRepository.deleteById(id);
+        skillTreeService.refreshCache();
+        return ResponseEntity.ok(Map.of("deleted", id));
+    }
+
+    // effectType kommt als externer String rein (kein @Enumerated mehr, siehe SkillNodeEffectEntity)
+    // -- gemeinsame Validierung fuer create/update, der Seed-Pfad (buildNodes()) kommt immer aus
+    // kompiliertem Enum-Code und braucht das nicht.
+    private String validateEffectTypes(java.util.List<SkillNodeEffectEntity> effects) {
+        if (effects == null) return null;
+        for (SkillNodeEffectEntity e : effects) {
+            try {
+                EffectType.valueOf(e.getEffectType());
+            } catch (IllegalArgumentException | NullPointerException ex) {
+                return "Unbekannter effectType: " + e.getEffectType();
+            }
+        }
+        return null;
     }
 
     // ── Skill Tree: Kanten (nur vom Positions-/Verbindungs-Editor genutzt, kein

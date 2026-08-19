@@ -11,5 +11,7 @@ public interface PlayerSkillNodeRepository extends JpaRepository<PlayerSkillNode
 
     boolean existsByUserIdAndNodeId(String userId, String nodeId);
 
+    boolean existsByNodeId(String nodeId);
+
     void deleteByUserId(String userId);
 }

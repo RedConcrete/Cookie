@@ -489,12 +489,18 @@ spezifiziert ist:
     editierbar, `nameDe/nameEn/descriptionDe/descriptionEn/branch/nodeTier`
     im Info-Panel noch reiner Anzeigetext. Backend nimmt das über denselben
     `PUT`-Endpoint bereits entgegen, fehlt nur die restlichen Formularfelder.
-  - [ ] **Neue Nodes erstellen/löschen** — aktuell kann der Editor nur
-    bestehende (geseedete) Nodes verschieben/verbinden, keine komplett
-    neuen anlegen. Bräuchte einen neuen `POST /admin/skilltree/nodes`-
-    Endpoint (frei wählbare ID) + `DELETE` + Klick-auf-leere-Fläche-
-    erstellt-Node o.ä. im Frontend. Plan:
-    `docs/plans/2026-08-13-open-skillbaum-admin-nodes-crud.md`.
+  - [x] **Neue Nodes erstellen/löschen (2026-08-19).** Editor konnte bisher
+    nur bestehende (geseedete) Nodes verschieben/verbinden. Neu:
+    `POST /admin/skilltree/nodes` (frei wählbare ID, Duplikat → 409,
+    effectType-Validierung wie beim bestehenden `PUT`) und
+    `DELETE /admin/skilltree/nodes/{id}` (Root-Node geschützt → 400,
+    Node mit Spieler-Allokation geschützt → 409, referenzierende Edges
+    werden mitgelöscht). Frontend: neuer "+ Node"-Toolbar-Modus, Klick auf
+    leere Canvas-Fläche legt Node an aktuellem Weltpunkt an (ID per
+    Prompt), Lösch-Button im Info-Panel mit Bestätigung. Details:
+    `docs/plans/2026-08-13-done-skillbaum-admin-nodes-crud.md`.
+    **Live-DB-Test steht noch aus** (Sandbox ohne Postgres-Zugriff) — vor
+    dem nächsten Einsatz einmal mit laufendem Dev-Stack durchklicken.
   - [ ] **Ganzen Baum als JSON exportieren/importieren** — damit sich ein
     Skill-Baum für die nächste Season vorab (lokal, ohne Live-Server)
     planen und danach vor Season-Start auf den Server hochladen lässt,

@@ -47,9 +47,15 @@
             :class="{ 'px-btn-accent': connectMode }"
             @click="toggleConnectMode"
           ><ShortcutSlot />{{ t('skillTreeAdminDialog.connectModeLabel') }}</button>
+          <button
+            class="px-btn"
+            :class="{ 'px-btn-accent': createMode }"
+            @click="toggleCreateMode"
+          ><ShortcutSlot />{{ t('skillTreeAdminDialog.createNodeLabel') }}</button>
           <div v-if="connectMode" class="sta-hint">
             {{ pendingFrom ? t('skillTreeAdminDialog.connectHintPick') : t('skillTreeAdminDialog.connectHintFrom') }}
           </div>
+          <div v-if="createMode" class="sta-hint">{{ t('skillTreeAdminDialog.createNodeHint') }}</div>
         </div>
 
         <div class="sta-search-box" @mousedown.stop>
@@ -98,6 +104,7 @@
             <button class="px-btn" @click="addEffect">{{ t('skillTreeAdminDialog.addEffectLabel') }}</button>
             <button class="px-btn px-btn-accent" @click="saveEffects">{{ t('skillTreeAdminDialog.saveLabel') }}</button>
           </div>
+          <button v-if="!selectedNode.root" class="px-btn sta-delete-btn" @click="deleteNode(selectedNode)">{{ t('skillTreeAdminDialog.deleteNodeLabel') }}</button>
         </div>
 
         <div class="sta-cam-controls" @mousedown.stop>
@@ -114,7 +121,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge } from '../services/api.js'
+import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillNode, adminDeleteSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
@@ -145,6 +152,7 @@ const edges = ref([])
 const selectedId = ref(null)
 const connectMode = ref(false)
 const pendingFrom = ref(null)
+const createMode = ref(false)
 
 const notice = ref('')
 const noticeError = ref(false)
@@ -187,6 +195,13 @@ function iconSize(n) {
 function toggleConnectMode() {
   connectMode.value = !connectMode.value
   pendingFrom.value = null
+  createMode.value = false
+}
+
+function toggleCreateMode() {
+  createMode.value = !createMode.value
+  connectMode.value = false
+  pendingFrom.value = null
 }
 
 function handleNodeClick(n) {
@@ -215,6 +230,38 @@ async function deleteEdge(id) {
     await adminDeleteSkillEdge(id)
     edges.value = edges.value.filter(e => e.id !== id)
     flash(t('skillTreeAdminDialog.edgeDeletedNotice'))
+  } catch (err) {
+    flash(err.message, true)
+  }
+}
+
+async function createNodeAt(worldX, worldY) {
+  const id = window.prompt(t('skillTreeAdminDialog.createNodePrompt'))
+  if (!id || !id.trim()) return
+  const node = {
+    id: id.trim(), nameDe: id.trim(), nameEn: id.trim(), descriptionDe: '', descriptionEn: '',
+    branch: 'CORE', nodeTier: 'PASSIVE', root: false, requiresAllPrereqs: false,
+    x: Math.round(worldX), y: Math.round(worldY), effects: [],
+  }
+  try {
+    const saved = await adminCreateSkillNode(node)
+    nodes.value.push(saved)
+    selectedId.value = saved.id
+    flash(t('skillTreeAdminDialog.nodeCreatedNotice'))
+  } catch (err) {
+    flash(err.message, true)
+  }
+}
+
+async function deleteNode(n) {
+  if (!n || n.root) return
+  if (!window.confirm(t('skillTreeAdminDialog.deleteNodeConfirm', { id: n.id }))) return
+  try {
+    await adminDeleteSkillNode(n.id)
+    nodes.value = nodes.value.filter(x => x.id !== n.id)
+    edges.value = edges.value.filter(e => e.fromNode !== n.id && e.toNode !== n.id)
+    if (selectedId.value === n.id) selectedId.value = null
+    flash(t('skillTreeAdminDialog.nodeDeletedNotice'))
   } catch (err) {
     flash(err.message, true)
   }
@@ -367,7 +414,17 @@ function panMove(e) {
 function panEnd(e) {
   if (dragging && e) {
     const moved = Math.hypot(e.clientX - panStartX, e.clientY - panStartY) > DRAG_THRESHOLD
-    if (!moved) selectedId.value = null
+    if (!moved) {
+      if (createMode.value) {
+        const vpRect = viewEl.value.getBoundingClientRect()
+        const worldX = (e.clientX - vpRect.left - vpRect.width / 2 - panX.value) / zoom.value
+        const worldY = (e.clientY - vpRect.top - vpRect.height / 2 - panY.value) / zoom.value
+        createNodeAt(worldX, worldY)
+        createMode.value = false
+      } else {
+        selectedId.value = null
+      }
+    }
   }
   dragging = false
 }
@@ -528,6 +585,12 @@ onMounted(async () => {
 .sta-effect-del:hover { background: var(--px-red-dk); }
 .sta-effects-actions { display: flex; gap: 6px; margin-top: 4px; }
 .sta-effects-actions .px-btn { flex: 1; font-size: 11px; padding: 6px 4px; }
+
+.sta-delete-btn {
+  margin-top: 10px; font-size: 11px; padding: 6px 4px;
+  background: var(--px-red); border-color: var(--px-red-dk); color: var(--px-cream);
+}
+.sta-delete-btn:hover { background: var(--px-red-dk); }
 
 .sta-cam-controls {
   position: absolute; left: 14px; bottom: 14px; z-index: 20;

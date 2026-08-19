@@ -262,6 +262,12 @@ export function adminListSkillEdges() {
 export function adminUpdateSkillNode(id, node) {
   return request('PUT', `/api/v1/admin/skilltree/nodes/${id}`, node)
 }
+export function adminCreateSkillNode(node) {
+  return request('POST', '/api/v1/admin/skilltree/nodes', node)
+}
+export function adminDeleteSkillNode(id) {
+  return request('DELETE', `/api/v1/admin/skilltree/nodes/${id}`)
+}
 export function adminCreateSkillEdge(fromNode, toNode) {
   return request('POST', '/api/v1/admin/skilltree/edges', { fromNode, toNode })
 }
