@@ -1196,7 +1196,7 @@ onUnmounted(() => {
 .hud-networth-label { font-size: 11px; color: #aea47e; line-height: 1; }
 .hud-networth-val   { font-family: 'Silkscreen', monospace; font-size: 15px; color: var(--px-green-txt); }
 
-.hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hud-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; align-self: stretch; }
 
 /* Zeigt an, dass noch Skill-Punkte zu vergeben sind (Playtest-Feedback) -- verweist per
    Klick direkt in den Skill-Baum, statt dass Spieler das Menue durchsuchen muessen. Eigene
@@ -1218,7 +1218,13 @@ onUnmounted(() => {
   50%      { transform: scale(1.18); }
 }
 
-.hud-menu-wrap { position: relative; }
+/* display:flex + align-self:stretch statt nur position:relative -- der Wrapper spannt sich
+   jetzt ueber die volle Hoehe der (jetzt ebenfalls gestreckten) .hud-actions-Zeile auf, statt
+   nur so hoch wie der Hamburger-Button selbst zu sein. Sonst haengt .hud-skillpoint-stars
+   top:calc(100% + 8px) an der (durch .hud's align-items:center vertikal zentrierten, also zu
+   kurzen) Wrapper-Box statt an der echten HUD-Unterkante -- Stern-Button ragte dadurch sichtbar
+   in die obere Leiste rein (Bug-Report 2026-08-20). */
+.hud-menu-wrap { position: relative; display: flex; align-items: center; align-self: stretch; }
 .hud-menu {
   position: absolute; top: calc(100% + 8px); right: 0;
   min-width: 190px; background: var(--px-wood); border: 3px solid var(--px-ink);

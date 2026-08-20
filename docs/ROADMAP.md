@@ -478,6 +478,18 @@ spezifiziert ist:
   **Bewusst nicht angetastet:** die Backend-Endpunkte selbst
   (`AdminConfigController`, `AdminController`) bleiben bestehen und weiter
   per `curl`+Admin-Token nutzbar — nur der UI-Zugang ist weg.
+- [x] **Skillpunkt-Stern überlappte die obere HUD-Leiste (2026-08-20).**
+  `.hud-skillpoint-star` positioniert sich `top: calc(100% + 8px)` relativ
+  zu `.hud-menu-wrap` — der Wrapper war aber nur so hoch wie der
+  Hamburger-Button selbst und saß (via `.hud`s `align-items:center`)
+  vertikal zentriert in der höheren HUD-Leiste, statt bündig an deren
+  Unterkante. Der Stern-Button ragte dadurch sichtbar in die Leiste rein.
+  **Fix:** `.hud-actions` + `.hud-menu-wrap` bekommen `align-self:stretch`
+  (Wrapper spannt sich jetzt über die volle Zeilenhöhe auf), Hamburger-
+  Button bleibt über `display:flex;align-items:center` auf dem Wrapper
+  selbst zentriert — `top:100%` zeigt jetzt auf die echte HUD-Unterkante.
+  **Nur per Code-Review gefixt, nicht im Browser gegengetestet** (Sandbox
+  ohne Display) — kurz visuell verifizieren.
 - [x] **Skill-Baum Admin-Editor: Nodes draggen + Verbindungen setzen/löschen
   (2026-08-10).** Neuer `isDev`-Menüpunkt "SKILL-BAUM ADMIN" im
   Hamburger-Menü öffnet `SkillTreeAdminDialog.vue` (eigenständige
