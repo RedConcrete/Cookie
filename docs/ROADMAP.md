@@ -494,6 +494,20 @@ spezifiziert ist:
     Toolbar, um bereits VOR diesem Fix entstandene kaputte Zustände
     einmalig nachträglich zu bereinigen (der Auto-Trigger greift nur bei
     zukünftigen Löschungen).
+    **Konkreter Fall live nachverfolgt:** der zuerst gemeldete "Fair Pay"-
+    Knoten (`sugar_2`) war KEIN Validierungs-Bug — `repairDisconnectedAllocations`
+    lieferte beim ersten Aufruf korrekt `0`, weil eine falsche Extra-Kante
+    `root-sugar_2` existierte (Root direkt mit `sugar_2` verbunden, vorbei
+    am eigentlich vorgesehenen `sugar_1` — vermutlich versehentlich im
+    Connect-Modus des Admin-Editors gesetzt). Root gilt immer als
+    alloziert, die Konnektivitätsprüfung war also technisch korrekt
+    erfüllt, nur die Kante selbst war Datenmüll. Nach `DELETE
+    .../skilltree/edges/root-sugar_2` griff der Auto-Repair sofort
+    (`repairedAllocations: 1`). Stichprobe über den ganzen Baum
+    (Root-Kanten-Anzahl, branch-übergreifende Kanten) zeigte keine
+    weiteren solchen Streukanten — nur die zwei bekannten Design-Bridges
+    (`bridge_bake_market`) und der vom Nutzer selbst angelegte Test-Node
+    `"12"`.
   - [ ] **Prestige-Bonuspunkte.** Ursprünglich angedacht: Prestige gibt
     +3 Skill-Punkte on top des normalen Resets. Bewusst außerhalb des
     Scopes beim Erstbau des Skill-Baums (Prestige-UI ist ohnehin gerade
