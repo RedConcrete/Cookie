@@ -457,11 +457,18 @@ spezifiziert ist:
     **Danach noch verbleibendes Problem:** selbst mit korrekter Trigger-
     Position kann das Popup bei Triggern nah am Bildschirmrand (z. B.
     Bau-Button unten rechts) über den Viewport hinausragen, je nach
-    Textlänge. Neues `clampToViewport()`: nach dem Rendern (`nextTick`,
-    Popup existiert erst dann im DOM) wird die echte Popup-Größe gemessen
-    und `posX`/`posY` zurück auf den sichtbaren Bereich geklemmt (8px
-    Rand) — Popup kann jetzt grundsätzlich nie mehr off-screen landen,
-    unabhängig von Trigger-Position oder Textlänge.
+    Textlänge. Erster Ansatz (`clampToViewport()`, nach dem Rendern per
+    `nextTick` die echte Größe messen und `posX`/`posY` zurückklemmen)
+    verursachte sichtbares Flackern — Popup rendert kurz an der falschen
+    Stelle, springt dann ruckartig um. **Ersetzt durch Vorab-Seitenwahl:**
+    `positionPopup()` entscheidet synchron in `onTriggerEnter`, noch vor
+    dem ersten Frame, anhand der Trigger-Position + der bekannten
+    `max-width:340px`/geschätzten Höhe (200px, großzügig), ob das Popup
+    rechts/links bzw. oben/unten ankert (`anchorLeft`/`anchorRight`/
+    `anchorTop`/`anchorBottom`-Refs, immer nur eine Seite pro Achse
+    gesetzt, CSS wächst von der jeweils richtigen Seite aus) — kein
+    Messen-dann-Verschieben mehr, Position steht von Anfang an fest, kein
+    Flackern.
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
   - [x] **Spieler-Skillbaum-Suche zentriert + Pfad-Wegweiser zum Treffer

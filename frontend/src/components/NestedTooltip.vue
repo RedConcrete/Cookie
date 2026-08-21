@@ -13,7 +13,6 @@
       <Transition name="tt-fade">
         <div
           v-if="visible"
-          ref="popupEl"
           class="tt-popup"
           :class="`tt-depth-${depth}`"
           :style="popupStyle"
@@ -38,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import NestedTooltip from './NestedTooltip.vue'
 import { registerGlobal, unregisterGlobal } from '../composables/tooltipMutex.js'
 import { useAudio } from '../composables/useAudio.js'
@@ -65,34 +64,49 @@ const visible  = ref(false)
 const filling  = ref(false)
 const draining = ref(false)
 const drainKey = ref(0)
-const posX     = ref(0)
-const posY     = ref(0)
-const popupEl  = ref(null)
+// Anker statt fixer left/top-Koordinate -- je Achse ist immer nur EINE der beiden Seiten
+// gesetzt (die andere null), damit CSS von der jeweils richtigen Seite aus wachsen kann.
+// So steht die Position schon vorm ersten Frame fest (aus der Trigger-Position + den
+// bekannten Popup-Groessengrenzen unten berechnet) -- kein "erst falsch rendern, dann
+// nach dem Messen ruckartig verschieben" mehr, das sichtbar geflackert hat.
+const anchorLeft   = ref(null)
+const anchorRight  = ref(null)
+const anchorTop    = ref(null)
+const anchorBottom = ref(null)
 
 let fillTimer  = null
 let closeTimer = null
 
-const popupStyle = computed(() => ({ left: posX.value + 'px', top: posY.value + 'px' }))
+const popupStyle = computed(() => {
+  const style = {}
+  if (anchorLeft.value  != null) style.left  = anchorLeft.value  + 'px'; else style.right  = anchorRight.value  + 'px'
+  if (anchorTop.value   != null) style.top   = anchorTop.value   + 'px'; else style.bottom = anchorBottom.value + 'px'
+  return style
+})
 
-// posX/posY sind zunaechst nur eine Schaetzung (rechts neben dem Trigger) -- bei Triggern
-// nah am rechten/unteren Bildschirmrand (z.B. build-fab) wuerde das echte Popup je nach
-// Textlaenge ueber den Viewport hinausragen. Nach dem Rendern (nextTick, Popup existiert
-// erst dann im DOM) die tatsaechliche Groesse messen und zurueck auf den sichtbaren
-// Bereich klemmen -- darf nie off-screen landen, unabhaengig von Trigger-Position/Textlaenge.
-async function clampToViewport() {
-  await nextTick()
-  const el = popupEl.value
-  if (!el) return
-  const margin = 8
-  const box = el.getBoundingClientRect()
-  let x = posX.value
-  let y = posY.value
-  if (x + box.width > window.innerWidth - margin) x = window.innerWidth - box.width - margin
-  if (x < margin) x = margin
-  if (y + box.height > window.innerHeight - margin) y = window.innerHeight - box.height - margin
-  if (y < margin) y = margin
-  posX.value = x
-  posY.value = y
+// Passt .tt-popups max-width (340px, siehe NestedTooltip.css) auf keiner Seite -> auf die
+// Gegenseite klappen. Hoehe ist inhaltsabhaengig (keine feste CSS-Grenze), 200px ist ein
+// grosszuegiger Schaetzwert ueber allem, was hier je vorkommt (auch mehrzeilige Tooltips +
+// Countdown-Balken) -- lieber einmal unnoetig klappen als real ueberlaufen.
+const POPUP_MAX_W = 340
+const POPUP_EST_H = 200
+const EDGE_MARGIN = 8
+
+function positionPopup(rect) {
+  if (rect.right + EDGE_MARGIN + POPUP_MAX_W <= window.innerWidth - EDGE_MARGIN) {
+    anchorLeft.value = rect.right + EDGE_MARGIN
+    anchorRight.value = null
+  } else {
+    anchorLeft.value = null
+    anchorRight.value = window.innerWidth - rect.left + EDGE_MARGIN
+  }
+  if (rect.top + POPUP_EST_H <= window.innerHeight - EDGE_MARGIN) {
+    anchorTop.value = rect.top
+    anchorBottom.value = null
+  } else {
+    anchorTop.value = null
+    anchorBottom.value = window.innerHeight - rect.bottom
+  }
 }
 
 const parsedContent = computed(() =>
@@ -121,13 +135,11 @@ function onTriggerEnter(e) {
   // echten Button. Rect deshalb vom ersten echten Kind-Element nehmen, nicht vom Span
   // selbst -- das ist immer der eigentliche sichtbare Trigger-Inhalt.
   const rect = (e.currentTarget.firstElementChild ?? e.currentTarget).getBoundingClientRect()
-  posX.value = rect.right + 8
-  posY.value = rect.top
+  positionPopup(rect)
 
   if (props.instant) {
     if (props.depth === 0) registerGlobal(closeNow)
     visible.value = true
-    clampToViewport()
     return
   }
 
@@ -137,7 +149,6 @@ function onTriggerEnter(e) {
     filling.value = false
     if (props.depth === 0) registerGlobal(closeNow)
     visible.value = true
-    clampToViewport()
   }, APPEAR_DELAY)
 }
 
