@@ -296,13 +296,28 @@ spezifiziert ist:
   (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
   `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
   verwenden, siehe `SettingsDialog.vue` als Vorbild.
-- [x] **Musik manuell weiterschalten (2026-08-21).** Einstellungen hatten
-  nur Lautstärke/Mute, kein Skip. `useAudio.js`s `nextTrack()` (Shuffle-
-  Playlist-Advance) war schon vorhanden, aber nicht exportiert — neue
-  `skipTrack()` (no-op im Hauptmenü-Modus, da dort nur ein exklusiver
-  geloopter Track läuft, nichts zum Weiterschalten) exportiert und über
-  einen neuen Skip-Button neben dem Musik-Regler in `SettingsDialog.vue`
-  verdrahtet.
+- [x] **Musik-Player in den Einstellungen (2026-08-21).** Einstellungen
+  hatten nur Lautstärke/Mute, kein Skip. Erste Version war nur ein Skip-
+  Button direkt neben dem Musik-Regler — Nutzer-Feedback: sollte ein
+  eigener Bereich sein, mit Songnamen und Vor/Zurück statt nur Vorwärts.
+  **Umgesetzt:** neue eigene `PixelSection` "Musik-Player" unter Lautstärke,
+  zeigt den Namen des laufenden Tracks (`useAudio.js`s `GAME_TRACKS`/
+  `MENU_TRACK` haben jetzt feste Anzeigenamen statt der Vite-Hash-URL) +
+  Vor-/Zurück-Buttons. `useAudio.js`s Track-Engine dafür umgebaut: eigene
+  `history`/`historyPos`-Liste getrennt vom Shuffle-Bag (`shuffled`/
+  `trackIdx`) — `nextTrack()` läuft zuerst durch schon bekannte History-
+  Einträge (falls per "Zurück" dorthin gesprungen wurde), zieht erst am
+  Ende einen neuen Track aus dem Bag; neues `prevTrack()` springt einfach
+  einen History-Eintrag zurück. `musicMode` von einer internen `let` auf
+  einen reaktiven `ref` umgestellt, damit die Buttons im Hauptmenü-Modus
+  (nur ein exklusiver, geloopter Track, nichts zum Wechseln) sichtbar
+  deaktiviert sind statt still nichts zu tun.
+  **Nebenbei gefixt:** der erste Skip-Button-Entwurf zeigte einen
+  Timeline-Balken im Hover-Tooltip (bekannter offener Punkt, siehe
+  `NestedTooltip`-Eintrag unten) und ragte durch einen klassischen
+  Flexbox-Bug (`<input type=range>` ohne `min-width:0`) über den
+  Dialogrand hinaus — beides behoben, bevor der Button durch den
+  Musik-Player-Bereich ersetzt wurde.
 - [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
   im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
   Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)

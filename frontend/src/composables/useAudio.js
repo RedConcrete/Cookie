@@ -21,8 +21,17 @@ import coins2Url    from '../assets/Sounds/RPGsounds/OGG/handleCoins2.ogg'
 import chopUrl      from '../assets/Sounds/RPGsounds/OGG/chop.ogg'
 
 // two_left_socks ist exklusiv fuers Hauptmenue (kein Shuffle) -- deshalb
-// separat von der Ingame-Playlist gehalten.
-const GAME_TRACKS = [music1, music2, music4, music5, music6, music7]
+// separat von der Ingame-Playlist gehalten. Namen hier statt aus der URL
+// abgeleitet (Vite haengt beim Build einen Hash an den Dateinamen).
+const GAME_TRACKS = [
+  { url: music1, name: 'Caketown 1' },
+  { url: music2, name: 'Deliciously Sour' },
+  { url: music4, name: 'Shake and Bake' },
+  { url: music5, name: 'Snowland' },
+  { url: music6, name: 'Headscratcher' },
+  { url: music7, name: 'My Street' },
+]
+const MENU_TRACK = { url: menuTrack, name: 'Two Left Socks' }
 
 function loadNum(key, fallback) {
   const v = parseFloat(localStorage.getItem(key))
@@ -34,13 +43,24 @@ const musicVolume = ref(loadNum('cookieMusicVol', 0.35))
 const sfxVolume   = ref(loadNum('cookieSfxVol',   0.55))
 const musicMuted  = ref(localStorage.getItem('cookieMusicMuted') === 'true')
 const sfxMuted    = ref(localStorage.getItem('cookieSfxMuted')   === 'true')
+// Reaktiv fuers Einstellungen-Menue (Now-Playing-Panel) -- Name des gerade laufenden
+// Tracks (Ingame-Shuffle oder Menue-Track), leer solange nichts spielt.
+const currentTrackName = ref('')
+// Reaktiv (statt frueher plain let), damit Now-Playing/Vor-Zurueck-Buttons wissen, ob
+// gerade der Ingame-Shuffle laeuft ('game') oder der exklusive Menue-Track ('menu').
+const musicMode = ref('menu')
 
 // ── Music (streaming HTMLAudioElement) ──────────────────
 let musicEl      = null
 let shuffled     = []
 let trackIdx     = 0
 let musicStarted = false
-let musicMode    = 'menu' // 'menu' (two_left_socks, loop) | 'game' (Shuffle-Playlist)
+// Abgespielte Ingame-Tracks in Reihenfolge + Zeiger darauf -- ermoeglicht "Track
+// zurueck" (zu einem schon gespielten Track) getrennt vom Shuffle-Bag, der nur neue
+// Tracks zieht. "Vor" bewegt den Zeiger erst durch schon bekannte History-Eintraege
+// (falls per "Zurueck" dorthin gesprungen wurde), erst am Ende wird neu gezogen.
+let history    = []
+let historyPos = -1
 
 function shuffle(arr) {
   const a = [...arr]
@@ -51,12 +71,17 @@ function shuffle(arr) {
   return a
 }
 
-function nextTrack() {
+function pickNextFromBag() {
   if (!shuffled.length || trackIdx >= shuffled.length) { shuffled = shuffle(GAME_TRACKS); trackIdx = 0 }
+  return shuffled[trackIdx++]
+}
+
+function playTrack(track) {
   if (musicEl) { musicEl.pause(); musicEl.onended = null }
-  musicEl = new Audio(shuffled[trackIdx++])
+  musicEl = new Audio(track.url)
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
   musicEl.onended = nextTrack
+  currentTrackName.value = track.name
   // Browser-Autoplay-Policy kann den allerersten play() ohne User-Geste
   // ablehnen (z.B. Musikstart schon beim Main-Menu-Mount) -- musicStarted
   // zuruecksetzen, damit der naechste startMusic()-Aufruf (z.B. der erste
@@ -65,16 +90,27 @@ function nextTrack() {
   musicEl.play().catch(() => { musicStarted = false })
 }
 
+function nextTrack() {
+  if (historyPos < history.length - 1) {
+    historyPos++
+  } else {
+    history.push(pickNextFromBag())
+    historyPos = history.length - 1
+  }
+  playTrack(history[historyPos])
+}
+
 function playMenuTrack() {
   if (musicEl) { musicEl.pause(); musicEl.onended = null }
-  musicEl = new Audio(menuTrack)
+  musicEl = new Audio(MENU_TRACK.url)
   musicEl.loop = true
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
+  currentTrackName.value = MENU_TRACK.name
   musicEl.play().catch(() => { musicStarted = false })
 }
 
 function playForMode() {
-  if (musicMode === 'menu') playMenuTrack(); else nextTrack()
+  if (musicMode.value === 'menu') playMenuTrack(); else nextTrack()
 }
 
 function startMusic() {
@@ -87,17 +123,22 @@ function startMusic() {
 // Wechselt zwischen Hauptmenue-Track (two_left_socks, exklusiv & geloopt) und
 // Ingame-Shuffle-Playlist -- kein Track darf im jeweils anderen Kontext laufen.
 function setMusicMode(mode) {
-  if (mode === musicMode) return
-  musicMode = mode
+  if (mode === musicMode.value) return
+  musicMode.value = mode
   if (musicStarted) playForMode()
 }
 
-// Manueller Vorwaerts-Skip fuers Einstellungen-Menue. Im Menue-Modus gibt es nur den
-// einen exklusiven, geloopten Track -- nichts zum Weiterschalten, also no-op statt
+// Manuelles Vor/Zurueck fuers Einstellungen-Menue. Im Menue-Modus gibt es nur den
+// einen exklusiven, geloopten Track -- nichts zum Wechseln, also no-op statt
 // versehentlich einen Ingame-Track ueber den Menue-Track zu legen.
 function skipTrack() {
-  if (musicMode !== 'game') return
+  if (musicMode.value !== 'game') return
   nextTrack()
+}
+function prevTrack() {
+  if (musicMode.value !== 'game' || historyPos <= 0) return
+  historyPos--
+  playTrack(history[historyPos])
 }
 
 // ── AudioContext SFX (pre-decoded, zero network after init) ─
@@ -181,8 +222,8 @@ watch(sfxMuted, v => localStorage.setItem('cookieSfxMuted', v))
 
 export function useAudio() {
   return {
-    musicVolume, sfxVolume, musicMuted, sfxMuted,
-    startMusic, setMusicMode, skipTrack, playClick, playHover,
+    musicVolume, sfxVolume, musicMuted, sfxMuted, musicMode, currentTrackName,
+    startMusic, setMusicMode, skipTrack, prevTrack, playClick, playHover,
     playBookOpen, playBookClose, playCoins, playChop,
   }
 }

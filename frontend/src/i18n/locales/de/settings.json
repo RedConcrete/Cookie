@@ -4,6 +4,8 @@
   "volume": "LAUTSTÄRKE",
   "music": "Musik",
   "skipTrack": "Nächster Titel",
+  "prevTrack": "Vorheriger Titel",
+  "nowPlayingTitle": "MUSIK-PLAYER",
   "sfx": "Soundeffekte",
   "hotkeys": "TASTENBELEGUNG",
   "shortcutsEnabled": "Shortcuts aktiv",

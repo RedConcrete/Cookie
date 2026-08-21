@@ -4,6 +4,8 @@
   "volume": "VOLUME",
   "music": "Music",
   "skipTrack": "Next track",
+  "prevTrack": "Previous track",
+  "nowPlayingTitle": "MUSIC PLAYER",
   "sfx": "Sound effects",
   "hotkeys": "KEY BINDINGS",
   "shortcutsEnabled": "Shortcuts enabled",

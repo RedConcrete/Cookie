@@ -15,9 +15,6 @@
               @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider"
               :style="{ '--fill': musicFillPct + '%' }" />
             <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
-            <NestedTooltip :content="t('settings.skipTrack')" silent instant>
-              <button class="sd-skip" @click="audio.skipTrack()"><ShortcutSlot />⏭</button>
-            </NestedTooltip>
           </div>
 
           <div class="sd-slider-row">
@@ -26,6 +23,20 @@
               @input="audio.sfxVolume.value = +$event.target.value" :disabled="audio.sfxMuted.value" class="sd-slider"
               :style="{ '--fill': sfxFillPct + '%' }" />
             <span class="sd-slider-val">{{ Math.round(audio.sfxVolume.value * 100) }}%</span>
+          </div>
+        </PixelSection>
+
+        <PixelSection :title="t('settings.nowPlayingTitle')">
+          <div class="sd-track-row">
+            <div class="sd-track-name">{{ audio.currentTrackName.value || '—' }}</div>
+            <div class="sd-track-controls">
+              <NestedTooltip :content="t('settings.prevTrack')" silent instant>
+                <button class="sd-skip" :disabled="audio.musicMode.value !== 'game'" @click="audio.prevTrack()"><ShortcutSlot />⏮</button>
+              </NestedTooltip>
+              <NestedTooltip :content="t('settings.skipTrack')" silent instant>
+                <button class="sd-skip" :disabled="audio.musicMode.value !== 'game'" @click="audio.skipTrack()"><ShortcutSlot />⏭</button>
+              </NestedTooltip>
+            </div>
           </div>
         </PixelSection>
 
@@ -276,7 +287,15 @@ function exitGame() {
   cursor: pointer;
 }
 .sd-skip:hover { filter: brightness(1.1); }
+.sd-skip:disabled { opacity: .5; cursor: not-allowed; filter: none; }
 .sd-slider-val { width: 40px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
+
+.sd-track-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 2px; }
+.sd-track-name {
+  flex: 1; min-width: 0; font-size: 14px; color: var(--px-ink-txt);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sd-track-controls { display: flex; gap: 8px; flex-shrink: 0; }
 
 /* Pixel-art range slider: blocky filled track + chunky button-like thumb,
    built from the CSS custom prop --fill (0-100, set per-slider in the template)
