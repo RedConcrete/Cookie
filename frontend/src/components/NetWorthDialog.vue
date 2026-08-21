@@ -1,18 +1,46 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="nw-box px-panel">
-      <div class="px-titlebar">
+    <div class="nw-box px-panel" :style="dialogStyle">
+      <div class="px-titlebar" @pointerdown="onDragStart">
         <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
 
       <div class="nw-layout">
 
-        <!-- ── Links: Breakdown ───────────────────────── -->
-        <PixelScrollBox class="nw-left">
-          <div class="nw-left-inner">
+        <!-- ── Oben: Chart (voller Breite, wie der Markt-Dialog: Legende/Toolbar +
+             Chart als eine Zeile oben, statt in einer schmalen Seitenleiste) ── -->
+        <div class="nw-top">
+          <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
 
-          <div class="nw-section-label">{{ t('netWorthDialog.breakdownLabel') }}</div>
+          <div class="chart-toolbar">
+            <div class="chart-toggles">
+              <button
+                v-for="ds in DATASETS"
+                :key="ds.key"
+                class="toggle-btn"
+                :class="{ inactive: !visible[ds.key] }"
+                :style="{ '--dot': ds.color }"
+                @click="toggleDataset(ds.key)"
+              >
+                <ShortcutSlot />
+                <span class="dot"></span>{{ t(ds.labelKey) }}
+              </button>
+            </div>
+            <NestedTooltip :content="t('netWorthDialog.resetZoomTitle')" silent instant>
+              <button class="pct-btn" @click="resetZoom"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
+            </NestedTooltip>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas ref="canvasRef"></canvas>
+          </div>
+        </div>
+
+        <!-- ── Unten: Breakdown + Stats (volle Breite, wie die Markt-Tabelle unter
+             dem Chart, statt einer schmalen Seitenleiste) ── -->
+        <PixelScrollBox class="nw-bottom">
+          <div class="nw-bottom-inner">
 
           <div v-if="nw" class="breakdown">
             <div class="bk-row">
@@ -41,52 +69,20 @@
               </div>
               <span class="bk-val">{{ fmtBig(nw.skillTreeValue) }}</span>
             </div>
+
+            <div class="bk-row bk-row-stat">
+              <span class="bk-label">{{ t('netWorthDialog.rankLabel') }}</span>
+              <span class="stat-val">#{{ nw.rank }}</span>
+            </div>
+            <div class="bk-row bk-row-stat">
+              <span class="bk-label">{{ t('netWorthDialog.totalLabel') }}</span>
+              <span class="stat-val accent">{{ fmtBig(nw.netWorth) }} C</span>
+            </div>
           </div>
 
           <div v-else class="nw-loading"><LoadingIndicator /></div>
-
-          <div class="nw-divider"></div>
-
-          <template v-if="nw">
-            <div class="stat-row">
-              <span class="stat-label">{{ t('netWorthDialog.rankLabel') }}</span>
-              <span class="stat-val">#{{ nw.rank }}</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">{{ t('netWorthDialog.totalLabel') }}</span>
-              <span class="stat-val accent">{{ fmtBig(nw.netWorth) }} C</span>
-            </div>
-          </template>
           </div>
         </PixelScrollBox>
-
-        <!-- ── Rechts: Chart ──────────────────────────── -->
-        <div class="nw-right">
-          <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
-
-          <div class="chart-toolbar">
-            <div class="chart-toggles">
-              <button
-                v-for="ds in DATASETS"
-                :key="ds.key"
-                class="toggle-btn"
-                :class="{ inactive: !visible[ds.key] }"
-                :style="{ '--dot': ds.color }"
-                @click="toggleDataset(ds.key)"
-              >
-                <ShortcutSlot />
-                <span class="dot"></span>{{ t(ds.labelKey) }}
-              </button>
-            </div>
-            <NestedTooltip :content="t('netWorthDialog.resetZoomTitle')" silent>
-              <button class="pct-btn" @click="resetZoom"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
-            </NestedTooltip>
-          </div>
-
-          <div class="chart-wrap">
-            <canvas ref="canvasRef"></canvas>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -111,6 +107,7 @@ import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import NestedTooltip from './NestedTooltip.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
@@ -118,6 +115,7 @@ const props = defineProps({ steamId: { type: String, required: true } })
 const emit  = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
+const { dialogStyle, onDragStart } = useDraggableDialog()
 
 const playerStore = usePlayerStore()
 
@@ -352,18 +350,28 @@ onUnmounted(() => {
   display: flex; flex-direction: column; overflow: hidden;
 }
 
+/* Chart oben, Breakdown-Liste unten (wie MarketView.vue: mv-chart-row oben,
+   mv-table darunter) -- statt der frueheren schmalen Seitenleiste-links/Chart-rechts-
+   Aufteilung. */
 .nw-layout {
-  display: flex; flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
 }
-
-/* ── Links ─────────────────────────────────────── */
-.nw-left { width: 280px; flex-shrink: 0; border-right: 3px solid var(--px-tan); }
-.nw-left-inner { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 
 .nw-section-label {
   font-family: 'Silkscreen', monospace; font-size: 10px;
   letter-spacing: 1px; color: var(--px-tan-hd); margin-bottom: 4px;
 }
+
+/* ── Oben: Chart ───────────────────────────────── */
+.nw-top {
+  flex: 3 1 0; min-height: 0; padding: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  border-bottom: 3px solid var(--px-tan);
+}
+
+/* ── Unten: Breakdown + Stats ──────────────────── */
+.nw-bottom { flex: 2 1 0; min-height: 0; }
+.nw-bottom-inner { padding: 16px; }
 
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .bk-row { display: flex; align-items: center; gap: 8px; }
@@ -376,19 +384,12 @@ onUnmounted(() => {
 .bk-bar { height: 100%; transition: width 0.4s; }
 .bk-val { width: 52px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
-.nw-divider { border-top: 2px solid #fff1a9; margin: 4px 0; }
-.stat-row { display: flex; justify-content: space-between; font-size: 13px; }
-.stat-label { color: var(--px-tan-ink); }
-.stat-val   { font-family: 'Silkscreen', monospace; color: var(--px-ink-txt); }
+.bk-row-stat { padding-top: 6px; border-top: 2px solid #fff1a9; justify-content: space-between; }
+.bk-row-stat:first-of-type { margin-top: 2px; }
+.stat-val   { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); }
 .stat-val.accent { color: #56642e; }
 
 .nw-loading { color: var(--px-tan-ink); font-size: 13px; }
-
-/* ── Rechts ─────────────────────────────────────── */
-.nw-right {
-  flex: 1; min-width: 0; padding: 16px;
-  display: flex; flex-direction: column; gap: 8px;
-}
 
 .chart-toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;

@@ -811,6 +811,15 @@ spezifiziert ist:
     Discord- und Steam-Account (ähnliches Muster wie die bestehende
     Steam-OpenID-Anbindung, siehe
     `docs/plans/2026-08-14-done-steam-auth-produktion.md`).
+- [x] **Net-Worth-Dialog: Layout an den Markt-Dialog angeglichen
+  (2026-08-21).** Nutzer-Vorgabe: Chart oben (volle Breite), Breakdown/
+  Stats darunter als Liste — wie `MarketView.vue`s Aufbau (Chart-Zeile
+  oben, Tabelle darunter), statt der bisherigen schmalen Seitenleiste-
+  links/Chart-rechts-Aufteilung. `.nw-layout` von `display:flex` (Zeile)
+  auf `flex-direction:column` umgestellt, `.nw-left`/`.nw-right` durch
+  `.nw-top` (Chart+Toolbar, `flex:3`) und `.nw-bottom` (Breakdown+Stats,
+  `flex:2`, weiterhin `PixelScrollBox`) ersetzt. Dialog-Größe bewusst
+  unverändert gelassen (explizit nur Layout, nicht Größe angefragt).
 
 ---
 
