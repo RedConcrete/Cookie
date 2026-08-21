@@ -826,6 +826,21 @@ spezifiziert ist:
   untereinander — analog `.mv-legend`). `.nw-bottom` (Breakdown+Stats,
   `PixelScrollBox`) rechts, analog `.mv-table`. Dialog-Größe bewusst
   unverändert (nur Layout angefragt).
+  **Folgeauftrag (selber Tag):** Nutzer wollte keinen Vollbild-Dialog
+  mehr dafür — "mach es zu einem Popup vom Networth-Button". Umgebaut zu
+  einem an `.hud-networth` (FarmGridView.vue) geankerten schwebenden
+  Popup statt `px-dialog-overlay`: `Teleport to="body"`, Position
+  synchron aus `anchorEl.getBoundingClientRect()` berechnet (feste
+  Panel-Maße 820×480, kein Nach-dem-Rendern-Messen — gleiche
+  Flacker-Vermeidung wie bei `NestedTooltip.vue`s `positionPopup()`),
+  schließt bei jedem Mousedown außerhalb (Klicks im Panel erreichen
+  `document` durch `@mousedown.stop` nie). Chart-Datasets zusätzlich auf
+  `stepped:true, tension:0` umgestellt (war `tension:0.3`, glatte Kurve)
+  — "Graph muss auch wie beim Markt pixelig sein", `PriceChart.vue`
+  nutzt exakt dieses Muster bereits. `FarmGridView.vue` braucht dafür
+  eine neue `netWorthBtnEl`-Ref + `:anchorEl`-Prop-Weitergabe — diese
+  Datei ist mit paralleler Arbeit vermischt, Änderung liegt unkommitiert
+  im Arbeitsverzeichnis (siehe Commit-Notiz).
 
 ---
 

@@ -1,6 +1,6 @@
 <template>
-  <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="nw-box px-panel" :style="dialogStyle">
+  <Teleport to="body">
+    <div ref="panelRef" class="nw-box px-panel" :style="popupStyle" @wheel.stop @mousedown.stop @mousemove.stop>
       <div class="px-titlebar" @pointerdown="onDragStart">
         <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
@@ -87,11 +87,11 @@
 
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Chart, LineController, LineElement, PointElement,
@@ -112,13 +112,55 @@ import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
-const props = defineProps({ steamId: { type: String, required: true } })
+// anchorEl: das HUD-Networth-Element (FarmGridView.vue), an dem dieses Popup andockt --
+// war frueher ein Vollbild-Dialog (px-dialog-overlay), ist jetzt ein an den Button
+// geankertes schwebendes Popup (Nutzer: "kein Dialog dafuer noetig").
+const props = defineProps({
+  steamId: { type: String, required: true },
+  anchorEl: { default: null }, // HTMLElement -- kein type-Check (Vue's Object-Check matcht keine DOM-Elemente)
+})
 const emit  = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
 const { dialogStyle, onDragStart } = useDraggableDialog()
 
 const playerStore = usePlayerStore()
+
+// Feste Panel-Groesse (siehe .nw-box CSS) statt Nach-dem-Rendern-Messen -- Position steht
+// so schon vorm ersten Frame fest, kein Flackern (gleiche Lektion wie bei NestedTooltip.vue's
+// positionPopup()). Ankert unten rechts an anchorEl, wie PixelInfoPopover's side="below-right"
+// (die bestehende Hover-Vorschau auf dem HUD-Button nutzt genau dieses side).
+const PANEL_WIDTH = 820
+const PANEL_HEIGHT = 480
+const EDGE_MARGIN = 8
+const GAP_BELOW = 14
+
+const panelRef = ref(null)
+const anchorPos = ref({ left: EDGE_MARGIN, top: EDGE_MARGIN })
+
+function computeAnchorPos() {
+  if (!props.anchorEl) return
+  const rect = props.anchorEl.getBoundingClientRect()
+  let left = rect.right - PANEL_WIDTH
+  let top  = rect.bottom + GAP_BELOW
+  left = Math.min(Math.max(left, EDGE_MARGIN), window.innerWidth - PANEL_WIDTH - EDGE_MARGIN)
+  top  = Math.min(Math.max(top, EDGE_MARGIN), window.innerHeight - PANEL_HEIGHT - EDGE_MARGIN)
+  anchorPos.value = { left, top }
+}
+
+const popupStyle = computed(() => ({
+  position: 'fixed',
+  left: anchorPos.value.left + 'px',
+  top: anchorPos.value.top + 'px',
+  ...(dialogStyle.value || {}), // Drag-Offset (useDraggableDialog) additiv obendrauf
+}))
+
+// Jeder Mousedown ausserhalb des Panels schliesst das Popup -- Klicks IM Panel selbst
+// erreichen document nie (siehe @mousedown.stop auf dem Panel-Root oben), kein
+// Ziel-Element-Check noetig.
+function onDocumentMousedown() {
+  emit('close')
+}
 
 const DATASETS = [
   { key: 'netWorth',      labelKey: 'netWorthDialog.netWorthLabel', color: '#aea47e' },
@@ -155,7 +197,8 @@ function buildDatasets() {
     backgroundColor: d.color + '22',
     borderWidth: 2,
     pointRadius: 0,
-    tension: 0.3,
+    tension: 0,
+    stepped: true,
     hidden: !visible[d.key],
   }))
 }
@@ -329,6 +372,8 @@ async function refreshHistory() {
 
 onMounted(async () => {
   audio.playBookOpen()
+  computeAnchorPos()
+  document.addEventListener('mousedown', onDocumentMousedown)
   const [nwData, history] = await Promise.all([
     getNetWorth(props.steamId).catch(() => null),
     getNetWorthHistory(props.steamId).catch(() => []),
@@ -342,6 +387,7 @@ onMounted(async () => {
 onUnmounted(() => {
   chart?.destroy()
   clearInterval(historyTimer)
+  document.removeEventListener('mousedown', onDocumentMousedown)
 })
 </script>
 
@@ -349,6 +395,7 @@ onUnmounted(() => {
 .nw-box {
   width: 820px; max-width: 96vw; height: 480px;
   display: flex; flex-direction: column; overflow: hidden;
+  z-index: 600; /* wie PixelInfoPopover -- Popup statt Vollbild-Dialog, kein Overlay-Parent mit eigenem z-index mehr */
 }
 
 /* Chart+Legende links (nebeneinander, wie MarketView.vue's mv-chart-row), Breakdown-
