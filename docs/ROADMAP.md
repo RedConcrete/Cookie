@@ -444,6 +444,18 @@ spezifiziert ist:
     Highlight-Inhalt vorkommt.
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
+  - [x] **Spieler-Skillbaum-Suche zentriert + Pfad-Wegweiser zum Treffer
+    (2026-08-21).** Zwei Nutzer-Beschwerden: Suchbox saß oben rechts statt
+    wie im Admin-Editor zentriert; beim Suchen war nicht erkennbar, wie
+    man vom aktuellen Fortschritt zum Treffer kommt. `SkillTreeView.vue`s
+    `.stv-search-box` jetzt `top:64px;left:50%` (zentriert, unterhalb des
+    Skillpunkte-Badges, das schon `top:14px;left:50%` belegt). Neuer
+    `searchPathEdgeKeys`-Computed: Multi-Source-BFS ab allen bereits
+    allozierten Knoten gleichzeitig (nicht nur ab root) zu jedem
+    Suchtreffer, markiert die kürzeste Kanten-Kette dorthin mit neuer
+    `.stv-edge-search-path`-Klasse (grüner Puls-Glow, gleiches Muster wie
+    der bestehende Knoten-Treffer-Glow, nur auf `stroke`/`drop-shadow`
+    statt `box-shadow`).
   L1/R1-Gebäude-Zyklus siehe §7.2 Backlog weiter unten.
 - [x] **Passiver Skill-Baum ersetzt Upgrade-System (2026-08-06).** Das alte
   3-Upgrade-Regal (`boost_harvest`, `boost_harvest_speed`, `boost_bake`) war

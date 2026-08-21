@@ -18,7 +18,7 @@
             <line
               v-for="e in edgeLines" :key="e.id"
               :x1="e.x1" :y1="e.y1" :x2="e.x2" :y2="e.y2"
-              :class="['stv-edge', `stv-edge-${e.state}`]"
+              :class="['stv-edge', `stv-edge-${e.state}`, { 'stv-edge-search-path': searching && searchPathEdgeKeys.has(e.key) }]"
             />
           </svg>
 
@@ -27,6 +27,9 @@
             :rows="nodeRows(n)" :title="nodeName(n)" :note="nodeDesc(n)" :width="290"
             :style="nodeWrapStyle(n)"
           >
+            <!-- Nur waehrend eines laufenden Requests disabled -- ein dauerhaft disabled-
+                 Button (z.B. fuer gesperrte Knoten) feuert in Chrome keine mousemove-Events
+                 mehr, was das Kamera-Pan (siehe unten) beim Drueberziehen einfrieren liess. -->
             <button
               class="stv-node"
               :class="[
@@ -40,7 +43,7 @@
                 { 'stv-node-respec-marked': respecMode && respecSelection.includes(n.id) },
                 { 'stv-node-respec-dim': respecMode && (n.root || nodeState(n) !== 'allocated') },
               ]"
-              :disabled="!n.root && (respecMode ? respeccing : (!canAllocate(n) || allocating))"
+              :disabled="allocating || respeccing"
               @click="onNodeClick(n)"
             >
               <PixelIcon :name="nodeIcon(n)" :size="iconSize(n)" />
@@ -73,8 +76,8 @@
           <div v-if="respecMode" class="stv-hint">{{ t('skillTreeView.respecModeHint') }}</div>
         </div>
 
-        <!-- ── Suche: oben rechts, neben dem Schließen-Button des umgebenden Dialogs
-             (SkillTreeDialog.vue's .std-close sitzt bei right:14px) ── -->
+        <!-- ── Suche: zentriert wie im Admin-Editor (.sta-search-box), unterhalb des
+             Skillpunkte-Badges (das belegt top:14px;left:50% schon) statt daneben ── -->
         <div class="stv-search-box" @mousedown.stop>
           <input
             type="text" class="stv-search-input"
@@ -409,11 +412,55 @@ const edgeLines = computed(() => {
     else if (from.allocated || to.allocated) state = 'available'
     return {
       id: `${e.from}-${e.to}-${i}`,
+      key: edgeKey(e.from, e.to),
       x1: CENTER + from.x, y1: CENTER + from.y,
       x2: CENTER + to.x,   y2: CENTER + to.y,
       state,
     }
   }).filter(Boolean)
+})
+
+function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}` }
+
+// Sucht-Wegweiser: kuerzester Pfad (Multi-Source-BFS ab ALLEN bereits allozierten Knoten
+// gleichzeitig, nicht nur ab root) zu jedem Suchtreffer, der noch nicht alloziiert ist --
+// zeigt "von wo ich schon bin, so komme ich am schnellsten dorthin" statt nur den Treffer
+// selbst hervorzuheben (Playtest-Feedback).
+const searchPathEdgeKeys = computed(() => {
+  if (!searching.value) return new Set()
+  const edges = tree.value.edges || []
+  const adjacency = {}
+  for (const e of edges) {
+    const k = edgeKey(e.from, e.to)
+    ;(adjacency[e.from] ??= []).push({ to: e.to, key: k })
+    ;(adjacency[e.to] ??= []).push({ to: e.from, key: k })
+  }
+  const sources = tree.value.nodes.filter(n => n.allocated).map(n => n.id)
+  if (!sources.length) return new Set()
+
+  const prevEdgeKey = {}
+  const visited = new Set(sources)
+  const queue = [...sources]
+  while (queue.length) {
+    const cur = queue.shift()
+    for (const { to, key } of (adjacency[cur] || [])) {
+      if (visited.has(to)) continue
+      visited.add(to)
+      prevEdgeKey[to] = { from: cur, key }
+      queue.push(to)
+    }
+  }
+
+  const result = new Set()
+  for (const n of tree.value.nodes) {
+    if (n.allocated || !matchesSearch(n)) continue
+    let cur = n.id
+    while (prevEdgeKey[cur]) {
+      result.add(prevEdgeKey[cur].key)
+      cur = prevEdgeKey[cur].from
+    }
+  }
+  return result
 })
 
 // ── Pan + zoom (ported from FarmGridView's camera pattern) ──
@@ -428,11 +475,14 @@ const canvasStyle = computed(() => ({
   transform: `translate(calc(-50% + ${panX.value}px), calc(-50% + ${panY.value}px)) scale(${zoom.value})`,
 }))
 
+// Mindestens ein halbes Viewport an Bewegungsspielraum in jede Richtung, auch wenn der
+// komplette Baum (weit rausgezoomt) kleiner als der Viewport ist -- sonst waere maxX/maxY
+// hier 0 und die Kamera bliebe starr auf der Mitte fixiert, egal wie stark man zieht.
 function clampPan() {
   const vw = viewEl.value?.clientWidth  ?? WORLD_SIZE
   const vh = viewEl.value?.clientHeight ?? WORLD_SIZE
-  const maxX = Math.max(0, (WORLD_SIZE * zoom.value - vw) / 2)
-  const maxY = Math.max(0, (WORLD_SIZE * zoom.value - vh) / 2)
+  const maxX = Math.max(vw / 2, (WORLD_SIZE * zoom.value - vw) / 2)
+  const maxY = Math.max(vh / 2, (WORLD_SIZE * zoom.value - vh) / 2)
   panX.value = Math.min(maxX, Math.max(-maxX, panX.value))
   panY.value = Math.min(maxY, Math.max(-maxY, panY.value))
 }
@@ -580,7 +630,7 @@ onUnmounted(() => {
 }
 .stv-cam-btn {
   position: relative;
-  width: 40px; height: 40px;
+  width: 50px; height: 50px;
   display: flex; align-items: center; justify-content: center;
   background: var(--px-wood3); border: 3px solid var(--px-ink); color: var(--px-cream);
   cursor: pointer; box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
@@ -610,6 +660,18 @@ onUnmounted(() => {
 .stv-edge-available { stroke: var(--px-gold); opacity: 0.8; }
 .stv-edge-active     { stroke: var(--px-green); opacity: 1; }
 
+/* Sucht-Wegweiser: kuerzester Pfad vom naechsten allozierten Knoten zum Treffer -- nach den
+   Status-Regeln oben, damit es bei gleicher Selektor-Spezifitaet immer gewinnt (auch auf einer
+   "locked"-Kante). Gleiches Gruen-Puls-Muster wie stv-search-glow bei den Knoten, nur auf
+   stroke/drop-shadow statt box-shadow (SVG-Linie statt Div). */
+.stv-edge-search-path {
+  animation: stv-edge-search-glow 1.3s ease-in-out infinite;
+}
+@keyframes stv-edge-search-glow {
+  0%, 100% { stroke: var(--px-green); stroke-width: 5; opacity: 1; filter: drop-shadow(0 0 3px var(--px-green-lt)); }
+  50%      { stroke: var(--px-green-lt); stroke-width: 7; opacity: 1; filter: drop-shadow(0 0 6px var(--px-green)); }
+}
+
 .stv-node {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -621,13 +683,14 @@ onUnmounted(() => {
 .stv-node-locked {
   background: var(--px-wood2);
   filter: saturate(0.5) brightness(0.7);
+  cursor: default;
 }
 .stv-node-allocatable {
   background: var(--px-gold);
   box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 0 0 3px var(--px-gold);
 }
 .stv-node-allocatable:hover { filter: brightness(1.15); }
-.stv-node-nopoints { filter: saturate(0.7) brightness(0.85); }
+.stv-node-nopoints { filter: saturate(0.7) brightness(0.85); cursor: default; }
 .stv-node-nopoints:hover { filter: saturate(0.7) brightness(0.85); }
 .stv-node-allocated {
   background: var(--px-green);
@@ -677,6 +740,7 @@ onUnmounted(() => {
    gruenen Such-Glow (visuell klar getrennt: "wird entfernt" vs. "Treffer"). */
 .stv-node-respec-dim {
   filter: saturate(0.3) brightness(0.5);
+  cursor: default;
 }
 .stv-node-respec-marked {
   animation: stv-respec-glow 1.1s ease-in-out infinite;
@@ -689,6 +753,13 @@ onUnmounted(() => {
 .stv-toolbar {
   position: absolute; top: 14px; left: 14px; z-index: 20;
   display: flex; align-items: center; gap: 10px;
+}
+.stv-toolbar .px-btn,
+.stv-respec-bar .px-btn,
+.stv-buy-panel-body .px-btn {
+  min-height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
 }
 .stv-hint {
   font-size: 11px; font-family: 'Silkscreen', monospace; color: var(--px-tan);
@@ -704,7 +775,7 @@ onUnmounted(() => {
 .stv-respec-cost { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink); display: flex; align-items: center; }
 
 .stv-search-box {
-  position: absolute; top: 14px; right: 60px; z-index: 20;
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 20;
   display: flex; align-items: center; gap: 4px;
   padding: 6px 8px;
   background: var(--px-wood3); border: 3px solid var(--px-ink);
