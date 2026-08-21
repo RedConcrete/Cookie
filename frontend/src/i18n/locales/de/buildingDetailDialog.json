@@ -24,5 +24,9 @@
   "collectHint": "Wie Miete — steht still, wenn voll, bis eingesammelt wird.",
   "errorChangingWorkers": "Fehler beim Ändern der Einwohner.",
   "errorCollecting": "Fehler beim Einsammeln.",
-  "notEnoughCookies": "Nicht genug Cookies."
+  "notEnoughCookies": "Nicht genug Cookies.",
+  "sellTransition": "Stufe {from} → {to}",
+  "sellRefund": "50% Rückerstattung · +{refund}",
+  "sell": "VERKAUFEN",
+  "sellError": "Fehler beim Verkaufen."
 }

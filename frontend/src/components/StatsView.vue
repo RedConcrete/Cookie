@@ -156,7 +156,7 @@ onMounted(async () => {
 }
 .sv-panel-subtitle {
   font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 1px;
-  color: var(--px-tan-hd); margin: 14px 0 8px;
+  color: var(--px-wood); margin: 14px 0 8px;
 }
 
 .sv-tile-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -171,7 +171,7 @@ onMounted(async () => {
 
 .sv-subrow { display: flex; gap: 18px; margin-top: 12px; flex-wrap: wrap; }
 .sv-subrow-item { display: flex; gap: 6px; align-items: baseline; }
-.sv-subrow-label { font-size: 12px; color: var(--px-tan-ink); }
+.sv-subrow-label { font-size: 12px; color: var(--px-wood); }
 .sv-subrow-val { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); }
 
 .sv-building-table { display: flex; flex-direction: column; gap: 3px; }

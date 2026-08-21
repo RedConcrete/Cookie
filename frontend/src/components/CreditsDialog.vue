@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="cd-box px-panel">
-      <div class="px-titlebar">
+    <div class="cd-box px-panel" :style="dialogStyle">
+      <div class="px-titlebar" @pointerdown="onDragStart">
         <span>{{ t('creditsDialog.title') }}</span>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
@@ -22,9 +22,11 @@
 import { useI18n } from 'vue-i18n'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
 const { t } = useI18n()
+const { dialogStyle, onDragStart } = useDraggableDialog()
 
 const sections = [
   { titleKey: 'creditsDialog.developmentTitle', entryKey: 'creditsDialog.developmentEntry' },

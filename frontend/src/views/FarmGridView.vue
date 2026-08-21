@@ -7,6 +7,7 @@
     @mouseup="panEnd"
     @mouseleave="onMouseLeaveRoot"
   >
+    <DevStatsPanel v-if="devMode" />
 
     <!-- ══ HUD (fixed overlay, outside canvas so it stays put while panning) ══ -->
     <div class="hud">
@@ -36,17 +37,17 @@
         </PixelInfoPopover>
       </div>
 
-      <PixelInfoPopover :rows="netWorthRows" :title="t('farmGridView.netWorthTitle')" side="below-right" :width="276" :z="95" class="hud-networth-wrap">
-        <div class="hud-networth" @click="dialog = 'networth'">
+      <NetWorthDialog ref="netWorthPopoverRef" :steamId="playerStore.steamId" class="hud-networth-wrap">
+        <div class="hud-networth">
           <ShortcutSlot :key-label="actionHotkeysEnabled ? actionKeyLabel(actionKeys.networth) : ''" :gamepad-button="actionGamepadButtons.networth" />
           <div class="hud-networth-label">{{ t('farmGridView.netWorthTitle') }}</div>
           <div class="hud-networth-val">{{ fmtBig(playerStore.netWorth) }}</div>
         </div>
-      </PixelInfoPopover>
+      </NetWorthDialog>
 
       <div class="hud-actions">
         <div class="hud-menu-wrap" ref="hudMenuRef">
-          <button class="px-btn" @click="menuOpen = !menuOpen">
+          <button class="px-btn hud-menu-btn" @click="menuOpen = !menuOpen">
             &#9776;
             <ShortcutSlot :gamepad-button="MENU_GAMEPAD_BUTTON" />
           </button>
@@ -64,7 +65,7 @@
             <button class="hud-menu-item" @click="selectMenu('leaderboard')">{{ t('farmGridView.leaderboardLabel') }}<ShortcutSlot /></button>
             <button class="hud-menu-item" @click="selectMenu('settings')">{{ t('farmGridView.settingsTitle') }}<ShortcutSlot /></button>
             <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectMenu('skilltreeadmin')">{{ t('farmGridView.skillTreeAdminLabel') }}<ShortcutSlot /></button>
-            <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="selectDevReset">{{ t('farmGridView.devResetLabel') }}</button>
+            <button v-if="isDev" class="hud-menu-item hud-menu-dev" @click="forceBankruptTest(); menuOpen = false">{{ t('farmGridView.forceBankruptLabel') }}<ShortcutSlot /></button>
           </div>
           <button
             v-if="playerStore.skillTree.skillPoints > 0"
@@ -128,14 +129,14 @@
 
     <!-- ══ Camera controls (outside canvas, fixed overlay) ══ -->
     <div class="cam-controls">
-      <NestedTooltip :content="t('farmGridView.centerTitle')" silent>
+      <NestedTooltip :content="t('farmGridView.centerTitle')" silent instant>
         <button class="cam-center" @click="resetView"><PixelIcon name="zentrieren" :size="18" /><ShortcutSlot :key-label="actionHotkeysEnabled ? '␣' : ''" :gamepad-button="actionHotkeysEnabled ? CENTER_GAMEPAD_BUTTON : null" /></button>
       </NestedTooltip>
     </div>
     <div class="zoom-readout">{{ Math.round(zoom * 100) }} %</div>
 
     <!-- Floating build button (bottom-right) -->
-    <NestedTooltip :content="t('farmGridView.buildTitle')" silent>
+    <NestedTooltip :content="t('farmGridView.buildTitle')" silent instant>
       <button class="build-fab" @click="dialog = 'buildshop'">+<ShortcutSlot /></button>
     </NestedTooltip>
 
@@ -155,16 +156,16 @@
     <SkillTreeDialog    v-if="dialog === 'skilltree'"    @close="dialog = null" />
     <StatsDialog        v-if="dialog === 'stats'"        @close="dialog = null" />
     <LeaderboardDialog  v-if="dialog === 'leaderboard'" @close="dialog = null" />
-    <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" />
+    <SettingsDialog     v-if="dialog === 'settings'"    @close="dialog = null" @bankruptcy="dialog = null; showBankruptcyScreen = true" />
     <PlayerProfileDialog v-if="dialog === 'profile'"   :steamId="playerStore.steamId" @close="dialog = null" />
-    <NetWorthDialog     v-if="dialog === 'networth'"    :steamId="playerStore.steamId" @close="dialog = null" />
     <OrdenDialog        v-if="dialog === 'badges'"      :steamId="playerStore.steamId" :isAdmin="isDev" @close="dialog = null" />
     <BuildShopDialog    v-if="dialog === 'buildshop'"   @close="dialog = null" />
     <CitizenDialog      v-if="dialog === 'citizens'"    @close="dialog = null" />
     <RathausDialog      v-if="dialog === 'rathaus'"     @close="dialog = null" />
     <LagerDialog        v-if="dialog === 'lager'"       @close="dialog = null" />
     <SkillTreeAdminDialog v-if="dialog === 'skilltreeadmin'" @close="dialog = null" />
-    <HardResetDialog     v-if="showBankruptcyDialog" mode="bankruptcy" @close="showBankruptcyDialog = false" />
+    <HardResetDialog     v-if="showBankruptcyWarning" mode="bankruptcy" @close="onBankruptcyWarningClose" @confirmed="showBankruptcyWarning = false; showBankruptcyScreen = true" />
+    <BankruptcyScreen    v-if="showBankruptcyScreen" @close="showBankruptcyScreen = false" />
 
     <GamepadCursor :pulse="gamepadPulse" />
     <GamepadToast />
@@ -177,7 +178,7 @@ import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { useMarketStore } from '../stores/market.js'
 import { useBakeStore } from '../stores/bake.js'
-import { harvestResource, trade, adminResetPlayer, avatarSrc, collectBuilding, getConfig, getWageStatus } from '../services/api.js'
+import { harvestResource, trade, avatarSrc, collectBuilding, getConfig, getWageStatus, adminForceBankrupt } from '../services/api.js'
 import { fmt, fmt2, fmtBig } from '../utils/formatNumber.js'
 import { spawnFarmNumber } from '../composables/useFarmNumbers.js'
 import { spawnWageNumber } from '../composables/useWageNumbers.js'
@@ -269,14 +270,19 @@ import CitizenDialog from '../components/CitizenDialog.vue'
 import RathausDialog from '../components/RathausDialog.vue'
 import LagerDialog from '../components/LagerDialog.vue'
 import SkillTreeAdminDialog from '../components/SkillTreeAdminDialog.vue'
+import BankruptcyScreen from '../components/BankruptcyScreen.vue'
 import HardResetDialog from '../components/HardResetDialog.vue'
 import NestedTooltip from '../components/NestedTooltip.vue'
+import DevStatsPanel from '../components/DevStatsPanel.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const bakeStore   = useBakeStore()
 const isDev = playerStore.steamId === 'DEV_PLAYER_001'
+// Breiter gefasst als isDev (das nur den Owner-Account markiert) -- gilt auch fuer
+// ngrok-Tester mit eigener Test-ID (siehe App.vue#devPlayerId), zeigt DevStatsPanel.
+const devMode = ref(false)
 
 // Ingame-Shuffle-Playlist statt zwei_left_socks (exklusiv fuers Hauptmenue).
 const audio = useAudio()
@@ -292,13 +298,15 @@ const dialog = ref(null)
 const detailBuilding = ref(null)
 const menuOpen = ref(false)
 const hudMenuRef = ref(null)
+const netWorthPopoverRef = ref(null)
+
+// Grossflaechige Overlay-Seiten (Skill-Baum, Statistik) daempfen die Musik,
+// statt sie in voller Klarheit unter dem Dialog weiterlaufen zu lassen.
+const MUFFLE_DIALOGS = ['skilltree', 'stats']
+watch(dialog, v => audio.setMusicMuffled(MUFFLE_DIALOGS.includes(v)))
 
 function selectMenu(name) {
   dialog.value = name
-  menuOpen.value = false
-}
-function selectDevReset() {
-  devReset()
   menuOpen.value = false
 }
 function onDocumentClick(e) {
@@ -390,9 +398,25 @@ const cookieChipEl = ref(null)
 let lastSeenWageAt = null
 let wagePollTimer = null
 const WAGE_POLL_MS = 15000
-// Bankrott-Dialog ist wegklickbar -- läuft NetWorth weiter < 0, wird er hier bei jedem
-// Wage-Poll-Tick erneut aufgemacht, statt nur einmal beim Übergang zu triggern.
-const showBankruptcyDialog = ref(false)
+// Bankrott ist zweistufig: erst eine wegklickbare Warnung (HardResetDialog, mode
+// bankruptcy) -- der Spieler darf weiterspielen und versuchen wieder rauszukommen.
+// Nur wer dort explizit bestaetigt, bekommt den erzwungenen Screen (BankruptcyScreen,
+// kein Wegklicken mehr), der den echten Reset ausloest.
+const showBankruptcyWarning = ref(false)
+const showBankruptcyScreen  = ref(false)
+// Per "Nicht mehr fragen"-Haekchen in der Warnung gesetzt -- unterdrueckt das erneute
+// Aufploppen bei jedem Wage-Poll-Tick, solange der Spieler noch bankrott ist. Reset
+// sobald isBankrupt wieder false wird (siehe watch unten), damit eine spaetere neue
+// Pleite wieder normal warnt.
+const suppressBankruptcyWarning = ref(false)
+watch(() => playerStore.isBankrupt, (bankrupt) => {
+  if (!bankrupt) suppressBankruptcyWarning.value = false
+})
+
+function onBankruptcyWarningClose(dontAskAgain) {
+  showBankruptcyWarning.value = false
+  if (dontAskAgain) suppressBankruptcyWarning.value = true
+}
 
 async function pollWageStatus() {
   try {
@@ -409,9 +433,25 @@ async function pollWageStatus() {
       const rect = cookieChipEl.value?.getBoundingClientRect()
       if (rect) spawnWageNumber(status.lastWageAmount, rect.left + rect.width / 2, rect.top + rect.height / 2)
     }
-    if (playerStore.isBankrupt) showBankruptcyDialog.value = true
+    if (playerStore.isBankrupt && !showBankruptcyScreen.value && !suppressBankruptcyWarning.value) {
+      showBankruptcyWarning.value = true
+    }
   } catch (e) {
     // Poll ist rein kosmetisch -- Fehler (Server kurz weg, o.ä.) einfach beim naechsten Tick erneut versuchen.
+  }
+}
+
+// Dev-Testhilfe: setzt Cookies serverseitig tief ins Minus (siehe AdminController#forceBankrupt)
+// und laedt den Spielerstand danach frisch -- loest isBankrupt genau ueber denselben Pfad wie
+// ein echter Bankrott aus, statt den Screen nur per Fake-Flag anzuzeigen.
+async function forceBankruptTest() {
+  try {
+    await adminForceBankrupt(playerStore.steamId)
+    await playerStore.init(playerStore.steamId)
+    if (playerStore.isBankrupt) showBankruptcyWarning.value = true
+  } catch (e) {
+    // Dev-only Testknopf -- Fehler einfach in der Konsole sichtbar lassen, kein UI noetig.
+    console.error('[Dev] force-bankrupt failed', e)
   }
 }
 
@@ -421,6 +461,7 @@ async function pollWageStatus() {
 const collectCooldownMs = ref(200)
 getConfig().then(cfg => {
   if (cfg.collectCooldownMs) collectCooldownMs.value = cfg.collectCooldownMs
+  devMode.value = !!cfg.devMode
 }).catch(() => {})
 
 // Sperrt den Collect-Button pro Gebaeude bis zu diesem Zeitpunkt (siehe onCollectBuilding) --
@@ -502,13 +543,6 @@ function dropOk(id, pos) {
     Object.entries(buildingOffsets).filter(([bid]) => isBuildingOwned(bid))
   )
   return dropOkLayout(id, pos, ownedOffsets)
-}
-
-async function devReset() {
-  try {
-    await adminResetPlayer(playerStore.steamId)
-    await playerStore.init(playerStore.steamId)
-  } catch (e) { console.error('[devReset]', e) }
 }
 
 // Which buildings this player owns (level > 0 from backend)
@@ -629,13 +663,6 @@ const hudResources = computed(() => RESOURCES.map(r => {
 const citizenRows = computed(() => [
   { k: t('farmGridView.rowSettled'), v: `${playerStore.ownedCitizens}/${playerStore.maxCitizens}`, color: 'w' },
   { k: t('farmGridView.rowFree'), v: playerStore.idleCitizens, color: 'g' },
-])
-
-const netWorthRows = computed(() => [
-  { k: t('farmGridView.rowCookies'),   v: fmt2(playerStore.nwCookies) + ' C', color: 'w' },
-  { k: t('farmGridView.rowResources'), v: fmt2(playerStore.nwResources) + ' C', color: 'w' },
-  { k: t('farmGridView.rowSkillTree'), v: fmt2(playerStore.nwSkillTreeValue) + ' C', color: 'w' },
-  { k: t('farmGridView.rowTotal'),     v: fmtBig(playerStore.netWorth), color: 'g' },
 ])
 
 // ── Pan + zoom ───────────────────────────────────────────
@@ -826,7 +853,7 @@ const gamepadActionPressed = {}
 function triggerAction(action) {
   if (!actionHotkeysEnabled.value) return
   if (dialog.value || detailBuilding.value) return
-  if (action === 'networth') dialog.value = 'networth'
+  if (action === 'networth') netWorthPopoverRef.value?.toggle()
   if (action === 'skilltree') dialog.value = 'skilltree'
 }
 
@@ -1203,13 +1230,18 @@ onUnmounted(() => {
    Button-Optik statt der generischen .px-btn (die ist fuer Text+Padding gedacht, mit nur
    einem Icon drin sah sie klein/leer aus) -- gleiches quadratisches Icon-Button-Muster wie
    .cam-center/.build-fab, nur mit Gold-Akzent, damit der Hinweis auffaellt. */
+/* transform-origin: top -- der Puls (siehe unten) skaliert sonst vom Zentrum aus, waechst also
+   auch nach oben und schiebt Button + ShortcutSlot-Badge (der ohnehin schon -7px ueber dem
+   Button sitzt) sichtbar in die HUD-Leiste. Mit Origin oben bleibt die Oberkante fix, der Puls
+   waechst nur noch nach unten/seitlich -- dorthin ist Platz (Wiese). */
 .hud-skillpoint-star {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: 51;
-  width: 48px; height: 48px;
+  position: absolute; top: calc(100% + 14px); right: 0; z-index: 51;
+  width: 50px; height: 50px;
   display: flex; align-items: center; justify-content: center;
   background: var(--px-gold); border: 4px solid var(--px-ink); color: var(--px-ink-txt);
   box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.4);
   cursor: pointer;
+  transform-origin: center top;
   animation: hud-star-pulse 1.4s ease-in-out infinite;
 }
 .hud-skillpoint-star:hover { filter: brightness(1.1); }
@@ -1225,6 +1257,11 @@ onUnmounted(() => {
    kurzen) Wrapper-Box statt an der echten HUD-Unterkante -- Stern-Button ragte dadurch sichtbar
    in die obere Leiste rein (Bug-Report 2026-08-20). */
 .hud-menu-wrap { position: relative; display: flex; align-items: center; align-self: stretch; }
+.hud-menu-btn {
+  width: 50px; height: 50px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
 .hud-menu {
   position: absolute; top: calc(100% + 8px); right: 0;
   min-width: 190px; background: var(--px-wood); border: 3px solid var(--px-ink);
@@ -1267,7 +1304,7 @@ onUnmounted(() => {
 .cam-controls { position: absolute; right: 18px; bottom: 16px; display: flex; align-items: center; gap: 8px; z-index: 50; }
 .cam-center {
   position: relative;
-  width: 48px; height: 48px; background: var(--px-orange); border: 4px solid var(--px-ink);
+  width: 50px; height: 50px; background: var(--px-orange); border: 4px solid var(--px-ink);
   box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.4);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-cream); cursor: pointer;
@@ -1277,7 +1314,7 @@ onUnmounted(() => {
 
 .build-fab {
   position: absolute; right: 16px; bottom: 80px; z-index: 55;
-  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 26px; line-height: 1; padding: 0;
   background: var(--px-orange); border: 4px solid var(--px-ink); color: var(--px-cream);
   box-shadow: inset -2px -2px 0 var(--px-orange-dk), inset 2px 2px 0 var(--px-orange-lt), 0 4px 0 rgba(0,0,0,.45);

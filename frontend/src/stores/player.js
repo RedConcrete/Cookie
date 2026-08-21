@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { initGame, getBuildingLayout, buyCitizens as apiBuyCitizens, getSkillTree, getPrestigeStatus } from '../services/api.js'
+import { initGame, getBuildingLayout, buyCitizens as apiBuyCitizens, fireCitizens as apiFireCitizens, getSkillTree, getPrestigeStatus } from '../services/api.js'
 import { connectMarketWebSocket } from '../services/websocket.js'
 import { useMarketStore } from './market.js'
 
@@ -132,6 +132,14 @@ export const usePlayerStore = defineStore('player', () => {
     } catch {}
   }
 
+  async function fireCitizenAction(count = 1) {
+    if (!steamId.value) return
+    try {
+      const dto = await apiFireCitizens(steamId.value, count)
+      updateFromDto(dto)
+    } catch {}
+  }
+
   async function loadBuildings() {
     if (!steamId.value) return
     try {
@@ -160,6 +168,6 @@ export const usePlayerStore = defineStore('player', () => {
     ownedCitizens, assignedCitizens, idleCitizens, maxCitizens,
     skillTree, prestigeMultiplier, loadSkillTree, loadPrestigeMultiplier,
     netWorth, nwCookies, nwResources, nwSkillTreeValue, isBankrupt, loading, error, serverUnavailable, recipes,
-    init, updateFromDto, loadBuildings, buyCitizenAction,
+    init, updateFromDto, loadBuildings, buyCitizenAction, fireCitizenAction,
   }
 })

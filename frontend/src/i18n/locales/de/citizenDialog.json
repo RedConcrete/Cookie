@@ -14,5 +14,10 @@
   "buyButton": "KAUFEN · {cost}",
   "wanderersLabel": "{count} WANDERN HERUM",
   "bought": "{count} Einwohner gekauft!",
-  "buyError": "Nicht genug Cookies oder Fehler."
+  "buyError": "Nicht genug Cookies oder Fehler.",
+  "fireLabel": "ENTLASSEN",
+  "fireHint": "Nur inaktive (nicht zugewiesene) Einwohner können entlassen werden, zu 50% Rückerstattung.",
+  "fireButton": "ENTLASSEN · +{refund}",
+  "fired": "{count} Einwohner entlassen.",
+  "fireError": "Fehler beim Entlassen."
 }

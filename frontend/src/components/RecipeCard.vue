@@ -3,7 +3,7 @@
 
     <!-- ── Left: recipe index ─────────────────────────── -->
     <div class="rc-left">
-      <div class="rc-left-title">{{ t('recipeCard.title') }}</div>
+      <div class="rc-left-title" @pointerdown="emit('drag-start', $event)">{{ t('recipeCard.title') }}</div>
       <div class="rc-rule"></div>
 
       <div v-if="!recipes.length" class="rc-loading"><LoadingIndicator /></div>
@@ -118,7 +118,7 @@ import { fmt2 } from '../utils/formatNumber.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'drag-start'])
 
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
@@ -235,9 +235,13 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
   padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
   border-right: 6px solid var(--px-brown);
 }
-.rc-left-title { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); text-align: center; }
+.rc-left-title {
+  font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); text-align: center;
+  cursor: move; touch-action: none; user-select: none;
+}
+@media (max-width: 860px) { .rc-left-title { cursor: default; } }
 .rc-rule { height: 3px; background: var(--px-brown2); }
-.rc-loading { color: var(--px-tan-ink); font-style: italic; font-size: 13px; }
+.rc-loading { color: var(--px-wood); font-style: italic; font-size: 13px; }
 .rc-index { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .rc-entry {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -246,7 +250,7 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 }
 .rc-entry:hover { background: #fff1a9; }
 .rc-entry.active { background: var(--px-gold); border-color: var(--px-ink); }
-.rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
+.rc-entry-time { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
 
 .rc-right {
   flex: 1; background: var(--px-cream); position: relative;
@@ -256,18 +260,18 @@ onMounted(() => { if (recipes.value.length) selectedId.value = recipes.value[0].
 .rc-scroll-inner { padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
 .rc-close { position: absolute; top: 12px; right: 14px; z-index: 10; }
 .rc-heading { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-ink-txt); padding-right: 24px; }
-.rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 8px; }
+.rc-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood2); letter-spacing: 1px; margin-bottom: 8px; }
 
 .rc-ingredients { display: flex; flex-direction: column; gap: 2px; }
 .rc-ing-row { display: grid; grid-template-columns: 24px 1fr 46px 70px 70px; align-items: center; gap: 8px; padding: 7px 8px; background: var(--px-cream2); border: 2px solid #fff1a9; }
 .rc-ing-name  { font-size: 15px; color: var(--px-ink-txt); }
-.rc-ing-qty   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
-.rc-ing-qty.insufficient { color: var(--px-red); }
-.rc-ing-price { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-ink); }
+.rc-ing-qty   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-wood); }
+.rc-ing-qty.insufficient { color: var(--px-red-dk); }
+.rc-ing-price { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood); }
 .rc-ing-sum   { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); text-align: right; }
 .rc-cost-row  { display: flex; justify-content: space-between; padding: 9px 8px; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); border-top: 3px solid var(--px-brown2); margin-top: 4px; }
 
-.rc-profit-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--px-cream2); border: 3px solid var(--px-tan); margin-bottom: 6px; font-size: 16px; color: var(--px-tan-ink); }
+.rc-profit-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--px-cream2); border: 3px solid var(--px-tan); margin-bottom: 6px; font-size: 16px; color: var(--px-wood); }
 .rc-profit-row.winner { background: #fff1a9; border-color: var(--px-green); color: var(--px-ink-txt); font-weight: 600; }
 .rc-profit-diff { font-family: 'Silkscreen', monospace; font-size: 11px; text-align: center; margin-top: 4px; }
 .rc-profit-diff.pos { color: #56642e; }

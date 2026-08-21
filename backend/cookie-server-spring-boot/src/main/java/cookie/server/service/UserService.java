@@ -261,6 +261,18 @@ public class UserService {
         return dto;
     }
 
+    // Dev-Testhilfe fuer den Bankrott-Screen (siehe AdminController#forceBankrupt) -- setzt
+    // Cookies so tief ins Minus, dass NetWorth (Cookies + Ressourcen + Skill-Baum-Wert) sicher
+    // negativ bleibt, auch nach Interesse/Dispo-Abrechnung. Nur ueber dev-mode-gated Endpoint
+    // erreichbar, kein normaler Gameplay-Pfad.
+    @Transactional
+    public void forceBankrupt(String userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+        user.setCookies(-1_000_000_000d);
+        userRepository.save(user);
+    }
+
     public void deleteUser(String userId) {
         if (!userRepository.existsById(userId)) {
             throw new NoSuchElementException("User not found");

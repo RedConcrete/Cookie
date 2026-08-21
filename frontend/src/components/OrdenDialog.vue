@@ -1,9 +1,9 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="orden-wrap">
+    <div class="orden-wrap" :style="dialogStyle">
 
       <div class="orden-box px-panel">
-        <div class="px-titlebar">
+        <div class="px-titlebar" @pointerdown="onDragStart">
           <span>{{ t('ordenDialog.title') }} &middot; {{ steamId }}</span>
           <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
         </div>
@@ -94,6 +94,7 @@ import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import { useBadges } from '../composables/useBadges.js'
 import { useAudio } from '../composables/useAudio.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const props = defineProps({
   steamId: { type: String, default: 'DEV_PLAYER_001' },
@@ -102,6 +103,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
+const { dialogStyle, onDragStart } = useDraggableDialog()
 
 onMounted(() => audio.playBookOpen())
 
@@ -134,9 +136,9 @@ function grantBadge() {
 .orden-box { width: 520px; max-height: 85vh; display: flex; flex-direction: column; }
 
 .orden-filters { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--px-cream3); border-bottom: 4px solid var(--px-ink); }
-.orden-filter { position: relative; font-family: 'Silkscreen', monospace; font-size: 10px; padding: 5px 8px; background: var(--px-cream3); border: 3px solid var(--px-tan); color: var(--px-tan-ink); cursor: pointer; }
+.orden-filter { position: relative; font-family: 'Silkscreen', monospace; font-size: 10px; padding: 5px 8px; background: var(--px-cream3); border: 3px solid var(--px-tan); color: var(--px-wood); cursor: pointer; }
 .orden-filter.active { background: var(--px-cream); border-color: var(--px-brown2); color: var(--px-ink-txt); }
-.orden-sort-hint { margin-left: auto; font-size: 13px; color: var(--px-tan-ink); }
+.orden-sort-hint { margin-left: auto; font-size: 13px; color: var(--px-wood); }
 
 .orden-list { flex: 1 1 auto; min-height: 0; }
 .orden-list-inner { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -144,9 +146,9 @@ function grantBadge() {
 .orden-item:hover { background: #fff1a9; }
 .orden-plate { width: 48px; height: 48px; border: 3px solid var(--px-ink); box-shadow: inset -2px -2px 0 rgba(0,0,0,.25), inset 2px 2px 0 rgba(255,255,255,.35); display: flex; align-items: center; justify-content: center; }
 .orden-name { font-size: 17px; font-weight: 600; color: var(--px-ink-txt); }
-.orden-desc { font-size: 14px; color: var(--px-tan-ink); margin-top: 2px; }
+.orden-desc { font-size: 14px; color: var(--px-wood); margin-top: 2px; }
 .orden-date { text-align: right; }
-.orden-date-label { font-size: 11px; color: var(--px-tan-ink); }
+.orden-date-label { font-size: 11px; color: var(--px-wood); }
 .orden-date-val   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); margin-top: 4px; }
 .orden-empty { color: var(--px-tan-ink); text-align: center; padding: 20px; font-style: italic; }
 
@@ -154,7 +156,7 @@ function grantBadge() {
 .orden-admin-badge { font-family: 'Silkscreen', monospace; font-size: 9px; padding: 4px 7px; background: var(--px-red); color: #fff1a9; border: 3px solid var(--px-ink); }
 .orden-admin-body { flex: 1 1 auto; min-height: 0; }
 .orden-admin-body-inner { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-.orden-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; margin-bottom: 7px; }
+.orden-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood2); letter-spacing: 1px; margin-bottom: 7px; }
 
 .orden-search { display: flex; border: 3px solid var(--px-ink); }
 .orden-search-input { flex: 1; padding: 10px 12px; background: var(--px-cream2); border: none; font-size: 15px; color: var(--px-ink-txt); }
@@ -175,7 +177,7 @@ function grantBadge() {
 
 .orden-admin-actions { display: flex; gap: 10px; }
 .orden-admin-actions .px-btn { flex: 1; text-align: center; }
-.orden-hint { padding: 12px 14px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
+.orden-hint { padding: 12px 14px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood2); }
 
 @media (max-width: 1100px) {
   .orden-wrap { flex-direction: column; }

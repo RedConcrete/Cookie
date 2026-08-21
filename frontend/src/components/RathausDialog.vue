@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="rh-panel">
-      <div class="rh-head">
+    <div class="rh-panel" :style="dialogStyle">
+      <div class="rh-head" @pointerdown="onDragStart">
         <PixelIcon name="haus" :size="28" />
         <div class="rh-head-title">{{ t('rathausDialog.title', { level: rathausLevel }) }}</div>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
@@ -107,8 +107,10 @@ import { fmt } from '../utils/formatNumber.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const playerStore = usePlayerStore()
 const audio = useAudio()
 const { t } = useI18n()
@@ -170,22 +172,24 @@ async function upgradeRathaus() {
 <style scoped>
 .rh-panel {
   width: 500px; max-width: 96vw;
-  background: var(--px-cream2); border: 4px solid var(--px-ink);
-  box-shadow: inset -3px -3px 0 var(--px-tan), inset 3px 3px 0 var(--px-cream), 0 10px 0 rgba(0,0,0,.45);
+  background: var(--px-cream); border: 4px solid var(--px-ink);
+  box-shadow: 0 10px 0 rgba(0,0,0,.45);
 }
 .rh-head {
   display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-  border-bottom: 4px solid var(--px-ink); background: var(--px-cream3);
+  border-bottom: 4px solid var(--px-ink); background: var(--px-wood);
+  cursor: move; touch-action: none; user-select: none;
 }
-.rh-head-title { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); flex: 1; }
+@media (max-width: 860px) { .rh-head { cursor: default; } }
+.rh-head-title { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-cream); flex: 1; }
 
 .rh-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 
 .rh-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .rh-debt-hint { font-size: 11px; color: var(--px-tan-ink); font-style: italic; }
 .rh-stat { padding: 10px; background: var(--px-cream); border: 3px solid var(--px-brown2); text-align: center; }
-.rh-stat-label { font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-tan-hd); margin-bottom: 4px; }
-.rh-stat-val   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-paper-txt); }
+.rh-stat-label { font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-wood); margin-bottom: 4px; }
+.rh-stat-val   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 .rh-idle { color: var(--px-red) !important; }
 .rh-cost { color: var(--px-red) !important; }
 
@@ -205,8 +209,8 @@ async function upgradeRathaus() {
 .rh-assign-workers { display: flex; gap: 4px; }
 .rh-dot { width: 10px; height: 10px; background: var(--px-brown2); border: 2px solid var(--px-ink); }
 .rh-dot-active { background: var(--px-green-txt); border-color: #56642e; }
-.rh-assign-count { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-muted); min-width: 28px; text-align: right; }
-.rh-empty { font-size: 13px; color: var(--px-muted); padding: 12px; text-align: center; }
+.rh-assign-count { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood2); min-width: 28px; text-align: right; }
+.rh-empty { font-size: 13px; color: var(--px-wood2); padding: 12px; text-align: center; }
 
 .rh-bill-row { padding: 8px 10px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
 .rh-bill-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -216,8 +220,8 @@ async function upgradeRathaus() {
 
 .rh-upgrade { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--px-cream3); border: 3px solid var(--px-brown2); }
 .rh-upgrade-info { flex: 1; }
-.rh-upgrade-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); }
-.rh-upgrade-desc  { font-size: 13px; color: var(--px-tan-ink); margin-top: 3px; }
-.rh-notice { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-txt); }
+.rh-upgrade-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
+.rh-upgrade-desc  { font-size: 13px; color: var(--px-wood); margin-top: 3px; }
+.rh-notice { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-panel); }
 .rh-notice.error  { color: var(--px-red); }
 </style>

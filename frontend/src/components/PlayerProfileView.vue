@@ -111,12 +111,12 @@ onMounted(load)
 
 .pp-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .pp-stat { padding: 11px; background: var(--px-cream2); border: 3px solid var(--px-tan); }
-.pp-stat-label { font-size: 11px; color: var(--px-tan-ink); line-height: 1.3; }
+.pp-stat-label { font-size: 11px; color: var(--px-wood); line-height: 1.3; }
 .pp-stat-val { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); margin-top: 5px; }
 
 .pp-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
-.pp-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); letter-spacing: 1px; }
-.pp-link { position: relative; font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 7px; background: var(--px-cream3); border: 3px solid var(--px-brown2); color: var(--px-tan-hd); cursor: pointer; }
+.pp-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood2); letter-spacing: 1px; }
+.pp-link { position: relative; font-family: 'Silkscreen', monospace; font-size: 9px; padding: 5px 7px; background: var(--px-cream3); border: 3px solid var(--px-brown2); color: var(--px-wood); cursor: pointer; }
 .pp-link:hover { background: #fff1a9; }
 
 .pp-badges { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -128,6 +128,6 @@ onMounted(load)
 
 .pp-season-table { display: flex; flex-direction: column; }
 .pp-season-row { display: grid; grid-template-columns: 1fr 70px 90px 70px; gap: 8px; padding: 6px 10px; }
-.pp-season-head { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); background: var(--px-cream3); }
+.pp-season-head { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood); background: var(--px-cream3); }
 .pp-season-row:not(.pp-season-head) { border-bottom: 2px solid #fff1a9; font-size: 13px; color: var(--px-ink-txt); }
 </style>

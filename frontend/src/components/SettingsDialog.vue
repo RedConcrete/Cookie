@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="sd-box px-panel">
-      <div class="px-titlebar">
+    <div class="sd-box px-panel" :style="dialogStyle">
+      <div class="px-titlebar" @pointerdown="onDragStart">
         <span>{{ t('settings.title') }}</span>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
@@ -145,7 +145,7 @@
       </div>
     </div>
 
-    <HardResetDialog v-if="showHardReset" mode="manual" @close="showHardReset = false" />
+    <HardResetDialog v-if="showHardReset" @close="showHardReset = false" @confirmed="onHardResetConfirmed" />
   </div>
 </template>
 
@@ -162,13 +162,23 @@ import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import HardResetDialog from './HardResetDialog.vue'
 import NestedTooltip from './NestedTooltip.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'bankruptcy'])
 const showHardReset = ref(false)
 const audio = useAudio()
+
+// Manueller Reset laeuft ueber denselben Bankrott-Screen (BankruptcyScreen.vue) wie
+// der erzwungene Bankrott -- HardResetDialog ist hier nur noch die Sind-Sie-sicher-
+// Bestaetigung davor, den eigentlichen Reset macht der Screen selbst.
+function onHardResetConfirmed() {
+  showHardReset.value = false
+  emit('bankruptcy')
+}
 const camera = useCameraControls()
 const actionHotkeys = useActionHotkeys()
 const { t, locale } = useI18n()
+const { dialogStyle, onDragStart } = useDraggableDialog()
 
 const musicFillPct = computed(() => audio.musicVolume.value * 100)
 const sfxFillPct   = computed(() => audio.sfxVolume.value * 100)
@@ -269,7 +279,7 @@ function exitGame() {
   padding: 12px 18px 18px;
 }
 .sd-lang-toggle {
-  width: 40px; height: 40px;
+  width: 50px; height: 50px;
   padding: 0;
   display: flex; align-items: center; justify-content: center;
 }

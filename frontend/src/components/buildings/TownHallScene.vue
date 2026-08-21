@@ -28,7 +28,7 @@ defineProps({
 .th-idle-label {
   position: absolute; left: 66px; bottom: 0px; z-index: 12;
   font-family: 'Silkscreen', monospace; font-size: 9px; padding: 2px 5px;
-  background: var(--px-wood2); color: var(--px-muted); border: 2px solid var(--px-ink);
+  background: var(--px-wood2); color: var(--px-cream); border: 2px solid var(--px-ink);
 }
 .th-idle-label-warn {
   background: #402e2b; color: #e67a84; border-color: #764032;

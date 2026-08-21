@@ -13,7 +13,7 @@
         @mouseleave="panEnd"
         @wheel="onWheel"
       >
-        <div class="stv-canvas" :style="canvasStyle">
+        <div ref="canvasEl" class="stv-canvas" :style="canvasStyle">
           <svg class="stv-edges" :width="WORLD_SIZE" :height="WORLD_SIZE">
             <line
               v-for="e in edgeLines" :key="e.id"
@@ -63,6 +63,33 @@
         <div class="stv-cam-controls">
           <button class="stv-cam-btn" @click="resetView"><ShortcutSlot /><PixelIcon name="zentrieren" :size="18" /></button>
           <div class="stv-cam-hint">{{ t('skillTreeView.centerHint') }}</div>
+        </div>
+
+        <!-- ── Minimap: kompletter Baum verkleinert + Sichtfenster-Rechteck, Klick springt
+             die Kamera dorthin ── -->
+        <div
+          ref="minimapEl" class="stv-minimap"
+          :style="{ width: minimapSize + 'px', height: minimapSize + 'px' }"
+          @mousedown.stop @click="onMinimapClick"
+        >
+          <svg class="stv-minimap-edges" :width="minimapSize" :height="minimapSize">
+            <line
+              v-for="e in minimapEdgeLines" :key="e.id"
+              :x1="e.x1" :y1="e.y1" :x2="e.x2" :y2="e.y2"
+              :class="['stv-minimap-edge', `stv-minimap-edge-${e.state}`]"
+            />
+          </svg>
+          <div
+            v-for="n in tree.nodes" :key="n.id"
+            class="stv-minimap-dot"
+            :class="{ 'stv-minimap-dot-allocated': n.allocated, 'stv-minimap-dot-root': n.root }"
+            :style="minimapDotStyle(n)"
+          />
+          <div v-if="minimapViewportRect" class="stv-minimap-viewport" :style="minimapViewportStyle" />
+          <div
+            class="stv-minimap-resize"
+            @pointerdown="minimapResizeStart" @pointermove="minimapResizeMove" @pointerup="minimapResizeEnd"
+          ></div>
         </div>
 
         <!-- ── Respec-Modus: oben links, gleicher Stil wie der Admin-Editor
@@ -131,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
 import { buySkillPoint, allocateSkillNode, deallocateSkillNode, getPlayer } from '../services/api.js'
@@ -513,6 +540,147 @@ function onWheel(e) {
   clampPan()
 }
 
+// ── Minimap (unten rechts) ───────────────────────────────
+// Eigene, von .stv-canvas' 1500px-Layout-Groesse unabhaengige Skalierung -- bildet den
+// tatsaechlichen Node-Koordinatenbereich (+ Puffer) auf eine feste Minimap-Box ab.
+const canvasEl = ref(null)
+const minimapEl = ref(null)
+const MINIMAP_MIN = 100
+const MINIMAP_MAX = 320
+const MINIMAP_SIZE_KEY = 'cookie-skilltree-minimap-size'
+
+function loadMinimapSize() {
+  const stored = Number(localStorage.getItem(MINIMAP_SIZE_KEY))
+  return stored >= MINIMAP_MIN && stored <= MINIMAP_MAX ? stored : 300
+}
+
+const minimapSize = ref(loadMinimapSize())
+watch(minimapSize, (v) => localStorage.setItem(MINIMAP_SIZE_KEY, String(v)))
+
+// Zentriert auf den Welt-Ursprung (root sitzt fix bei x=0,y=0, siehe
+// SkillTreeService#buildNodes -- der ganze Baum ist radial um root aufgebaut), nicht auf
+// den Bounding-Box-Mittelpunkt aller Nodes -- der waere bei einem asymmetrisch gewachsenen
+// Baum (mehr Branches/Tiefe in eine Richtung als in die andere) verschoben und liesse root
+// sichtbar aus der Mitte rutschen statt wie in der Hauptansicht (siehe resetView) zentriert
+// zu bleiben.
+const treeBounds = computed(() => {
+  const nodes = tree.value.nodes || []
+  const pad = 60
+  if (!nodes.length) return { half: 800 }
+  const half = Math.max(1, ...nodes.map(n => Math.max(Math.abs(n.x), Math.abs(n.y)))) + pad
+  return { half }
+})
+
+const minimapScale = computed(() => minimapSize.value / (treeBounds.value.half * 2))
+
+function toMinimapPx(qx, qy) {
+  return {
+    x: minimapSize.value / 2 + qx * minimapScale.value,
+    y: minimapSize.value / 2 + qy * minimapScale.value,
+  }
+}
+
+function fromMinimapPx(px, py) {
+  return {
+    x: (px - minimapSize.value / 2) / minimapScale.value,
+    y: (py - minimapSize.value / 2) / minimapScale.value,
+  }
+}
+
+function minimapDotStyle(n) {
+  const p = toMinimapPx(n.x, n.y)
+  return { left: p.x + 'px', top: p.y + 'px' }
+}
+
+const minimapEdgeLines = computed(() => {
+  const byId = Object.fromEntries(tree.value.nodes.map(n => [n.id, n]))
+  return (tree.value.edges || []).map((e, i) => {
+    const from = byId[e.from]
+    const to = byId[e.to]
+    if (!from || !to) return null
+    let state = 'locked'
+    if (from.allocated && to.allocated) state = 'active'
+    else if (from.allocated || to.allocated) state = 'available'
+    const a = toMinimapPx(from.x, from.y)
+    const b = toMinimapPx(to.x, to.y)
+    return { id: `${e.from}-${e.to}-${i}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y, state }
+  }).filter(Boolean)
+})
+
+// Liest die tatsaechliche (bereits transformierte) Bildschirmgeometrie von Viewport +
+// Canvas aus, statt die CSS-Transform-Matrix (translate+scale, Pivot bei 50%/50% der
+// Canvas-eigenen 1500px-Box) von Hand nachzurechnen -- robust auch wenn Canvas-Groesse
+// oder WORLD_SIZE sich mal aendern, ohne beide Stellen synchron halten zu muessen.
+const minimapViewportRect = computed(() => {
+  // Reagiert auf Kamera-Bewegung -- die eigentliche Neuberechnung liest live DOM-Rects.
+  void panX.value; void panY.value; void zoom.value
+  const vp = viewEl.value?.getBoundingClientRect()
+  const cv = canvasEl.value?.getBoundingClientRect()
+  if (!vp || !cv || !cv.width) return null
+  const effScale = cv.width / 1500
+  function screenToQ(sx, sy) {
+    return { x: (sx - cv.left) / effScale - CENTER, y: (sy - cv.top) / effScale - CENTER }
+  }
+  const qTopLeft = screenToQ(vp.left, vp.top)
+  const qBotRight = screenToQ(vp.right, vp.bottom)
+  const a = toMinimapPx(qTopLeft.x, qTopLeft.y)
+  const b = toMinimapPx(qBotRight.x, qBotRight.y)
+  return {
+    left: Math.min(a.x, b.x), top: Math.min(a.y, b.y),
+    width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y),
+  }
+})
+
+const minimapViewportStyle = computed(() => {
+  const r = minimapViewportRect.value
+  if (!r) return {}
+  return { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }
+})
+
+let justResized = false
+function onMinimapClick(e) {
+  if (justResized) { justResized = false; return }
+  const rect = minimapEl.value?.getBoundingClientRect()
+  const cv = canvasEl.value?.getBoundingClientRect()
+  const vp = viewEl.value?.getBoundingClientRect()
+  if (!rect || !cv || !vp || !cv.width) return
+  const q = fromMinimapPx(e.clientX - rect.left, e.clientY - rect.top)
+  const effScale = cv.width / 1500
+  const currentScreenX = cv.left + (q.x + CENTER) * effScale
+  const currentScreenY = cv.top + (q.y + CENTER) * effScale
+  panX.value += (vp.left + vp.width / 2) - currentScreenX
+  panY.value += (vp.top + vp.height / 2) - currentScreenY
+  clampPan()
+}
+
+// Resize-Griff sitzt oben links an der Box (unten rechts bleibt fix am Bildschirmrand
+// verankert) -- Ziehen nach oben-links vergroessert, nach unten-rechts verkleinert.
+// Pointer Capture statt window-mousemove-Listener: der Ziehweg fuehrt oft ueber
+// gesperrte (disabled) Skill-Nodes im Canvas darunter, und Chrome feuert ueber
+// disabled-Buttons GAR KEINE mousemove-Events mehr (siehe Kommentar bei .stv-node
+// oben zum selben Chrome-Verhalten beim Kamera-Pan) -- Pointer Capture bindet alle
+// Folge-Events an den Griff selbst, unabhaengig davon was optisch drunter liegt.
+let resizing = false
+let resizeStartX = 0
+let resizeStartSize = 0
+function minimapResizeStart(e) {
+  e.preventDefault()
+  resizing = true
+  justResized = false
+  resizeStartX = e.clientX
+  resizeStartSize = minimapSize.value
+  e.target.setPointerCapture(e.pointerId)
+}
+function minimapResizeMove(e) {
+  if (!resizing) return
+  const delta = resizeStartX - e.clientX
+  minimapSize.value = Math.min(MINIMAP_MAX, Math.max(MINIMAP_MIN, resizeStartSize + delta))
+}
+function minimapResizeEnd() {
+  resizing = false
+  justResized = true
+}
+
 // ── Gamepad: mirrors FarmGridView.vue's stick-pan/D-pad-zoom/A-click, but
 // self-contained -- this view has its own independent camera (panX/panY/zoom
 // above), so it polls the gamepad itself rather than reaching into
@@ -639,6 +807,33 @@ onUnmounted(() => {
 .stv-cam-hint {
   font-size: 9px; font-family: 'Silkscreen', monospace; color: var(--px-tan);
   background: rgba(16,11,7,.6); padding: 2px 6px; white-space: nowrap;
+}
+
+.stv-minimap {
+  position: absolute; right: 14px; bottom: 14px; z-index: 20;
+  background: var(--px-wood); border: 3px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+  cursor: pointer; overflow: hidden;
+}
+.stv-minimap-edges { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.stv-minimap-edge { stroke-width: 1; }
+.stv-minimap-edge-locked    { stroke: var(--px-wood2); opacity: .6; }
+.stv-minimap-edge-available { stroke: var(--px-orange-lt); opacity: .8; }
+.stv-minimap-edge-active    { stroke: var(--px-gold); }
+.stv-minimap-dot {
+  position: absolute; width: 4px; height: 4px; margin: -2px;
+  background: var(--px-wood2); border-radius: 50%; pointer-events: none;
+}
+.stv-minimap-dot-allocated { background: var(--px-gold); }
+.stv-minimap-dot-root { width: 6px; height: 6px; margin: -3px; background: var(--px-cream); }
+.stv-minimap-viewport {
+  position: absolute; border: 2px solid var(--px-gold-lt);
+  background: rgba(255,241,169,.12); pointer-events: none;
+}
+.stv-minimap-resize {
+  position: absolute; left: 0; top: 0; width: 12px; height: 12px;
+  cursor: nwse-resize;
+  border-left: 3px solid var(--px-tan); border-top: 3px solid var(--px-tan);
 }
 
 .stv-notice {
@@ -786,7 +981,7 @@ onUnmounted(() => {
   background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
   padding: 4px 6px; outline: none;
 }
-.stv-search-input::placeholder { color: var(--px-tan-ink); opacity: 0.7; }
+.stv-search-input::placeholder { color: var(--px-wood); opacity: 0.7; }
 .stv-search-clear {
   width: 20px; height: 20px; flex: none;
   font-family: 'Silkscreen', monospace; font-size: 12px; line-height: 1;

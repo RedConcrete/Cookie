@@ -87,6 +87,38 @@ public class BuildingController {
         }
     }
 
+    // Umkehrung von buyCitizens -- nur unbesetzte Buerger, Teil-Erstattung (siehe
+    // BuildingService#fireCitizens). Fuer Spieler, die Lohnkosten senken wollen (z.B. um aus
+    // dem Bankrott-Warnzustand rauszukommen, siehe FarmGridView#showBankruptcyWarning).
+    @PostMapping("/citizens/fire/{userId}")
+    public ResponseEntity<UserInformationDto> fireCitizens(
+            @PathVariable String userId,
+            @RequestBody Map<String, Object> body) {
+        int count = ((Number) body.getOrDefault("count", 1)).intValue();
+        try {
+            UserEntity updated = buildingService.fireCitizens(userId, count);
+            UserInformationDto dto = userService.getUser(updated.getSteamId());
+            dto.setTotalResourceCap(buildingService.getTotalCap(userId));
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Umkehrung von buyBuilding -- verkauft eine Stufe zurueck (siehe BuildingService#sellBuilding).
+    @PostMapping("/buildings/sell/{userId}")
+    public ResponseEntity<List<PlayerBuildingDto>> sellBuilding(
+            @PathVariable String userId,
+            @RequestBody Map<String, String> body) {
+        String buildingId = body.get("buildingId");
+        if (buildingId == null) return ResponseEntity.badRequest().build();
+        try {
+            return ResponseEntity.ok(buildingService.sellBuilding(userId, buildingId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/buildings/workers/{userId}")
     public ResponseEntity<List<PlayerBuildingDto>> changeWorkers(
             @PathVariable String userId,

@@ -458,7 +458,7 @@ onUnmounted(() => {
 
 .nw-section-label {
   font-family: 'Silkscreen', monospace; font-size: 10px;
-  letter-spacing: 1px; color: var(--px-tan-hd); margin-bottom: 4px;
+  letter-spacing: 1px; color: var(--px-wood2); margin-bottom: 4px;
 }
 
 /* ── Links: Chart-Box + schmale Toggle-Legende nebeneinander ──── */
@@ -520,7 +520,7 @@ onUnmounted(() => {
   padding: 4px 10px; border: 2px solid var(--px-brown2);
   background: var(--px-cream2);
   display: flex; align-items: center; justify-content: center;
-  color: var(--px-tan-ink); font-size: 12px; font-weight: 700;
+  color: var(--px-ink-txt); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
 .pct-btn:hover { color: var(--px-ink-txt); background: #fff1a9; }

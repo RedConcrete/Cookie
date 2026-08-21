@@ -214,6 +214,11 @@ export function changeWorkers(steamId, buildingId, delta) {
   return request('POST', `/api/v1/farm/buildings/workers/${steamId}`, { buildingId, delta })
 }
 
+// Sell one building level back (reverse of buyBuilding, partial refund). Returns full updated building list.
+export function sellBuilding(steamId, buildingId) {
+  return request('POST', `/api/v1/farm/buildings/sell/${steamId}`, { buildingId })
+}
+
 // Collect a building's accumulated passive resource (like collecting rent). Returns updated UserInformationDto.
 export function collectBuilding(steamId, buildingId) {
   return request('POST', `/api/v1/farm/buildings/collect/${steamId}/${buildingId}`)
@@ -222,6 +227,11 @@ export function collectBuilding(steamId, buildingId) {
 // Buy N citizens (requires Rathaus). Returns updated UserInformationDto.
 export function buyCitizens(steamId, count = 1) {
   return request('POST', `/api/v1/farm/citizens/buy/${steamId}`, { count })
+}
+
+// Fire N idle (unassigned) citizens, partial refund. Returns updated UserInformationDto.
+export function fireCitizens(steamId, count = 1) {
+  return request('POST', `/api/v1/farm/citizens/fire/${steamId}`, { count })
 }
 
 // Lightweight poll target for the falling wage number on the cookie HUD -- only cookies +
@@ -233,11 +243,6 @@ export function getWageStatus(steamId) {
 // Wage deduction history for the Rathaus billing tab, newest first.
 export function getWageHistory(steamId, limit = 50) {
   return request('GET', `/api/v1/farm/wage-history/${steamId}?limit=${limit}`)
-}
-
-// Reset player data (dev mode only, no token needed for DEV_PLAYER_001).
-export function adminResetPlayer(steamId) {
-  return request('POST', `/api/v1/admin/reset/${steamId}`)
 }
 
 // Self-service hard reset (bankruptcy confirmation or manual settings action). Wipes the
@@ -252,7 +257,13 @@ export function heartbeatPlayer(steamId) {
   return request('POST', `/api/v1/users/${steamId}/heartbeat`)
 }
 
-// Skill-Baum-Admin-Editor (dev mode only, no token needed -- siehe adminResetPlayer).
+// Dev-Testhilfe fuers BankruptcyScreen (dev mode only, no token needed) -- setzt Cookies
+// tief ins Minus, sodass der naechste Wage-Poll den echten isBankrupt-Pfad ausloest.
+export function adminForceBankrupt(steamId) {
+  return request('POST', `/api/v1/admin/users/${steamId}/force-bankrupt`)
+}
+
+// Skill-Baum-Admin-Editor (dev mode only, no token needed).
 export function adminListSkillNodes() {
   return request('GET', '/api/v1/admin/skilltree/nodes')
 }
@@ -273,5 +284,8 @@ export function adminCreateSkillEdge(fromNode, toNode) {
 }
 export function adminDeleteSkillEdge(id) {
   return request('DELETE', `/api/v1/admin/skilltree/edges/${id}`)
+}
+export function adminRepairSkillTree() {
+  return request('POST', '/api/v1/admin/skilltree/repair')
 }
 

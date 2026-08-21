@@ -1,6 +1,6 @@
 <template>
   <div class="std-root" @wheel.stop @mousedown.stop @mousemove.stop>
-    <NestedTooltip :content="t('skillTreeDialog.title')" silent>
+    <NestedTooltip :content="t('skillTreeDialog.title')" silent instant>
       <button class="std-close" @click="emit('close')"><ShortcutSlot />&times;</button>
     </NestedTooltip>
     <SkillTreeView class="std-body" />
@@ -37,11 +37,13 @@ onMounted(() => audio.playBookOpen())
 
 .std-close {
   position: absolute; top: 14px; right: 14px; z-index: 30;
+  width: 50px; height: 50px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 16px;
-  padding: 6px 12px;
   border: 3px solid var(--px-ink); background: var(--px-wood3); color: var(--px-cream);
   cursor: pointer;
   box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+  box-sizing: border-box;
 }
 .std-close:hover { background: var(--px-red-dk); }
 </style>

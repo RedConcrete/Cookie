@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="cd-panel">
-      <div class="cd-head">
+    <div class="cd-panel" :style="dialogStyle">
+      <div class="cd-head" @pointerdown="onDragStart">
         <PixelIcon name="einw" :size="28" />
         <div class="cd-head-title">{{ t('citizenDialog.title') }}</div>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
@@ -56,6 +56,25 @@
           <div v-if="notice" class="cd-notice" :class="{ error: noticeError }">{{ notice }}</div>
         </div>
 
+        <!-- Fire controls -->
+        <div class="cd-buy" v-if="playerStore.idleCitizens > 0">
+          <div class="cd-buy-label">{{ t('citizenDialog.fireLabel') }}</div>
+          <div class="cd-hint">{{ t('citizenDialog.fireHint') }}</div>
+          <div class="cd-buy-row">
+            <button class="px-btn" :disabled="fireCount <= 1" @click="fireCount = Math.max(1, fireCount - 1)"><ShortcutSlot />−</button>
+            <div class="cd-buy-count">{{ fireCount }}x</div>
+            <button class="px-btn" :disabled="fireCount >= playerStore.idleCitizens" @click="fireCount = Math.min(playerStore.idleCitizens, fireCount + 1)"><ShortcutSlot />+</button>
+            <button
+              class="px-btn px-btn-sell cd-buy-btn"
+              :disabled="firing || fireCount > playerStore.idleCitizens"
+              @click="fire"
+            >
+              <ShortcutSlot />{{ t('citizenDialog.fireButton', { refund: fireRefund.toFixed(0) }) }}<PixelIcon name="cookie" :size="12" style="margin-left:4px;vertical-align:-2px" />
+            </button>
+          </div>
+          <div v-if="fireNotice" class="cd-notice" :class="{ error: fireNoticeError }">{{ fireNotice }}</div>
+        </div>
+
         <!-- Wanderer preview -->
         <div class="cd-wanderers" v-if="playerStore.idleCitizens > 0">
           <div class="cd-wanderers-label">{{ t('citizenDialog.wanderersLabel', { count: playerStore.idleCitizens }) }}</div>
@@ -79,8 +98,10 @@ import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const playerStore = usePlayerStore()
 const audio = useAudio()
 const { t } = useI18n()
@@ -94,6 +115,9 @@ const buyCount   = ref(1)
 
 const HATS = ['#6dba79', '#b74132', '#56642e', '#a15c34', '#6f6e72']
 const CITIZEN_COST = 50
+// Server erstattet 50% des urspruenglichen Preises (siehe BuildingService#SELL_REFUND_RATE) --
+// hier nur eine grobe Vorschau wie CITIZEN_COST selbst, nicht die echte Preiskurve.
+const FIRE_REFUND_RATE = 0.5
 
 const canBuyMore = computed(() => Math.max(0, playerStore.maxCitizens - playerStore.ownedCitizens))
 const buyCost    = computed(() => buyCount.value * CITIZEN_COST)
@@ -115,6 +139,30 @@ async function buy() {
     setTimeout(() => { notice.value = '' }, 2500)
   }
 }
+
+const firing         = ref(false)
+const fireNotice      = ref('')
+const fireNoticeError = ref(false)
+const fireCount       = ref(1)
+const fireRefund = computed(() => fireCount.value * CITIZEN_COST * FIRE_REFUND_RATE)
+
+async function fire() {
+  if (firing.value || fireCount.value > playerStore.idleCitizens) return
+  firing.value = true
+  fireNotice.value = ''
+  try {
+    await playerStore.fireCitizenAction(fireCount.value)
+    fireNotice.value = t('citizenDialog.fired', { count: fireCount.value })
+    fireNoticeError.value = false
+    fireCount.value = 1
+  } catch {
+    fireNotice.value = t('citizenDialog.fireError')
+    fireNoticeError.value = true
+  } finally {
+    firing.value = false
+    setTimeout(() => { fireNotice.value = '' }, 2500)
+  }
+}
 </script>
 
 <style scoped>
@@ -126,32 +174,34 @@ async function buy() {
 .cd-head {
   display: flex; align-items: center; gap: 12px; padding: 14px 18px;
   border-bottom: 4px solid var(--px-ink); background: var(--px-cream3);
+  cursor: move; touch-action: none; user-select: none;
 }
+@media (max-width: 860px) { .cd-head { cursor: default; } }
 .cd-head-title { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); flex: 1; }
 
 .cd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
 .cd-section { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
-.cd-stat-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--px-wood-lt); }
-.cd-stat-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
-.cd-stat-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
+.cd-stat-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--px-wood2); }
+.cd-stat-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
+.cd-stat-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); }
 .cd-idle { color: var(--px-red) !important; }
 
-.cd-hint { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
+.cd-hint { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood2); line-height: 1.5; }
 .cd-hint-warn { background: #fff1a9; border-color: var(--px-red); }
 
 .cd-buy { display: flex; flex-direction: column; gap: 10px; }
-.cd-buy-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
+.cd-buy-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
 .cd-buy-row { display: flex; align-items: center; gap: 8px; }
-.cd-buy-count { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-paper-txt); min-width: 32px; text-align: center; }
+.cd-buy-count { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); min-width: 32px; text-align: center; }
 .cd-buy-btn { flex: 1; font-size: 10px; }
 .cd-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.cd-notice { font-size: 12px; color: #56642e; font-family: 'Silkscreen', monospace; }
-.cd-notice.error { color: var(--px-red); }
+.cd-notice { font-size: 12px; color: var(--px-wood); font-family: 'Silkscreen', monospace; }
+.cd-notice.error { color: var(--px-wood); }
 
 .cd-wanderers { padding: 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
-.cd-wanderers-label { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); margin-bottom: 10px; }
+.cd-wanderers-label { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood2); margin-bottom: 10px; }
 .cd-wanderers-row { display: flex; gap: 10px; align-items: flex-end; }
 .cd-wanderer-icon { width: 20px; }
-.cd-wanderers-more { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-muted); }
+.cd-wanderers-more { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood2); }
 </style>

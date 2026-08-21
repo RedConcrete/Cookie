@@ -1,6 +1,6 @@
 <template>
   <div class="sta-root" @wheel.stop @mousedown.stop @mousemove.stop>
-    <NestedTooltip :content="t('skillTreeAdminDialog.title')" silent>
+    <NestedTooltip :content="t('skillTreeAdminDialog.title')" silent instant>
       <button class="sta-close" @click="emit('close')"><ShortcutSlot />&times;</button>
     </NestedTooltip>
 
@@ -52,6 +52,9 @@
             :class="{ 'px-btn-accent': createMode }"
             @click="toggleCreateMode"
           ><ShortcutSlot />{{ t('skillTreeAdminDialog.createNodeLabel') }}</button>
+          <button class="px-btn" :disabled="repairing" @click="repairTree">
+            <ShortcutSlot />{{ t('skillTreeAdminDialog.repairLabel') }}
+          </button>
           <div v-if="connectMode" class="sta-hint">
             {{ pendingFrom ? t('skillTreeAdminDialog.connectHintPick') : t('skillTreeAdminDialog.connectHintFrom') }}
           </div>
@@ -115,7 +118,7 @@
             </select>
             <div v-if="isGlobalOnly(eff.effectType)" class="sta-effect-hint">{{ t('skillTreeAdminDialog.effectGlobalOnlyHint') }}</div>
             <div class="sta-effect-value">
-              <NestedTooltip :content="t('skillTreeAdminDialog.signToggleTitle')" silent>
+              <NestedTooltip :content="t('skillTreeAdminDialog.signToggleTitle')" silent instant>
                 <button
                   class="sta-sign-btn"
                   :class="{ 'sta-sign-neg': eff.effectValue < 0 }"
@@ -128,7 +131,7 @@
                 @input="setEffectMagnitude(eff, $event.target.value)"
               />
             </div>
-            <NestedTooltip :content="t('skillTreeAdminDialog.removeEffectTitle')" silent>
+            <NestedTooltip :content="t('skillTreeAdminDialog.removeEffectTitle')" silent instant>
               <button class="sta-effect-del" @click="selectedNode.effects.splice(idx, 1)">&times;</button>
             </NestedTooltip>
           </div>
@@ -166,7 +169,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillNode, adminDeleteSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge } from '../services/api.js'
+import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillNode, adminDeleteSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge, adminRepairSkillTree } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
@@ -301,11 +304,36 @@ async function createEdge(from, to) {
 
 async function deleteEdge(id) {
   try {
-    await adminDeleteSkillEdge(id)
+    const res = await adminDeleteSkillEdge(id)
     edges.value = edges.value.filter(e => e.id !== id)
-    flash(t('skillTreeAdminDialog.edgeDeletedNotice'))
+    flashRepairResult(res, 'skillTreeAdminDialog.edgeDeletedNotice')
   } catch (err) {
     flash(err.message, true)
+  }
+}
+
+// Server raeumt bei Edge-/Node-Loeschung automatisch Spieler-Allokationen auf, die dadurch vom
+// Baum abgeschnitten wurden (siehe SkillTreeService#repairDisconnectedAllocations) -- Hinweis
+// nur einblenden, wenn tatsaechlich etwas repariert wurde, sonst reicht die normale Notice.
+function flashRepairResult(res, defaultNoticeKey) {
+  if (res?.repairedAllocations > 0) {
+    flash(t('skillTreeAdminDialog.autoRepairNotice', { count: res.repairedAllocations }))
+  } else {
+    flash(t(defaultNoticeKey))
+  }
+}
+
+const repairing = ref(false)
+async function repairTree() {
+  if (repairing.value) return
+  repairing.value = true
+  try {
+    const res = await adminRepairSkillTree()
+    flash(t(res.repairedAllocations > 0 ? 'skillTreeAdminDialog.repairNotice' : 'skillTreeAdminDialog.repairNothingNotice', { count: res.repairedAllocations }))
+  } catch (err) {
+    flash(err.message, true)
+  } finally {
+    repairing.value = false
   }
 }
 
@@ -359,11 +387,11 @@ async function confirmDeleteNode() {
   pendingDelete.value = null
   if (!n || n.root) return
   try {
-    await adminDeleteSkillNode(n.id)
+    const res = await adminDeleteSkillNode(n.id)
     nodes.value = nodes.value.filter(x => x.id !== n.id)
     edges.value = edges.value.filter(e => e.fromNode !== n.id && e.toNode !== n.id)
     if (selectedId.value === n.id) selectedId.value = null
-    flash(t('skillTreeAdminDialog.nodeDeletedNotice'))
+    flashRepairResult(res, 'skillTreeAdminDialog.nodeDeletedNotice')
   } catch (err) {
     flash(err.message, true)
   }
@@ -481,11 +509,13 @@ const canvasStyle = computed(() => ({
   transform: `translate(calc(-50% + ${panX.value}px), calc(-50% + ${panY.value}px)) scale(${zoom.value})`,
 }))
 
+// Mindestens ein halbes Viewport an Bewegungsspielraum in jede Richtung, auch wenn der
+// komplette Baum (weit rausgezoomt) kleiner als der Viewport ist (siehe SkillTreeView.vue).
 function clampPan() {
   const vw = viewEl.value?.clientWidth  ?? WORLD_SIZE
   const vh = viewEl.value?.clientHeight ?? WORLD_SIZE
-  const maxX = Math.max(0, (WORLD_SIZE * zoom.value - vw) / 2)
-  const maxY = Math.max(0, (WORLD_SIZE * zoom.value - vh) / 2)
+  const maxX = Math.max(vw / 2, (WORLD_SIZE * zoom.value - vw) / 2)
+  const maxY = Math.max(vh / 2, (WORLD_SIZE * zoom.value - vh) / 2)
   panX.value = Math.min(maxX, Math.max(-maxX, panX.value))
   panY.value = Math.min(maxY, Math.max(-maxY, panY.value))
 }
@@ -566,11 +596,13 @@ onMounted(async () => {
 
 .sta-close {
   position: absolute; top: 14px; right: 14px; z-index: 30;
+  width: 50px; height: 50px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
   font-family: 'Silkscreen', monospace; font-size: 16px;
-  padding: 6px 12px;
   border: 3px solid var(--px-ink); background: var(--px-wood3); color: var(--px-cream);
   cursor: pointer;
   box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+  box-sizing: border-box;
 }
 .sta-close:hover { background: var(--px-red-dk); }
 
@@ -616,6 +648,11 @@ onMounted(async () => {
   position: absolute; top: 14px; left: 14px; z-index: 20;
   display: flex; align-items: center; gap: 10px;
 }
+.sta-toolbar .px-btn {
+  min-height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
 .sta-hint {
   font-size: 11px; font-family: 'Silkscreen', monospace; color: var(--px-tan);
   background: rgba(16,11,7,.6); padding: 4px 8px;
@@ -633,7 +670,7 @@ onMounted(async () => {
   background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
   padding: 4px 6px; outline: none;
 }
-.sta-search-input::placeholder { color: var(--px-tan-ink); opacity: 0.7; }
+.sta-search-input::placeholder { color: var(--px-wood); opacity: 0.7; }
 .sta-search-clear {
   width: 20px; height: 20px; flex: none;
   font-family: 'Silkscreen', monospace; font-size: 12px; line-height: 1;
@@ -681,10 +718,10 @@ onMounted(async () => {
 .sta-sign-btn {
   width: 22px; height: 22px; flex: none;
   font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: bold; line-height: 1;
-  background: var(--px-green); color: var(--px-cream); border: 2px solid var(--px-ink);
+  background: var(--px-green); color: var(--px-ink-txt); border: 2px solid var(--px-ink);
   cursor: pointer;
 }
-.sta-sign-btn.sta-sign-neg { background: var(--px-red); }
+.sta-sign-btn.sta-sign-neg { background: var(--px-red); color: var(--px-cream); }
 .sta-num-input {
   flex: 1; min-width: 0; font-family: 'Silkscreen', monospace; font-size: 12px;
   background: var(--px-cream); color: var(--px-ink); border: 2px solid var(--px-ink);
@@ -714,7 +751,7 @@ onMounted(async () => {
 }
 .sta-cam-btn {
   position: relative;
-  width: 40px; height: 40px;
+  width: 50px; height: 50px;
   display: flex; align-items: center; justify-content: center;
   background: var(--px-wood3); border: 3px solid var(--px-ink); color: var(--px-cream);
   cursor: pointer; box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;

@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop>
-    <div class="ld-box px-panel">
-      <div class="px-titlebar">
+    <div class="ld-box px-panel" :style="dialogStyle">
+      <div class="px-titlebar" @pointerdown="onDragStart">
         <span>{{ t('leaderboardDialog.title') }}</span>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
       </div>
@@ -26,10 +26,12 @@ import PlayerProfileDialog from './PlayerProfileDialog.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import { useAudio } from '../composables/useAudio.js'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const profileSteamId = ref(null)
 
 onMounted(() => audio.playBookOpen())

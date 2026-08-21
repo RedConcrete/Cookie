@@ -14,5 +14,10 @@
   "buyButton": "BUY · {cost}",
   "wanderersLabel": "{count} WANDERING AROUND",
   "bought": "{count} citizens bought!",
-  "buyError": "Not enough cookies or error."
+  "buyError": "Not enough cookies or error.",
+  "fireLabel": "FIRE",
+  "fireHint": "Only idle (unassigned) citizens can be fired, at a 50% refund.",
+  "fireButton": "FIRE · +{refund}",
+  "fired": "{count} citizens fired.",
+  "fireError": "Error while firing."
 }

@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from './stores/player.js'
 import { useBakeStore } from './stores/bake.js'
@@ -53,17 +53,29 @@ async function startGame() {
   inputMethod.start()
 }
 
-// Zurueck ins Hauptmenue nach laengerer Inaktivitaet (siehe useIdleTimeout.js) -- verhindert
-// unnoetigen Cookie-Verlust durch weiterlaufende Loehne/Zinsen und raeumt Client-seitige
-// Verbindungen ab, waehrend niemand spielt.
-watch(() => idle.isAfk.value, (afk) => {
-  if (!afk) return
+// Client-seitiges Aufraeumen beim Verlassen der laufenden Runde (Idle-Timeout oder
+// Bankrott-"Stecker ziehen") -- immer dieselben Schritte, egal warum wir zurueck
+// ins Hauptmenue muessen.
+function leaveGame() {
   started.value = false
   bakeStore.stop()
   disconnectMarketWebSocket()
   idle.stop()
   inputMethod.stop()
+}
+
+// Zurueck ins Hauptmenue nach laengerer Inaktivitaet (siehe useIdleTimeout.js) -- verhindert
+// unnoetigen Cookie-Verlust durch weiterlaufende Loehne/Zinsen und raeumt Client-seitige
+// Verbindungen ab, waehrend niemand spielt.
+watch(() => idle.isAfk.value, (afk) => {
+  if (afk) leaveGame()
 })
+
+// Bankrott-Reset (HardResetDialog, mode="bankruptcy") feuert dieses Event nach dem
+// "Stecker ziehen"-Musikeffekt -- zurueck ins Hauptmenue, alles wieder normal.
+function onReturnToMenu() { leaveGame() }
+onMounted(() => window.addEventListener('cookie:return-to-menu', onReturnToMenu))
+onUnmounted(() => window.removeEventListener('cookie:return-to-menu', onReturnToMenu))
 
 function retry() {
   location.reload()
@@ -137,7 +149,7 @@ onMounted(async () => {
     const res = await fetch((import.meta.env.VITE_API_BASE_URL || 'http://localhost:9876') + '/api/v1/config')
     const cfg = await res.json()
     if (cfg.devMode) {
-      authInfo.value = { steamId: 'DEV_PLAYER_001', name: null }
+      authInfo.value = { steamId: devPlayerId(), name: null }
       mainMenuReady.value = true
     } else {
       blocked.value = true
@@ -146,6 +158,22 @@ onMounted(async () => {
     configUnreachable.value = true
   }
 })
+
+// Lokaler Dev-Zugriff (localhost) bekommt immer DEV_PLAYER_001 (Standard-Dev-Save, auch
+// Admin-Rechte siehe AdminController#isDev). Externer Zugriff (z.B. ngrok-Tunnel fuer
+// Freundes-Tests, siehe scripts/start.sh --ngrok) bekommt pro Browser eine eigene, in
+// localStorage gemerkte Test-ID -- sonst wuerden sich mehrere Tester denselben Save teilen.
+function devPlayerId() {
+  const host = location.hostname
+  if (host === 'localhost' || host === '127.0.0.1') return 'DEV_PLAYER_001'
+  const KEY = 'cookie-dev-test-id'
+  let id = localStorage.getItem(KEY)
+  if (!id) {
+    id = 'TEST_' + Math.random().toString(36).slice(2, 10).toUpperCase()
+    localStorage.setItem(KEY, id)
+  }
+  return id
+}
 </script>
 
 <style>

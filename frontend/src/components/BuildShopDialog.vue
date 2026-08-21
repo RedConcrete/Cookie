@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="bs-panel">
-      <div class="bs-head">
+    <div class="bs-panel" :style="dialogStyle">
+      <div class="bs-head" @pointerdown="onDragStart">
         <PixelIcon name="lager" :size="28" />
         <div class="bs-head-title">{{ t('buildShopDialog.title') }}</div>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
@@ -63,8 +63,10 @@ import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelScrollBox from './pixel/PixelScrollBox.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const playerStore = usePlayerStore()
 const audio = useAudio()
 const { t } = useI18n()
@@ -119,7 +121,9 @@ onMounted(async () => {
 .bs-head {
   display: flex; align-items: center; gap: 12px; padding: 14px 18px;
   border-bottom: 4px solid var(--px-ink); background: var(--px-cream3); flex-shrink: 0;
+  cursor: move; touch-action: none; user-select: none;
 }
+@media (max-width: 860px) { .bs-head { cursor: default; } }
 .bs-head-title { font-family: 'Silkscreen', monospace; font-size: 14px; color: var(--px-ink-txt); flex: 1; }
 
 .bs-notice {
@@ -141,21 +145,21 @@ onMounted(async () => {
 .bs-row-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .bs-row-name { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); }
 .bs-row-sub  { display: flex; gap: 10px; }
-.bs-wage     { font-size: 12px; color: var(--px-red); }
-.bs-cap      { font-size: 12px; color: var(--px-green-txt); }
-.bs-level    { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-gold); }
+.bs-wage     { font-size: 12px; color: var(--px-ink-txt); }
+.bs-cap      { font-size: 12px; color: var(--px-ink-txt); }
+.bs-level    { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood); }
 
 .bs-row-action { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; min-width: 110px; }
-.bs-cost { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-gold); display: flex; align-items: center; }
+.bs-cost { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); display: flex; align-items: center; }
 .bs-buy-btn { font-size: 10px; padding: 4px 10px; }
 .bs-buy-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.bs-owned-badge { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-txt); padding: 4px 8px; background: #fff1a9; border: 2px solid var(--px-green); }
+.bs-owned-badge { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-panel); padding: 4px 8px; background: #fff1a9; border: 2px solid var(--px-green); }
 
 .bs-footer {
   padding: 10px 18px; display: flex; justify-content: space-between;
   border-top: 4px solid var(--px-ink); background: var(--px-cream3);
-  font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-muted);
+  font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood);
   flex-shrink: 0;
 }
-.bs-footer b { color: var(--px-gold-txt); }
+.bs-footer b { color: var(--px-ink-txt); }
 </style>

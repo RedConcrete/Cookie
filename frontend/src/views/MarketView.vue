@@ -375,7 +375,7 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 .mv-row.success { background: #fff1a9; }
 
 .mv-name  { font-weight: 600; color: var(--px-ink-txt); }
-.mv-price { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-orange); }
+.mv-price { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-wood2); }
 .mv-trend { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; }
 .mv-stock { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.5px; color: var(--px-tan-ink); }
 
@@ -387,8 +387,8 @@ function fmtPct(v, base) { const pct = ((Number(v) - base) / base) * 100; return
 
 .mv-qty-max { position: relative; display: flex; flex-direction: column; border-left: 3px solid var(--px-ink); }
 .mv-max-btn { font-family: 'Silkscreen', monospace; font-size: 8px; line-height: 1; padding: 2px 6px; background: none; border: none; cursor: pointer; }
-.mv-max-buy { color: var(--px-green); border-bottom: 2px solid var(--px-ink); }
-.mv-max-sell { color: var(--px-red); }
+.mv-max-buy { color: var(--px-ink-txt); border-bottom: 2px solid var(--px-ink); }
+.mv-max-sell { color: var(--px-red-dk); }
 .mv-max-btn:hover:not(:disabled) { background: #fff1a9; }
 .mv-max-btn:disabled { opacity: 0.3; cursor: default; }
 

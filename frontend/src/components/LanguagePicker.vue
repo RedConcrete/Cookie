@@ -49,7 +49,7 @@ function select(lang) {
 
 .lang-picker-toggle {
   position: relative; z-index: 21;
-  width: 44px; height: 44px;
+  width: 50px; height: 50px;
   padding: 0;
   display: flex; align-items: center; justify-content: center;
 }

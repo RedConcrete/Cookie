@@ -24,5 +24,9 @@
   "collectHint": "Like rent — stops working once full until collected.",
   "errorChangingWorkers": "Error changing residents.",
   "errorCollecting": "Error collecting.",
-  "notEnoughCookies": "Not enough cookies."
+  "notEnoughCookies": "Not enough cookies.",
+  "sellTransition": "Level {from} → {to}",
+  "sellRefund": "50% refund · +{refund}",
+  "sell": "SELL",
+  "sellError": "Error selling."
 }

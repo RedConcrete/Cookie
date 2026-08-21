@@ -3,22 +3,26 @@
     <div v-if="loading" class="lv-loading"><LoadingIndicator /></div>
 
     <template v-else>
-      <div class="lv-head-row">
-        <div>#</div><div>{{ t('leaderboardView.player') }}</div><div>{{ t('leaderboardView.netWorth') }}</div><div>{{ t('leaderboardView.cookies') }}</div><div>{{ t('leaderboardView.resources') }}</div>
-      </div>
-      <div
-        v-for="entry in board" :key="entry.steamId" class="lv-row"
-        :class="{ self: entry.steamId === playerStore.steamId }"
-        @click="emit('view-profile', entry.steamId)"
-      >
-        <div class="lv-rank">#{{ entry.rank }}</div>
-        <div class="lv-name">{{ entry.displayName || entry.steamId }}</div>
-        <div class="lv-nw">{{ fmtBig(entry.netWorth) }}</div>
-        <div class="lv-num">{{ fmt(entry.cookies) }}</div>
-        <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
+      <div class="lv-table" :class="{ 'lv-refreshing': refreshing }">
+        <div class="lv-head-row">
+          <div>#</div><div>{{ t('leaderboardView.player') }}</div><div>{{ t('leaderboardView.netWorth') }}</div><div>{{ t('leaderboardView.cookies') }}</div><div>{{ t('leaderboardView.resources') }}</div>
+        </div>
+        <div
+          v-for="entry in board" :key="entry.steamId" class="lv-row"
+          :class="{ self: entry.steamId === playerStore.steamId }"
+          @click="emit('view-profile', entry.steamId)"
+        >
+          <div class="lv-rank">#{{ entry.rank }}</div>
+          <div class="lv-name">{{ entry.displayName || entry.steamId }}</div>
+          <div class="lv-nw">{{ fmtBig(entry.netWorth) }}</div>
+          <div class="lv-num">{{ fmt(entry.cookies) }}</div>
+          <div class="lv-num">{{ fmt(entry.resourceValue) }}</div>
+        </div>
+
+        <div v-if="refreshing" class="lv-refresh-overlay"><LoadingIndicator /></div>
       </div>
 
-      <button class="px-btn px-btn-flat lv-refresh" @click="load"><ShortcutSlot />&#8635; {{ t('leaderboardView.refresh') }}</button>
+      <button class="px-btn px-btn-flat lv-refresh" :disabled="refreshing" @click="load(true)"><ShortcutSlot />&#8635; {{ t('leaderboardView.refresh') }}</button>
     </template>
   </div>
 </template>
@@ -34,16 +38,19 @@ import ShortcutSlot from './pixel/ShortcutSlot.vue'
 
 const { t } = useI18n()
 const playerStore = usePlayerStore()
-const board   = ref([])
-const loading = ref(true)
-const emit    = defineEmits(['view-profile'])
+const board      = ref([])
+const loading    = ref(true)
+const refreshing = ref(false)
+const emit       = defineEmits(['view-profile'])
 
-async function load() {
-  loading.value = true
+async function load(isRefresh = false) {
+  if (isRefresh) refreshing.value = true
+  else loading.value = true
   try {
     board.value = await getLeaderboard()
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
@@ -54,16 +61,20 @@ onMounted(load)
 .lv-root { width: 100%; padding: 16px; }
 .lv-loading { color: var(--px-tan-ink); text-align: center; padding: 24px; }
 
+.lv-table { position: relative; }
+.lv-table.lv-refreshing .lv-head-row, .lv-table.lv-refreshing .lv-row { opacity: .35; pointer-events: none; }
+.lv-refresh-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
 .lv-head-row, .lv-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 96px 84px 96px; gap: 8px; align-items: center; }
-.lv-head-row { padding: 9px 10px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-hd); }
+.lv-head-row { padding: 9px 10px; background: var(--px-cream3); border: 3px solid var(--px-brown2); font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood); }
 .lv-row { padding: 11px 10px; border-bottom: 2px solid #fff1a9; cursor: pointer; }
 .lv-row:hover { background: #fff1a9; }
 .lv-row.self { background: rgba(74,124,47,.1); font-weight: 700; }
 
 .lv-rank { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 .lv-name { font-size: 15px; color: var(--px-ink-txt); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lv-nw   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-orange); }
-.lv-num  { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood-lt); }
+.lv-nw   { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
+.lv-num  { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood2); }
 
 .lv-refresh { margin-top: 14px; }
 </style>

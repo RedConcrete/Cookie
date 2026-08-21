@@ -37,7 +37,7 @@ const open = ref(props.defaultOpen)
 /* Dark ink text, not the low-contrast tan/orange combo this used to have --
    both were medium-brightness against the same tan panel and unreadable. */
 .ps-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-ink-txt); letter-spacing: 1px; }
-.ps-head:hover .ps-label { color: var(--px-orange-dk); }
+.ps-head:hover .ps-label { color: var(--px-wood); }
 .ps-arrow { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
 .ps-body { padding: 10px; border-top: 2px solid #fff1a9; display: flex; flex-direction: column; gap: 10px; }

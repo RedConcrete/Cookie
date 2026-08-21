@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="bd-panel">
-      <div class="bd-head">
+    <div class="bd-panel" :style="dialogStyle">
+      <div class="bd-head" @pointerdown="onDragStart">
         <div class="bd-head-icon">
           <PixelIcon :name="building.icon" :size="32" />
         </div>
@@ -18,7 +18,7 @@
           <div class="bd-crew">
             <!-- Active worker slots — each has a red X to unassign -->
             <div v-for="i in workerCount" :key="'a'+i" class="bd-crew-cell bd-crew-cell-active">
-              <NestedTooltip :content="t('buildingDetailDialog.remove')" silent>
+              <NestedTooltip :content="t('buildingDetailDialog.remove')" silent instant>
                 <button class="bd-crew-x" @click="adjustWorkers(-1)">×</button>
               </NestedTooltip>
               <PixelWorker variant="work"
@@ -31,7 +31,7 @@
               </div>
             </div>
             <!-- Add slot — shown if available citizens exist and slots remain -->
-            <NestedTooltip v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0" :content="t('buildingDetailDialog.assign')" silent>
+            <NestedTooltip v-if="workerCount < maxWorkers && playerStore.idleCitizens > 0" :content="t('buildingDetailDialog.assign')" silent instant>
               <button
                 class="bd-crew-add"
                 @click="adjustWorkers(1)"
@@ -84,6 +84,15 @@
               <ShortcutSlot />{{ t('buildingDetailDialog.upgrade') }}
             </button>
           </div>
+          <div v-if="canSell" class="bd-buildup">
+            <div>
+              <div class="bd-buildup-name">{{ t('buildingDetailDialog.sellTransition', { from: level, to: level - 1 }) }}</div>
+              <div class="bd-buildup-note">{{ t('buildingDetailDialog.sellRefund', { refund: sellRefund.toFixed(0) }) }} <PixelIcon name="cookie" :size="12" style="vertical-align:-2px" /></div>
+            </div>
+            <button class="px-btn px-btn-sell" :disabled="selling" @click="sellBuildingAction">
+              <ShortcutSlot />{{ t('buildingDetailDialog.sell') }}
+            </button>
+          </div>
           <div v-if="notice" class="bd-notice">{{ notice }}</div>
 
           <div class="bd-storage">
@@ -105,7 +114,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePlayerStore } from '../stores/player.js'
-import { changeWorkers, buyBuilding, collectBuilding } from '../services/api.js'
+import { changeWorkers, buyBuilding, sellBuilding, collectBuilding, getWageStatus } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelWorker from './pixel/PixelWorker.vue'
@@ -113,9 +122,11 @@ import { resourceLabel } from './buildings/buildingInfo.js'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import { fmt } from '../utils/formatNumber.js'
 import NestedTooltip from './NestedTooltip.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const props = defineProps({ building: { type: Object, required: true } })
 const emit = defineEmits(['close'])
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const audio = useAudio()
 const { t } = useI18n()
 
@@ -140,6 +151,17 @@ const workerCount   = computed(() => ownedData.value?.workers ?? 0)
 const maxWorkers    = computed(() => ownedData.value?.maxWorkers ?? props.building.workers ?? 1)
 const upgradeCost   = computed(() => ownedData.value?.nextLevelCost ?? 0)
 const upgrading     = ref(false)
+
+// Vorgebaute Gebaeude (Backhaus/Rathaus/Markt/Lager) lassen sich nur bis Stufe 1 zurueckverkaufen
+// (siehe BuildingService#sellBuilding) -- nie ganz entfernen. BUILDING_COST_GROWTH ist wie
+// CITIZEN_COST in CitizenDialog.vue nur eine Anzeige-Naeherung (echter Wert kommt vom Server,
+// serverseitig GameBalanceConfig#buildingCostGrowth, Standard 2.0).
+const BUILDING_COST_GROWTH = 2.0
+const SELL_REFUND_RATE = 0.5
+const minSellLevel = computed(() => ownedData.value?.preBuilt ? 1 : 0)
+const canSell = computed(() => level.value > minSellLevel.value)
+const sellRefund = computed(() => (upgradeCost.value / BUILDING_COST_GROWTH) * SELL_REFUND_RATE)
+const selling = ref(false)
 
 const bodyAnim = computed(() => ({
   hof: 'bend', huhn: 'bend', butter: 'bob', kakao: 'reach', kuh: 'milk', pond: 'bend',
@@ -221,6 +243,25 @@ async function upgradeBuilding() {
     upgrading.value = false
   }
 }
+
+async function sellBuildingAction() {
+  if (selling.value || !canSell.value) return
+  selling.value = true
+  try {
+    const updated = await sellBuilding(playerStore.steamId, props.building.id)
+    playerStore.ownedBuildings.splice(0, playerStore.ownedBuildings.length, ...updated)
+    // Cookie-Erstattung sofort im HUD zeigen statt bis zu 15s auf den naechsten Wage-Poll zu
+    // warten (siehe FarmGridView#pollWageStatus) -- wichtig gerade fuer den "aus dem Bankrott
+    // rausverkaufen"-Anwendungsfall, wo der Spieler direktes Feedback braucht.
+    const status = await getWageStatus(playerStore.steamId)
+    playerStore.cookies = status.cookies
+  } catch (e) {
+    notice.value = t('buildingDetailDialog.sellError')
+    setTimeout(() => { notice.value = '' }, 2000)
+  } finally {
+    selling.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -233,16 +274,18 @@ async function upgradeBuilding() {
 .bd-head {
   display: flex; align-items: center; gap: 14px; padding: 16px 20px;
   border-bottom: 4px solid var(--px-ink); background: var(--px-cream3);
+  cursor: move; touch-action: none; user-select: none;
 }
+@media (max-width: 860px) { .bd-head { cursor: default; } }
 .bd-head-icon { width: 52px; height: 52px; background: #fff1a9; border: 3px solid var(--px-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .bd-head-text { flex: 1; }
 .bd-head-name { font-family: 'Silkscreen', monospace; font-size: 16px; color: var(--px-ink-txt); }
-.bd-head-sub  { font-size: 14px; color: var(--px-tan-ink); margin-top: 2px; }
+.bd-head-sub  { font-size: 14px; color: var(--px-wood); margin-top: 2px; }
 
 .bd-body { display: grid; grid-template-columns: 1fr 1fr; }
 .bd-col { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .bd-col-crew { border-right: 4px solid var(--px-ink); }
-.bd-label { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-tan-hd); letter-spacing: 1px; }
+.bd-label { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood); letter-spacing: 1px; }
 
 .bd-crew { display: flex; gap: 8px; flex-wrap: wrap; }
 .bd-crew-cell {
@@ -251,7 +294,7 @@ async function upgradeBuilding() {
 }
 .bd-crew-cell-active { position: relative; background: var(--px-cream3); border-color: var(--px-brown2); }
 .bd-crew-cell-active .bd-crew-tag.idle { background: #fff1a9; border-color: #aea47e; color: #6f6e72; }
-.bd-crew-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood-lt); }
+.bd-crew-name { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-wood); }
 .bd-crew-tag {
   font-family: 'Silkscreen', monospace; font-size: 8px; padding: 2px 4px;
   background: #fff1a9; border: 2px solid var(--px-green); color: #56642e;
@@ -275,9 +318,9 @@ async function upgradeBuilding() {
 .bd-crew-locked {
   width: 64px; height: 74px; border: 3px dashed #aea47e;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Silkscreen', monospace; font-size: 8px; color: #aea47e; text-align: center; padding: 4px;
+  font-family: 'Silkscreen', monospace; font-size: 8px; color: var(--px-wood); text-align: center; padding: 4px;
 }
-.bd-level-badge { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-green-txt); }
+.bd-level-badge { font-family: 'Silkscreen', monospace; font-size: 18px; color: var(--px-green-panel); }
 
 .bd-stats { display: flex; gap: 10px; }
 .bd-stat { flex: 1; padding: 10px 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
@@ -285,17 +328,17 @@ async function upgradeBuilding() {
 .bd-stat-val   { font-family: 'Silkscreen', monospace; font-size: 15px; }
 .bd-stat-red   { color: var(--px-red); }
 .bd-stat-green { color: #56642e; }
-.bd-hint { padding: 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood-lt); }
+.bd-hint { padding: 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 14px; line-height: 1.55; color: var(--px-wood2); }
 
 .bd-buildup { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
 .bd-buildup-name { font-size: 16px; font-weight: 600; color: var(--px-ink-txt); }
 .bd-buildup-note { font-size: 13px; color: var(--px-tan-ink); }
-.bd-notice { font-size: 13px; color: var(--px-tan-ink); font-style: italic; }
+.bd-notice { font-size: 13px; color: var(--px-wood); font-style: italic; }
 
 .bd-storage { margin-top: auto; padding: 12px; background: var(--px-cream3); border: 3px solid var(--px-brown2); }
 .bd-storage-bar { height: 16px; background: var(--px-ink); border: 3px solid var(--px-ink); }
 .bd-storage-fill { height: 100%; background: var(--px-gold); }
-.bd-storage-text { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood-lt); margin-top: 6px; }
+.bd-storage-text { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-wood); margin-top: 6px; }
 .bd-collect-btn { width: 100%; margin-top: 10px; }
-.bd-collect-hint { font-size: 11px; color: var(--px-tan-ink); font-style: italic; margin-top: 6px; }
+.bd-collect-hint { font-size: 11px; color: var(--px-wood); font-style: italic; margin-top: 6px; }
 </style>

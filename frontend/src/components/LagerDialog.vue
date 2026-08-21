@@ -1,7 +1,7 @@
 <template>
   <div class="px-dialog-overlay" @click.self="emit('close')" @wheel.stop @mousedown.stop @mousemove.stop>
-    <div class="ld-panel">
-      <div class="ld-head">
+    <div class="ld-panel" :style="dialogStyle">
+      <div class="ld-head" @pointerdown="onDragStart">
         <PixelIcon name="lager" :size="28" />
         <div class="ld-head-title">{{ t('lagerDialog.title', { level: lagerLevel }) }}</div>
         <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
@@ -122,8 +122,10 @@ import { BUILDING_INFO, buildingTitle } from './buildings/buildingInfo.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import PixelTip from './pixel/PixelTip.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 const emit = defineEmits(['close'])
+const { dialogStyle, onDragStart } = useDraggableDialog()
 const playerStore = usePlayerStore()
 const marketStore = useMarketStore()
 const audio = useAudio()
@@ -288,28 +290,30 @@ async function upgradeLager() {
 <style scoped>
 .ld-panel {
   width: 520px; max-width: 96vw;
-  background: var(--px-cream2); border: 4px solid var(--px-ink);
-  box-shadow: inset -3px -3px 0 var(--px-tan), inset 3px 3px 0 var(--px-cream), 0 10px 0 rgba(0,0,0,.45);
+  background: var(--px-cream); border: 4px solid var(--px-ink);
+  box-shadow: 0 10px 0 rgba(0,0,0,.45);
 }
 .ld-head {
   display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-  border-bottom: 4px solid var(--px-ink); background: var(--px-cream3);
+  border-bottom: 4px solid var(--px-ink); background: var(--px-wood);
+  cursor: move; touch-action: none; user-select: none;
 }
-.ld-head-title { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink-txt); flex: 1; }
+@media (max-width: 860px) { .ld-head { cursor: default; } }
+.ld-head-title { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-cream); flex: 1; }
 
 .ld-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 
 .ld-total-head { display: flex; align-items: baseline; justify-content: space-between; }
-.ld-cap-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
-.ld-total-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-paper-txt); }
+.ld-cap-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
+.ld-total-val { font-family: 'Silkscreen', monospace; font-size: 11px; color: var(--px-ink-txt); }
 
 /* Voller Breite -- Aufteilung nach Rohstoff steckt direkt im Balken (siehe
-   .ld-seg-label), keine separate Liste mehr daneben oder darunter. Heller Track
-   (--px-cream, hellster Ton der Palette, von keiner der 6 Rohstofffarben belegt)
-   statt dunklem -- "leer" soll wie leer aussehen, nicht wie ein weiteres dunkles
-   Segment (siehe auch MILCH-Kontrast-Fix per Trenner-Border unten). */
+   .ld-seg-label), keine separate Liste mehr daneben oder darunter. Track in
+   --px-cream2, von keiner der 6 Rohstofffarben belegt, kontrastiert gegen den
+   hellen Panel-Hintergrund (siehe auch MILCH-Kontrast-Fix per Trenner-Border
+   unten). */
 .ld-seg-bar {
-  position: relative; height: 26px; background: var(--px-cream);
+  position: relative; height: 26px; background: var(--px-cream2);
   border: 3px solid var(--px-ink); display: flex; overflow: hidden;
 }
 /* box-sizing:border-box, damit der Trenner-Border (siehe Template) die Segmentbreite
@@ -331,13 +335,13 @@ async function upgradeLager() {
 @container (min-width: 34px) {
   .ld-seg-label { display: flex; }
 }
-/* Dunkler Text mit hellem Halo statt umgekehrt -- sitzt jetzt meist auf dem hellen
-   Cream-Track (siehe .ld-seg-bar), der Halo haelt es zusaetzlich lesbar, falls bei
+/* Dunkler Text mit hellem Halo statt umgekehrt -- sitzt jetzt meist auf dem
+   Cream2-Track (siehe .ld-seg-bar), der Halo haelt es zusaetzlich lesbar, falls bei
    fast vollem Lager kaum noch Platz bleibt und das Label ueber ein Farbsegment ragt. */
 .ld-seg-free {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-ink);
-  text-shadow: 1px 0 var(--px-cream), -1px 0 var(--px-cream), 0 1px var(--px-cream), 0 -1px var(--px-cream);
+  text-shadow: 1px 0 var(--px-cream2), -1px 0 var(--px-cream2), 0 1px var(--px-cream2), 0 -1px var(--px-cream2);
   cursor: pointer; z-index: 2;
 }
 
@@ -353,9 +357,9 @@ async function upgradeLager() {
 .ld-res-val   { font-family: 'Silkscreen', monospace; font-size: 9px; color: var(--px-tan-ink); width: 78px; flex-shrink: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ld-buildings { display: flex; flex-direction: column; gap: 6px; }
-.ld-section-title { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-tan-hd); }
-.ld-bres-empty { font-size: 11px; color: var(--px-muted); padding: 4px 2px; }
-.ld-bres-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--px-cream); border: 3px solid var(--px-brown2); }
+.ld-section-title { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
+.ld-bres-empty { font-size: 11px; color: var(--px-wood2); padding: 4px 2px; }
+.ld-bres-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--px-cream2); border: 3px solid var(--px-brown2); }
 /* Feste Breite aus demselben Grund -- der Button-Text ("840.0" vs "3.5") variiert sonst
    in Ziffernzahl und veraendert die Buttonbreite, was wiederum die Bar-Spalte staucht. */
 .ld-bres-collect {
@@ -367,14 +371,14 @@ async function upgradeLager() {
    theoretisch, aber Lager ist voll) sich vom normalen "nichts da" (pending<=0) unterscheidet. */
 .ld-bres-collect.full { border-color: var(--px-red); background: var(--px-wood); color: #e67a84; }
 
-.ld-info { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood-lt); line-height: 1.5; }
+.ld-info { padding: 10px 12px; background: #fff1a9; border: 3px solid var(--px-orange); font-size: 13px; color: var(--px-wood); line-height: 1.5; }
 .ld-info-text  { font-size: 12px; }
-.ld-free { color: var(--px-green-txt); font-weight: bold; }
+.ld-free { color: var(--px-green-panel); font-weight: bold; }
 
 .ld-upgrade { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--px-cream3); border: 3px solid var(--px-brown2); }
 .ld-upgrade-info { flex: 1; }
-.ld-upgrade-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-gold); }
-.ld-upgrade-desc  { font-size: 13px; color: var(--px-tan-ink); margin-top: 3px; }
-.ld-notice { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-txt); }
+.ld-upgrade-label { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-wood); }
+.ld-upgrade-desc  { font-size: 13px; color: var(--px-wood); margin-top: 3px; }
+.ld-notice { font-family: 'Silkscreen', monospace; font-size: 10px; color: var(--px-green-panel); }
 .ld-notice.error  { color: var(--px-red); }
 </style>

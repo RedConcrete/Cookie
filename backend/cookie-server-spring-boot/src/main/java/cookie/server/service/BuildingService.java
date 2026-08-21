@@ -47,6 +47,12 @@ public class BuildingService {
         new BuildingDef("lager",   "Lager",       400, 3.0, true,  true,  0, 0.0,  null,                    0)
     );
 
+    // Ruecknahme (Gebaeude-Stufe verkaufen / Buerger entlassen) erstattet nur einen Teil des
+    // urspruenglich gezahlten Preises -- verhindert Kauf/Verkauf-Farming, hilft aber echt beim
+    // Rauskommen aus Schulden (siehe HardResetDialog-Bankrott-Warnung: Spieler soll erst
+    // versuchen koennen, sich freizukaufen, bevor der Reset kommt).
+    private static final double SELL_REFUND_RATE = 0.5;
+
     private static final Map<String, BuildingDef> DEF_MAP;
     static {
         Map<String, BuildingDef> m = new LinkedHashMap<>();
@@ -145,6 +151,37 @@ public class BuildingService {
         return getBuildings(userId);
     }
 
+    /**
+     * Verkauft eine Gebaeude-Stufe zurueck (Umkehrung von buyOrUpgrade) -- erstattet
+     * SELL_REFUND_RATE des Preises, der fuer die aktuelle Stufe bezahlt wurde. Vorgebaute
+     * Gebaeude (Backhaus/Rathaus/Markt/Lager) lassen sich nur bis Stufe 1 zurueckverkaufen,
+     * nie ganz entfernen -- sonst wuerden abhaengige Systeme (Buerger-Kapazitaet, Backen,
+     * Marktgebuehr, Lagerkapazitaet) in einen kaputten Zustand fallen.
+     */
+    @Transactional
+    public List<PlayerBuildingDto> sellBuilding(String userId, String buildingId) {
+        BuildingDef def = requireDef(buildingId);
+        UserEntity user = requireUser(userId);
+        PlayerBuildingEntity ent = buildingRepo.findByUserIdAndBuildingId(userId, buildingId)
+                .orElseThrow(() -> new IllegalStateException("Building not owned"));
+
+        int minLevel = def.preBuilt() ? 1 : 0;
+        if (ent.getLevel() <= minLevel) throw new IllegalStateException("Cannot sell below level " + minLevel);
+
+        // Vor der Stufenaenderung settlen, damit bis hierhin angesammelte Produktion nicht verloren geht.
+        settle(ent, def, user.isWorkersIdle(), LocalDateTime.now(), userId);
+
+        double refund = computeCost(def, ent.getLevel() - 1) * SELL_REFUND_RATE;
+        user.setCookies(user.getCookies() + refund);
+        userRepo.save(user);
+
+        int newLevel = ent.getLevel() - 1;
+        ent.setLevel(newLevel);
+        ent.setWorkers(Math.min(ent.getWorkers(), effectiveMaxWorkers(def, newLevel)));
+        buildingRepo.save(ent);
+        return getBuildings(userId);
+    }
+
     @Transactional
     public List<PlayerBuildingDto> changeWorkers(String userId, String buildingId, int delta) {
         BuildingDef def = requireDef(buildingId);
@@ -186,6 +223,29 @@ public class BuildingService {
     /** Kosten für den (ownedCount+1)-ten Bürger -- exponentiell, Wachstumsrate wie bei den Upgrades (1.15^n), nicht wie Gebäude-Ausbau (2^level). */
     private double citizenCost(int ownedCount) {
         return balance.getCitizenBaseCost() * Math.pow(balance.getCitizenCostGrowth(), ownedCount);
+    }
+
+    /**
+     * Entlaesst Buerger (Umkehrung von buyCitizens) -- erstattet SELL_REFUND_RATE des
+     * urspruenglichen Preises pro entlassenem Buerger. Nur unbesetzte (nicht einem Gebaeude
+     * zugewiesene) Buerger koennen entlassen werden -- Zuweisung/Kuendigung sind bewusst
+     * getrennte Schritte, genau wie beim Zuweisen selbst (changeWorkers prueft ebenfalls nur
+     * gegen freie Buerger).
+     */
+    @Transactional
+    public UserEntity fireCitizens(String userId, int count) {
+        UserEntity user = requireUser(userId);
+        int idleCitizens = user.getOwnedCitizens() - getAssignedCitizens(userId);
+        if (count <= 0 || count > idleCitizens)
+            throw new IllegalStateException("Can only fire idle citizens. Available: " + idleCitizens);
+
+        double refund = 0;
+        for (int i = 0; i < count; i++) {
+            refund += citizenCost(user.getOwnedCitizens() - 1 - i) * SELL_REFUND_RATE;
+        }
+        user.setCookies(user.getCookies() + refund);
+        user.setOwnedCitizens(user.getOwnedCitizens() - count);
+        return userRepo.save(user);
     }
 
     /** Arbeiter-Kapazität eines Gebäudes bei gegebener Stufe: Basis + (Stufe-1) zusätzliche Slots. */
