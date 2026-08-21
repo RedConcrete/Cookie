@@ -240,6 +240,15 @@ public class AdminConfigController {
         if (!skillNodeRepository.existsById(from) || !skillNodeRepository.existsById(to)) {
             return ResponseEntity.badRequest().body("fromNode/toNode: unbekannte Node-ID");
         }
+        // Root gilt IMMER als alloziert (siehe SkillTreeService#allocatedNodeIds) -- jede
+        // zusaetzliche Root-Kante ist ein automatischer Freischalt-Bypass fuer den Zielknoten,
+        // egal wie weit er eigentlich vom Baum entfernt sein sollte (siehe root-sugar_2-Vorfall,
+        // 2026-08-21, versehentlich im Connect-Modus gesetzt). Die 11 Branch-Start-Kanten kommen
+        // ausschliesslich aus dem Seed (buildEdges()), nie aus diesem Endpunkt.
+        if (SkillTreeService.ROOT_ID.equals(from) || SkillTreeService.ROOT_ID.equals(to)) {
+            return ResponseEntity.badRequest().body(
+                    "Root-Kanten kommen nur aus dem Seed, nicht aus dem Editor -- jede zusaetzliche Root-Kante wuerde den Zielknoten sofort freischaltbar machen, egal wo er im Baum haengt.");
+        }
         String id = from + "-" + to;
         if (skillEdgeRepository.existsById(id)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Kante existiert bereits: " + id);

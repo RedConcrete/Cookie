@@ -508,6 +508,12 @@ spezifiziert ist:
     weiteren solchen Streukanten — nur die zwei bekannten Design-Bridges
     (`bridge_bake_market`) und der vom Nutzer selbst angelegte Test-Node
     `"12"`.
+    **Ursache an der Quelle geschlossen:** `createSkillEdge` lehnt jetzt
+    jede neue Kante ab, die Root involviert (400) — die 11 Branch-Start-
+    Kanten kommen ausschließlich aus dem Seed (`buildEdges()`), nie mehr
+    aus dem Editor. Verhindert, dass derselbe Bypass für einen beliebigen
+    anderen Knoten erneut entstehen kann ("muss bei jeder Node so sein,
+    nicht nur bei der einen" — Nutzer-Vorgabe).
   - [ ] **Prestige-Bonuspunkte.** Ursprünglich angedacht: Prestige gibt
     +3 Skill-Punkte on top des normalen Resets. Bewusst außerhalb des
     Scopes beim Erstbau des Skill-Baums (Prestige-UI ist ohnehin gerade
