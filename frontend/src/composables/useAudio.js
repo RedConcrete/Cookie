@@ -92,6 +92,14 @@ function setMusicMode(mode) {
   if (musicStarted) playForMode()
 }
 
+// Manueller Vorwaerts-Skip fuers Einstellungen-Menue. Im Menue-Modus gibt es nur den
+// einen exklusiven, geloopten Track -- nichts zum Weiterschalten, also no-op statt
+// versehentlich einen Ingame-Track ueber den Menue-Track zu legen.
+function skipTrack() {
+  if (musicMode !== 'game') return
+  nextTrack()
+}
+
 // ── AudioContext SFX (pre-decoded, zero network after init) ─
 let actx = null
 const bufs = {}
@@ -174,7 +182,7 @@ watch(sfxMuted, v => localStorage.setItem('cookieSfxMuted', v))
 export function useAudio() {
   return {
     musicVolume, sfxVolume, musicMuted, sfxMuted,
-    startMusic, setMusicMode, playClick, playHover,
+    startMusic, setMusicMode, skipTrack, playClick, playHover,
     playBookOpen, playBookClose, playCoins, playChop,
   }
 }

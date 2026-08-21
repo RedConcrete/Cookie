@@ -3,6 +3,7 @@
   "language": "SPRACHE",
   "volume": "LAUTSTÄRKE",
   "music": "Musik",
+  "skipTrack": "Nächster Titel",
   "sfx": "Soundeffekte",
   "hotkeys": "TASTENBELEGUNG",
   "shortcutsEnabled": "Shortcuts aktiv",

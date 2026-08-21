@@ -296,6 +296,13 @@ spezifiziert ist:
   (Kurzform, `flex-basis:0%`) kollabiert auf 0 Höhe, wenn der Container nur
   `max-height` statt `height` hat — `flex:1 1 auto` (Basis vom Inhalt)
   verwenden, siehe `SettingsDialog.vue` als Vorbild.
+- [x] **Musik manuell weiterschalten (2026-08-21).** Einstellungen hatten
+  nur Lautstärke/Mute, kein Skip. `useAudio.js`s `nextTrack()` (Shuffle-
+  Playlist-Advance) war schon vorhanden, aber nicht exportiert — neue
+  `skipTrack()` (no-op im Hauptmenü-Modus, da dort nur ein exklusiver
+  geloopter Track läuft, nichts zum Weiterschalten) exportiert und über
+  einen neuen Skip-Button neben dem Musik-Regler in `SettingsDialog.vue`
+  verdrahtet.
 - [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
   im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
   Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)

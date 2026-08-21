@@ -3,6 +3,7 @@
   "language": "LANGUAGE",
   "volume": "VOLUME",
   "music": "Music",
+  "skipTrack": "Next track",
   "sfx": "Sound effects",
   "hotkeys": "KEY BINDINGS",
   "shortcutsEnabled": "Shortcuts enabled",

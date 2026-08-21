@@ -15,6 +15,9 @@
               @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider"
               :style="{ '--fill': musicFillPct + '%' }" />
             <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
+            <NestedTooltip :content="t('settings.skipTrack')" silent>
+              <button class="sd-skip" @click="audio.skipTrack()"><ShortcutSlot />⏭</button>
+            </NestedTooltip>
           </div>
 
           <div class="sd-slider-row">
@@ -263,6 +266,16 @@ function exitGame() {
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
 .sd-slider-label { width: 168px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .sd-mute { position: relative; background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; }
+.sd-skip {
+  position: relative; flex-shrink: 0;
+  width: 26px; height: 26px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--px-cream);
+  background: var(--px-wood3); border: 3px solid var(--px-ink);
+  box-shadow: inset -2px -2px 0 #402e2b, inset 2px 2px 0 #a15c34;
+  cursor: pointer;
+}
+.sd-skip:hover { filter: brightness(1.1); }
 .sd-slider-val { width: 40px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--px-ink-txt); }
 
 /* Pixel-art range slider: blocky filled track + chunky button-like thumb,
