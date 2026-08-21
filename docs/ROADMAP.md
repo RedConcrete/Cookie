@@ -882,6 +882,25 @@ spezifiziert ist:
   ehemaligen `dialog='networth'`-Pfad nicht mehr nutzen) — da ohne Hover
   kein automatisches Schließen ausgelöst wird, schaltet erneutes Drücken
   einfach wieder zu.
+- [x] **Jeder Klick sprang bei einem ngrok-Testspieler zum nächsten Lied
+  (2026-08-21).** `App.vue`s globaler `onMouseDown` ruft bei JEDEM Klick
+  `audio.startMusic()` auf (Browser-Autoplay-Unlock-Pattern).
+  `startMusic()` rief bei `musicStarted===false` immer `playForMode()` →
+  `nextTrack()` auf, also einen KOMPLETT NEUEN Track — und `playTrack()`s
+  `.catch()` setzt `musicStarted=false` bei jedem fehlschlagenden
+  `play()` zurück, unabhängig vom Grund. Schlug `play()` wiederholt fehl
+  (bei einem Kollegen über den ngrok-Link reproduziert, beim Entwickler
+  selbst nicht — genauer Grund fürs wiederholte Scheitern nicht
+  abschließend geklärt, evtl. media-load-Problem über den Tunnel statt
+  reiner Autoplay-Block), sprang dadurch JEDER Klick zum nächsten Song,
+  ohne dass je einer hörbar wurde. **Fix:** `startMusic()` versucht bei
+  bereits vorhandenem `musicEl` (vorheriger Versuch ist gescheitert, aber
+  ein Track ist schon geladen) denselben Track erneut per `.play()`,
+  statt über `playForMode()` einen neuen zu starten — nur wenn noch gar
+  kein `musicEl` existiert, läuft der normale Erststart. Falls beim
+  Kollegen danach immer noch kein Ton kommt (nur das Song-Springen
+  aufhört): Browser-Konsole auf einen echten Media-Load-Fehler prüfen,
+  wäre dann ein separates Problem.
 
 ## 5. Build & Deployment (aus `CLAUDE.md` übernommen, weiter aktuell)
 

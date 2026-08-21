@@ -82,6 +82,7 @@ function playTrack(track) {
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
   musicEl.onended = nextTrack
   currentTrackName.value = track.name
+  routeThroughFilter(musicEl)
   // Browser-Autoplay-Policy kann den allerersten play() ohne User-Geste
   // ablehnen (z.B. Musikstart schon beim Main-Menu-Mount) -- musicStarted
   // zuruecksetzen, damit der naechste startMusic()-Aufruf (z.B. der erste
@@ -106,6 +107,7 @@ function playMenuTrack() {
   musicEl.loop = true
   musicEl.volume = musicMuted.value ? 0 : musicVolume.value
   currentTrackName.value = MENU_TRACK.name
+  routeThroughFilter(musicEl)
   musicEl.play().catch(() => { musicStarted = false })
 }
 
@@ -117,7 +119,14 @@ function startMusic() {
   if (musicStarted) return
   musicStarted = true
   ensureCtx()
-  playForMode()
+  // Bereits ein Track geladen (z.B. ein vorheriger startMusic()-Versuch ist an play() ohne
+  // Geste gescheitert, siehe playTrack()): DENSELBEN erneut versuchen statt ueber
+  // playForMode() einen NEUEN zu starten -- App.vue's globaler onMouseDown ruft startMusic()
+  // bei JEDEM Klick auf, solange play() fehlschlaegt (z.B. bei einem Kollegen ueber den
+  // ngrok-Link, bei dem play() aus welchem Grund auch immer wiederholt abgelehnt wurde) wuerde
+  // sonst jeder Klick zum naechsten Lied springen, statt nur denselben Track zu wiederholen.
+  if (musicEl) musicEl.play().catch(() => { musicStarted = false })
+  else playForMode()
 }
 
 // Wechselt zwischen Hauptmenue-Track (two_left_socks, exklusiv & geloopt) und
@@ -141,6 +150,32 @@ function prevTrack() {
   playTrack(history[historyPos])
 }
 
+// Bankrott-Bildschirm ("YOU DIED"-artig): Musik sackt auf tieferen Pitch/leise ab und
+// BLEIBT dort haengen (kein Pause/Fade auf 0) -- bedrueckende Dauer-Stimmung, solange
+// der Bankrott-Screen steht. Ein frischer Track (z.B. Hauptmenue nach Klick auf
+// "Versuch es nochmal") kommt als neues <audio>-Element mit rate 1 -- kein manuelles
+// Zuruecksetzen noetig.
+const MOOD_MS = 2000
+const MOOD_RATE = 0.6
+const MOOD_VOL_FACTOR = 0.18
+function enterBankruptcyMood() {
+  const el = musicEl
+  if (!el) return
+  try { el.preservesPitch = false; el.mozPreservesPitch = false; el.webkitPreservesPitch = false } catch {}
+  const startRate  = el.playbackRate
+  const startVol   = el.volume
+  const targetVol  = startVol * MOOD_VOL_FACTOR
+  const t0 = performance.now()
+  function step(now) {
+    if (el !== musicEl || el.paused) return
+    const t = Math.min(1, (now - t0) / MOOD_MS)
+    el.playbackRate = startRate + (MOOD_RATE - startRate) * t
+    el.volume = startVol + (targetVol - startVol) * t
+    if (t < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
 // ── AudioContext SFX (pre-decoded, zero network after init) ─
 let actx = null
 const bufs = {}
@@ -152,6 +187,50 @@ function ensureCtx() {
   if (actx?.state === 'suspended') actx.resume().catch(() => {})
   return actx
 }
+
+// ── Musik-Daempfung ("muffled") fuer grosse Overlay-Seiten ──
+// Skill-Baum/Statistik legen sich vollflaechig ueber den Hof -- Musik soll dort
+// gedaempft (Lowpass, wie durch eine Wand) statt in voller Klarheit weiterlaufen.
+// Jeder neue <audio>-Track wird per MediaElementSource durch diesen einen
+// Filterknoten geroutet, der je nach musicMuffled offen (20kHz, transparent) oder
+// zu (rd. 500Hz) steht.
+let musicFilter = null
+const musicMuffled = ref(false)
+const MUFFLE_FREQ = 500
+const OPEN_FREQ    = 20000
+
+function ensureMusicFilter() {
+  const ctx = ensureCtx()
+  if (!ctx || musicFilter) return musicFilter
+  musicFilter = ctx.createBiquadFilter()
+  musicFilter.type = 'lowpass'
+  musicFilter.frequency.value = musicMuffled.value ? MUFFLE_FREQ : OPEN_FREQ
+  musicFilter.connect(ctx.destination)
+  return musicFilter
+}
+
+// createMediaElementSource darf pro <audio>-Element nur einmal aufgerufen werden --
+// deshalb hier statt beim Modul-Start, direkt wenn ein neues musicEl entsteht.
+function routeThroughFilter(el) {
+  const ctx = ensureCtx()
+  const filter = ensureMusicFilter()
+  if (!ctx || !filter) return
+  try {
+    ctx.createMediaElementSource(el).connect(filter)
+  } catch {}
+}
+
+function setMusicMuffled(v) {
+  musicMuffled.value = v
+}
+
+watch(musicMuffled, v => {
+  if (!musicFilter) return
+  musicFilter.frequency.linearRampToValueAtTime(
+    v ? MUFFLE_FREQ : OPEN_FREQ,
+    musicFilter.context.currentTime + 0.75,
+  )
+})
 
 async function loadBuf(key, url) {
   if (!actx) return
@@ -223,7 +302,7 @@ watch(sfxMuted, v => localStorage.setItem('cookieSfxMuted', v))
 export function useAudio() {
   return {
     musicVolume, sfxVolume, musicMuted, sfxMuted, musicMode, currentTrackName,
-    startMusic, setMusicMode, skipTrack, prevTrack, playClick, playHover,
+    startMusic, setMusicMode, skipTrack, prevTrack, setMusicMuffled, enterBankruptcyMood, playClick, playHover,
     playBookOpen, playBookClose, playCoins, playChop,
   }
 }
