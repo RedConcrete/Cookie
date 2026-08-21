@@ -420,14 +420,18 @@ spezifiziert ist:
     dort komplett entfernt statt repariert), das Tooltip-System selbst war
     lange unverändert. **Baustein jetzt vorhanden (2026-08-21):** neuer
     `instant`-Prop auf `NestedTooltip.vue` — kein Fill-/Drain-Balken, kein
-    Delay, sofortiges Ein-/Ausblenden. Bisher nur am neuen Musik-Skip-Button
-    in `SettingsDialog.vue` verwendet (Nutzer-Beschwerde über den sichtbaren
-    Timeline-Balken). **Bewusst nicht global umgestellt:** der Drain-Delay
-    ist bei Tooltips mit `tt-highlight`-Inhalt (verschachtelte, anklickbare
-    Begriffe) nötig, damit die Maus Zeit hat vom Trigger in den Popup zu
-    wandern — `instant` ist nur für einfache, nicht-interaktive Text-
-    Tooltips gedacht. Verbleibende Stellen (Skilltree-Node-Namen u. a.)
-    einzeln auf `instant` umstellen, wo kein Highlight-Inhalt vorkommt.
+    Delay, sofortiges Ein-/Ausblenden. Alle Tooltips in `SettingsDialog.vue`
+    (Musik-Player Vor/Zurück, Tastatur/Controller-Hotkey-Icons,
+    Sprachumschalter) laufen jetzt darüber — Nutzer-Beschwerde über den
+    sichtbaren Timeline-Balken kam gleich an mehreren Stellen dort
+    (Musik-Skip-Button zuerst, dann Sprachumschalter). **Bewusst nicht
+    global umgestellt:** der Drain-Delay ist bei Tooltips mit
+    `tt-highlight`-Inhalt (verschachtelte, anklickbare Begriffe) nötig,
+    damit die Maus Zeit hat vom Trigger in den Popup zu wandern —
+    `instant` ist nur für einfache, nicht-interaktive Text-Tooltips
+    gedacht. Verbleibende Stellen außerhalb von `SettingsDialog.vue`
+    (Skilltree-Node-Namen u. a.) einzeln auf `instant` umstellen, wo kein
+    Highlight-Inhalt vorkommt.
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
   L1/R1-Gebäude-Zyklus siehe §7.2 Backlog weiter unten.

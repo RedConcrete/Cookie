@@ -60,7 +60,7 @@
           <div class="sd-hotkey-row">
             <span>{{ t('settings.openNetWorth') }}</span>
             <div class="sd-hotkey-combo">
-              <NestedTooltip :content="t('settings.keyboardTitle')" silent>
+              <NestedTooltip :content="t('settings.keyboardTitle')" silent instant>
                 <button
                   class="sd-hotkey-key sd-hotkey-btn"
                   :class="{ listening: listeningForAction === 'networth' }"
@@ -68,7 +68,7 @@
                   @click="startListenAction('networth')"
                 ><ShortcutSlot />{{ listeningForAction === 'networth' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.networth) }}</button>
               </NestedTooltip>
-              <NestedTooltip :content="t('settings.controllerTitle')" silent>
+              <NestedTooltip :content="t('settings.controllerTitle')" silent instant>
                 <button
                   class="sd-hotkey-key sd-hotkey-btn"
                   :class="{ listening: listeningForGamepad === 'networth' }"
@@ -81,7 +81,7 @@
           <div class="sd-hotkey-row">
             <span>{{ t('settings.openSkillTree') }}</span>
             <div class="sd-hotkey-combo">
-              <NestedTooltip :content="t('settings.keyboardTitle')" silent>
+              <NestedTooltip :content="t('settings.keyboardTitle')" silent instant>
                 <button
                   class="sd-hotkey-key sd-hotkey-btn"
                   :class="{ listening: listeningForAction === 'skilltree' }"
@@ -89,7 +89,7 @@
                   @click="startListenAction('skilltree')"
                 ><ShortcutSlot />{{ listeningForAction === 'skilltree' ? t('settings.pressKey') : actionHotkeys.keyLabel(actionHotkeys.actionKeys.skilltree) }}</button>
               </NestedTooltip>
-              <NestedTooltip :content="t('settings.controllerTitle')" silent>
+              <NestedTooltip :content="t('settings.controllerTitle')" silent instant>
                 <button
                   class="sd-hotkey-key sd-hotkey-btn"
                   :class="{ listening: listeningForGamepad === 'skilltree' }"
@@ -137,7 +137,7 @@
       </PixelScrollBox>
 
       <div class="sd-footer">
-        <NestedTooltip :content="t('settings.language')" silent>
+        <NestedTooltip :content="t('settings.language')" silent instant>
           <button class="px-btn sd-lang-toggle" @click="cycleLocale" :aria-label="t('settings.language')">
             <ShortcutSlot /><PixelIcon :name="`flag-${locale}`" :size="20" />
           </button>
