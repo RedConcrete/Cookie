@@ -853,6 +853,14 @@ spezifiziert ist:
   Canvas. `padding:4px 8px 4px 2px` ergänzt, Canvas schrumpft dadurch
   korrekt nach innen (Chart.js liest `clientWidth`/`clientHeight` des
   Eltern-Containers), Ticks haben jetzt Luft zum Rand.
+  **Header raus (selber Tag):** "es soll kein Dialog geben, das ist das
+  neue Popup" — `.px-titlebar` (Titel-Text + Schließen-Button) komplett
+  entfernt, damit auch `useDraggableDialog`/`onDragStart` (der Header war
+  der einzige Drag-Griff). Schließt jetzt nur noch über den bestehenden
+  Klick-außerhalb-Handler, kein expliziter ×-Button mehr nötig (Gesamt-
+  Net-Worth steht ohnehin schon in der "Gesamt"-Zeile der Breakdown-
+  Liste). Popup dadurch kompakter: `.nw-box`-Höhe `480px`→`420px`
+  (Titelleisten-Höhe abgezogen).
 
 ---
 

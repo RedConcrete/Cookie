@@ -1,11 +1,6 @@
 <template>
   <Teleport to="body">
     <div ref="panelRef" class="nw-box px-panel" :style="popupStyle" @wheel.stop @mousedown.stop @mousemove.stop>
-      <div class="px-titlebar" @pointerdown="onDragStart">
-        <span>{{ t('netWorthDialog.title') }} &middot; {{ fmtBig(nw?.netWorth) }}</span>
-        <button class="px-close" @click="emit('close')"><ShortcutSlot />&times;</button>
-      </div>
-
       <div class="nw-layout">
 
         <!-- ── Links: Chart + Legende NEBENEINANDER (wie MarketView.vue's mv-chart-row:
@@ -108,7 +103,6 @@ import { useAudio } from '../composables/useAudio.js'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
 import NestedTooltip from './NestedTooltip.vue'
-import { useDraggableDialog } from '../composables/useDraggableDialog.js'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
@@ -122,7 +116,6 @@ const props = defineProps({
 const emit  = defineEmits(['close'])
 const audio = useAudio()
 const { t } = useI18n()
-const { dialogStyle, onDragStart } = useDraggableDialog()
 
 const playerStore = usePlayerStore()
 
@@ -130,8 +123,10 @@ const playerStore = usePlayerStore()
 // so schon vorm ersten Frame fest, kein Flackern (gleiche Lektion wie bei NestedTooltip.vue's
 // positionPopup()). Ankert unten rechts an anchorEl, wie PixelInfoPopover's side="below-right"
 // (die bestehende Hover-Vorschau auf dem HUD-Button nutzt genau dieses side).
+// Kein Titlebar/Drag mehr -- ist ein Popup, kein Dialog (Nutzer-Vorgabe), Header war der
+// einzige Drag-Griff und ist damit weg; schliesst nur noch ueber Klick ausserhalb.
 const PANEL_WIDTH = 820
-const PANEL_HEIGHT = 480
+const PANEL_HEIGHT = 420
 const EDGE_MARGIN = 8
 const GAP_BELOW = 14
 
@@ -152,7 +147,6 @@ const popupStyle = computed(() => ({
   position: 'fixed',
   left: anchorPos.value.left + 'px',
   top: anchorPos.value.top + 'px',
-  ...(dialogStyle.value || {}), // Drag-Offset (useDraggableDialog) additiv obendrauf
 }))
 
 // Jeder Mousedown ausserhalb des Panels schliesst das Popup -- Klicks IM Panel selbst
@@ -393,7 +387,7 @@ onUnmounted(() => {
 
 <style scoped>
 .nw-box {
-  width: 820px; max-width: 96vw; height: 480px;
+  width: 820px; max-width: 96vw; height: 420px;
   display: flex; flex-direction: column; overflow: hidden;
   z-index: 600; /* wie PixelInfoPopover -- Popup statt Vollbild-Dialog, kein Overlay-Parent mit eigenem z-index mehr */
 }
