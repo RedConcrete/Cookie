@@ -91,7 +91,13 @@ function onTriggerEnter(e) {
 
   if (visible.value) return
 
-  const rect = e.currentTarget.getBoundingClientRect()
+  // .tooltip-trigger ist ein normales inline <span> ohne eigene Groesse -- wenn der
+  // eingebettete Slot-Inhalt selbst position:absolute/fixed ist (z.B. build-fab,
+  // cam-center, alle px-close-Buttons), traegt er NICHTS zur Box des Spans bei, der
+  // kollabiert dann auf 0x0 an Position (0,0) und das Popup landet oben links statt am
+  // echten Button. Rect deshalb vom ersten echten Kind-Element nehmen, nicht vom Span
+  // selbst -- das ist immer der eigentliche sichtbare Trigger-Inhalt.
+  const rect = (e.currentTarget.firstElementChild ?? e.currentTarget).getBoundingClientRect()
   posX.value = rect.right + 8
   posY.value = rect.top
 

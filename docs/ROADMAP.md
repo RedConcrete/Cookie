@@ -442,6 +442,18 @@ spezifiziert ist:
     den Popup zum verlinkten Begriff zu wandern. Bewusst so in Kauf
     genommen (explizite Nutzer-Ansage), falls das stört: eigener Fix nötig
     (z. B. den Erklärtext direkt inline statt als verschachtelten Tooltip).
+    **Zusätzlicher Positionierungs-Bug beim Ausrollen gefunden:** Popup
+    vom "Gebäude bauen"-Button (unten rechts) erschien oben links im
+    Fenster statt daneben. Ursache: `.tooltip-trigger` (der `<span>`, den
+    `NestedTooltip` um seinen Slot-Inhalt legt) ist ein normales
+    `display:inline`-Element ohne eigene Größe — ist der eingebettete
+    Button selbst `position:absolute`/`fixed` (build-fab, cam-center,
+    alle `px-close`-Schließen-Buttons), trägt er nichts zur Box des Spans
+    bei, der kollabiert auf 0×0 an Position (0,0). `getBoundingClientRect()`
+    für die Popup-Position lief bisher auf dem Span selbst — jetzt auf
+    dessen erstem echten Kind-Element (`e.currentTarget.firstElementChild`),
+    das ist immer der tatsächlich sichtbare Trigger-Inhalt. Behebt das für
+    alle betroffenen Stellen auf einmal, nicht nur den Bau-Button.
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
   - [x] **Spieler-Skillbaum-Suche zentriert + Pfad-Wegweiser zum Treffer
