@@ -51,6 +51,13 @@ const props = defineProps({
   content: { type: [String, Array], required: true },
   depth:   { type: Number, default: 0 },
   silent:  { type: Boolean, default: false },
+  // Kein Appear-/Close-Delay, kein Timeline-Balken -- sofort ein-/ausblenden.
+  // Nur fuer einfache, nicht-verschachtelte Text-Tooltips gedacht (kein tt-highlight-
+  // Inhalt): der Drain-Delay bei normalen Tooltips existiert, damit die Maus Zeit hat,
+  // vom Trigger in den Popup zu wandern (z.B. um einen verlinkten Begriff zu klicken) --
+  // bei instant faellt dieser Puffer weg, ein instant-Tooltip darf also nichts enthalten,
+  // das man erst noch anklicken/erreichen muesste.
+  instant: { type: Boolean, default: false },
 })
 
 const visible  = ref(false)
@@ -88,6 +95,12 @@ function onTriggerEnter(e) {
   posX.value = rect.right + 8
   posY.value = rect.top
 
+  if (props.instant) {
+    if (props.depth === 0) registerGlobal(closeNow)
+    visible.value = true
+    return
+  }
+
   filling.value = true
   clearTimeout(fillTimer)
   fillTimer = setTimeout(() => {
@@ -98,6 +111,11 @@ function onTriggerEnter(e) {
 }
 
 function onTriggerLeave() {
+  if (props.instant) {
+    closeNow()
+    if (props.depth === 0) unregisterGlobal(closeNow)
+    return
+  }
   if (!visible.value) {
     clearTimeout(fillTimer)
     filling.value = false

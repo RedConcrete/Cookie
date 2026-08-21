@@ -15,7 +15,7 @@
               @input="audio.musicVolume.value = +$event.target.value" :disabled="audio.musicMuted.value" class="sd-slider"
               :style="{ '--fill': musicFillPct + '%' }" />
             <span class="sd-slider-val">{{ Math.round(audio.musicVolume.value * 100) }}%</span>
-            <NestedTooltip :content="t('settings.skipTrack')" silent>
+            <NestedTooltip :content="t('settings.skipTrack')" silent instant>
               <button class="sd-skip" @click="audio.skipTrack()"><ShortcutSlot />⏭</button>
             </NestedTooltip>
           </div>
@@ -283,6 +283,8 @@ function exitGame() {
    instead of the smooth native OS slider look. */
 .sd-slider {
   flex: 1;
+  min-width: 0; /* sonst schrumpft <input type=range> in der Flex-Reihe nicht -- Reihe
+                   ragt bei zusaetzlichen Elementen (z.B. Skip-Button) ueber den Dialog hinaus */
   -webkit-appearance: none;
   appearance: none;
   height: 16px;
