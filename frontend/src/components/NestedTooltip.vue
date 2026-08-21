@@ -13,6 +13,7 @@
       <Transition name="tt-fade">
         <div
           v-if="visible"
+          ref="popupEl"
           class="tt-popup"
           :class="`tt-depth-${depth}`"
           :style="popupStyle"
@@ -37,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import NestedTooltip from './NestedTooltip.vue'
 import { registerGlobal, unregisterGlobal } from '../composables/tooltipMutex.js'
 import { useAudio } from '../composables/useAudio.js'
@@ -66,11 +67,33 @@ const draining = ref(false)
 const drainKey = ref(0)
 const posX     = ref(0)
 const posY     = ref(0)
+const popupEl  = ref(null)
 
 let fillTimer  = null
 let closeTimer = null
 
 const popupStyle = computed(() => ({ left: posX.value + 'px', top: posY.value + 'px' }))
+
+// posX/posY sind zunaechst nur eine Schaetzung (rechts neben dem Trigger) -- bei Triggern
+// nah am rechten/unteren Bildschirmrand (z.B. build-fab) wuerde das echte Popup je nach
+// Textlaenge ueber den Viewport hinausragen. Nach dem Rendern (nextTick, Popup existiert
+// erst dann im DOM) die tatsaechliche Groesse messen und zurueck auf den sichtbaren
+// Bereich klemmen -- darf nie off-screen landen, unabhaengig von Trigger-Position/Textlaenge.
+async function clampToViewport() {
+  await nextTick()
+  const el = popupEl.value
+  if (!el) return
+  const margin = 8
+  const box = el.getBoundingClientRect()
+  let x = posX.value
+  let y = posY.value
+  if (x + box.width > window.innerWidth - margin) x = window.innerWidth - box.width - margin
+  if (x < margin) x = margin
+  if (y + box.height > window.innerHeight - margin) y = window.innerHeight - box.height - margin
+  if (y < margin) y = margin
+  posX.value = x
+  posY.value = y
+}
 
 const parsedContent = computed(() =>
   typeof props.content === 'string' ? [{ text: props.content }] : props.content
@@ -104,6 +127,7 @@ function onTriggerEnter(e) {
   if (props.instant) {
     if (props.depth === 0) registerGlobal(closeNow)
     visible.value = true
+    clampToViewport()
     return
   }
 
@@ -113,6 +137,7 @@ function onTriggerEnter(e) {
     filling.value = false
     if (props.depth === 0) registerGlobal(closeNow)
     visible.value = true
+    clampToViewport()
   }, APPEAR_DELAY)
 }
 

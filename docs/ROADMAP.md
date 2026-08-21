@@ -454,6 +454,14 @@ spezifiziert ist:
     dessen erstem echten Kind-Element (`e.currentTarget.firstElementChild`),
     das ist immer der tatsächlich sichtbare Trigger-Inhalt. Behebt das für
     alle betroffenen Stellen auf einmal, nicht nur den Bau-Button.
+    **Danach noch verbleibendes Problem:** selbst mit korrekter Trigger-
+    Position kann das Popup bei Triggern nah am Bildschirmrand (z. B.
+    Bau-Button unten rechts) über den Viewport hinausragen, je nach
+    Textlänge. Neues `clampToViewport()`: nach dem Rendern (`nextTick`,
+    Popup existiert erst dann im DOM) wird die echte Popup-Größe gemessen
+    und `posX`/`posY` zurück auf den sichtbaren Bereich geklemmt (8px
+    Rand) — Popup kann jetzt grundsätzlich nie mehr off-screen landen,
+    unabhängig von Trigger-Position oder Textlänge.
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
   - [x] **Spieler-Skillbaum-Suche zentriert + Pfad-Wegweiser zum Treffer
