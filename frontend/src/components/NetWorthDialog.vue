@@ -8,37 +8,38 @@
 
       <div class="nw-layout">
 
-        <!-- ── Oben: Chart (voller Breite, wie der Markt-Dialog: Legende/Toolbar +
-             Chart als eine Zeile oben, statt in einer schmalen Seitenleiste) ── -->
-        <div class="nw-top">
-          <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
-
-          <div class="chart-toolbar">
-            <div class="chart-toggles">
-              <button
-                v-for="ds in DATASETS"
-                :key="ds.key"
-                class="toggle-btn"
-                :class="{ inactive: !visible[ds.key] }"
-                :style="{ '--dot': ds.color }"
-                @click="toggleDataset(ds.key)"
-              >
-                <ShortcutSlot />
-                <span class="dot"></span>{{ t(ds.labelKey) }}
-              </button>
+        <!-- ── Links: Chart + Legende NEBENEINANDER (wie MarketView.vue's mv-chart-row:
+             Chart-Box links, schmale Toggle-Legende rechts daneben), Rest der Breite
+             rechts fuer die Breakdown-Liste (wie mv-table) ── -->
+        <div class="nw-chart-row">
+          <div class="nw-chart-box">
+            <div class="chart-toolbar">
+              <div class="nw-section-label">{{ t('netWorthDialog.historyLabel') }}</div>
+              <NestedTooltip :content="t('netWorthDialog.resetZoomTitle')" silent instant>
+                <button class="pct-btn" @click="resetZoom"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
+              </NestedTooltip>
             </div>
-            <NestedTooltip :content="t('netWorthDialog.resetZoomTitle')" silent instant>
-              <button class="pct-btn" @click="resetZoom"><ShortcutSlot /><PixelIcon name="zentrieren" :size="14" /></button>
-            </NestedTooltip>
+            <div class="chart-wrap">
+              <canvas ref="canvasRef"></canvas>
+            </div>
           </div>
 
-          <div class="chart-wrap">
-            <canvas ref="canvasRef"></canvas>
+          <div class="nw-legend">
+            <button
+              v-for="ds in DATASETS"
+              :key="ds.key"
+              class="toggle-btn"
+              :class="{ inactive: !visible[ds.key] }"
+              :style="{ '--dot': ds.color }"
+              @click="toggleDataset(ds.key)"
+            >
+              <ShortcutSlot />
+              <span class="dot"></span>{{ t(ds.labelKey) }}
+            </button>
           </div>
         </div>
 
-        <!-- ── Unten: Breakdown + Stats (volle Breite, wie die Markt-Tabelle unter
-             dem Chart, statt einer schmalen Seitenleiste) ── -->
+        <!-- ── Rechts: Breakdown + Stats (wie mv-table) ── -->
         <PixelScrollBox class="nw-bottom">
           <div class="nw-bottom-inner">
 
@@ -350,11 +351,11 @@ onUnmounted(() => {
   display: flex; flex-direction: column; overflow: hidden;
 }
 
-/* Chart oben, Breakdown-Liste unten (wie MarketView.vue: mv-chart-row oben,
-   mv-table darunter) -- statt der frueheren schmalen Seitenleiste-links/Chart-rechts-
-   Aufteilung. */
+/* Chart+Legende links (nebeneinander, wie MarketView.vue's mv-chart-row), Breakdown-
+   Liste rechts (wie mv-table) -- MarketView.vue's mv-root ist selbst flex-direction:row,
+   Chart-Bereich und Tabelle sitzen NEBENEINANDER, nicht uebereinander. */
 .nw-layout {
-  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: row; flex: 1; min-height: 0; overflow: hidden;
 }
 
 .nw-section-label {
@@ -362,15 +363,20 @@ onUnmounted(() => {
   letter-spacing: 1px; color: var(--px-tan-hd); margin-bottom: 4px;
 }
 
-/* ── Oben: Chart ───────────────────────────────── */
-.nw-top {
-  flex: 3 1 0; min-height: 0; padding: 16px;
-  display: flex; flex-direction: column; gap: 8px;
-  border-bottom: 3px solid var(--px-tan);
+/* ── Links: Chart-Box + schmale Toggle-Legende nebeneinander ──── */
+.nw-chart-row {
+  flex: 0 0 62%; display: flex; flex-direction: row; gap: 10px;
+  padding: 16px; min-width: 0;
+  border-right: 3px solid var(--px-tan);
+}
+.nw-chart-box { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.nw-legend {
+  flex: 0 0 100px; width: 100px;
+  display: flex; flex-direction: column; gap: 6px; overflow-y: auto;
 }
 
-/* ── Unten: Breakdown + Stats ──────────────────── */
-.nw-bottom { flex: 2 1 0; min-height: 0; }
+/* ── Rechts: Breakdown + Stats ──────────────────── */
+.nw-bottom { flex: 1 1 260px; min-width: 220px; min-height: 0; }
 .nw-bottom-inner { padding: 16px; }
 
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
@@ -392,19 +398,15 @@ onUnmounted(() => {
 .nw-loading { color: var(--px-tan-ink); font-size: 13px; }
 
 .chart-toolbar {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
-}
-
-.chart-toggles {
-  display: flex; flex-wrap: wrap; gap: 6px; flex: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0;
 }
 
 .toggle-btn {
-  position: relative;
+  position: relative; width: 100%; box-sizing: border-box;
   display: flex; align-items: center; gap: 5px;
   padding: 4px 9px; border: 2px solid var(--px-brown2);
   background: var(--px-cream2);
-  color: var(--px-ink-txt); font-size: 12px; cursor: pointer;
+  color: var(--px-ink-txt); font-size: 11px; cursor: pointer;
   transition: opacity 0.15s;
 }
 .toggle-btn.inactive { opacity: 0.35; }
