@@ -196,7 +196,10 @@ public class AdminConfigController {
         skillEdgeRepository.deleteAll(skillEdgeRepository.findByFromNodeOrToNode(id, id));
         skillNodeRepository.deleteById(id);
         skillTreeService.refreshCache();
-        return ResponseEntity.ok(Map.of("deleted", id));
+        // Node selbst war ungenutzt (siehe Check oben), aber ihre geloeschten Edges koennen
+        // ANDERE, bereits alloziierte Knoten vom Baum abgeschnitten haben.
+        int repaired = skillTreeService.repairDisconnectedAllocations();
+        return ResponseEntity.ok(Map.of("deleted", id, "repairedAllocations", repaired));
     }
 
     // effectType kommt als externer String rein (kein @Enumerated mehr, siehe SkillNodeEffectEntity)
@@ -255,7 +258,21 @@ public class AdminConfigController {
         if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
         if (!skillEdgeRepository.existsById(id)) return ResponseEntity.notFound().build();
         skillEdgeRepository.deleteById(id);
-        return ResponseEntity.ok(Map.of("deleted", id));
+        int repaired = skillTreeService.repairDisconnectedAllocations();
+        return ResponseEntity.ok(Map.of("deleted", id, "repairedAllocations", repaired));
+    }
+
+    // Manueller Trigger fuer repairDisconnectedAllocations() -- fuer bereits VOR diesem Fix
+    // entstandene kaputte Zustaende (der automatische Trigger in deleteSkillNode/deleteSkillEdge
+    // greift nur bei zukuenftigen Loeschungen). Findet+erstattet ueber ALLE Spieler hinweg jede
+    // Skill-Node-Allokation, die nicht mehr durchgehend (nur ueber alloziierte Knoten) mit root
+    // verbunden ist.
+    @PostMapping("/skilltree/repair")
+    public ResponseEntity<?> repairSkillTree(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        int repaired = skillTreeService.repairDisconnectedAllocations();
+        return ResponseEntity.ok(Map.of("repairedAllocations", repaired));
     }
 
     // ── Rezepte ──────────────────────────────────────────────────────

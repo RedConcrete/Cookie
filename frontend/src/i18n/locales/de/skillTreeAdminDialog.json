@@ -30,5 +30,9 @@
   "descriptionDeLabel": "Beschreibung (DE)",
   "descriptionEnLabel": "Beschreibung (EN)",
   "iconLabel": "Icon",
-  "iconAutoOption": "(automatisch aus Branch)"
+  "iconAutoOption": "(automatisch aus Branch)",
+  "repairLabel": "Reparieren",
+  "autoRepairNotice": "{count} abgeschnittene Allokation(en) automatisch repariert",
+  "repairNotice": "{count} abgeschnittene Allokation(en) repariert",
+  "repairNothingNotice": "Nichts zu reparieren, Baum ist konsistent"
 }

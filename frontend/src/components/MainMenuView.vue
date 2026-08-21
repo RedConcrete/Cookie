@@ -24,7 +24,7 @@
     </div>
 
     <div class="menu-footer-left">
-      <NestedTooltip :content="t('mainMenuView.discordButton')" silent>
+      <NestedTooltip :content="t('mainMenuView.discordButton')" silent instant>
         <a
           class="px-btn menu-discord-btn" :href="DISCORD_URL" target="_blank" rel="noopener noreferrer"
           :aria-label="t('mainMenuView.discordButton')"

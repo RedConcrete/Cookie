@@ -423,33 +423,34 @@ spezifiziert ist:
   - [ ] **Settings-Hotkey-Liste als zwei beschriftete Spalten** (Tastatur/
     Maus links, Controller rechts) statt der aktuellen Buttons ohne klare
     Spalten-Beschriftung — Feedback aus dem 2026-08-17-Testlauf.
-  - [ ] **`NestedTooltip.vue`s 1s-Appear/Close-Timer für kurze
-    Namens-Tooltips entfernen** (z.B. Skilltree-Node-Namen) — sollen sofort
-    erscheinen/verschwinden statt verzögert. Zwei akut kaputte Fälle (HUD-
-    Skill-Stern, Hamburger-Button) sind am 2026-08-17 schon gefixt (Tooltip
-    dort komplett entfernt statt repariert), das Tooltip-System selbst war
-    lange unverändert. **Baustein jetzt vorhanden (2026-08-21):** neuer
-    `instant`-Prop auf `NestedTooltip.vue` — kein Fill-/Drain-Balken, kein
-    Delay, sofortiges Ein-/Ausblenden. Alle Tooltips in `SettingsDialog.vue`
-    (Musik-Player Vor/Zurück, Tastatur/Controller-Hotkey-Icons,
-    Sprachumschalter) laufen jetzt darüber — Nutzer-Beschwerde über den
-    sichtbaren Timeline-Balken kam gleich an mehreren Stellen dort
-    (Musik-Skip-Button zuerst, dann Sprachumschalter). **Bewusst nicht
-    global umgestellt:** der Drain-Delay ist bei Tooltips mit
-    `tt-highlight`-Inhalt (verschachtelte, anklickbare Begriffe) nötig,
-    damit die Maus Zeit hat vom Trigger in den Popup zu wandern —
-    `instant` ist nur für einfache, nicht-interaktive Text-Tooltips
-    gedacht. Verbleibende Stellen außerhalb von `SettingsDialog.vue`
-    (Skilltree-Node-Namen u. a.) einzeln auf `instant` umstellen, wo kein
-    Highlight-Inhalt vorkommt.
+  - [x] **`NestedTooltip.vue`s 1s-Appear/Close-Timer entfernt, spielweit
+    (2026-08-21).** Sollte sofort erscheinen/verschwinden statt verzögert
+    — mehrere Nutzer-Beschwerden über den sichtbaren Timeline-Balken
+    (Musik-Skip-Button, Sprachumschalter, Skilltree-Schließen-Button).
+    Neuer `instant`-Prop auf `NestedTooltip.vue` (kein Fill-/Drain-Balken,
+    kein Delay) zunächst nur in `SettingsDialog.vue` verwendet, dann auf
+    Ansage ("im ganzen Spiel nicht mehr genutzt werden") auf **alle**
+    verbleibenden `NestedTooltip`-Stellen ausgeweitet (`ResourceBar.vue`,
+    `MainMenuView.vue`, `PriceChart.vue`, `NetWorthDialog.vue`,
+    `PlayerProfileView.vue`, `StatsDialog.vue`, `BuildingDetailDialog.vue`,
+    `SkillTreeDialog.vue`, `SkillTreeAdminDialog.vue`, `FarmGridView.vue`)
+    inkl. des rekursiven inneren Tooltips für `tt-highlight`-Begriffe in
+    `NestedTooltip.vue` selbst. **Bekannte Nebenwirkung:** der verschachtelte
+    Erklär-Tooltip in `ResourceBar.vue` ("Verkaufswert" → Erklärung) ist
+    dadurch praktisch unerreichbar — das Popup schließt sofort beim
+    Verlassen des auslösenden Elements, die Maus hat keine Zeit mehr, in
+    den Popup zum verlinkten Begriff zu wandern. Bewusst so in Kauf
+    genommen (explizite Nutzer-Ansage), falls das stört: eigener Fix nötig
+    (z. B. den Erklärtext direkt inline statt als verschachtelten Tooltip).
   - [ ] Y/Center-Bindung fürs Skilltree-eigene "Kamera zentrieren" (aktuell
     nur FarmGridView).
   - [x] **Spieler-Skillbaum-Suche zentriert + Pfad-Wegweiser zum Treffer
     (2026-08-21).** Zwei Nutzer-Beschwerden: Suchbox saß oben rechts statt
     wie im Admin-Editor zentriert; beim Suchen war nicht erkennbar, wie
     man vom aktuellen Fortschritt zum Treffer kommt. `SkillTreeView.vue`s
-    `.stv-search-box` jetzt `top:64px;left:50%` (zentriert, unterhalb des
-    Skillpunkte-Badges, das schon `top:14px;left:50%` belegt). Neuer
+    `.stv-search-box` jetzt `top:14px;left:50%` (zentriert, **oberhalb**
+    des Skillpunkte-Badges — `.stv-points-badge` dafür auf `top:64px`
+    verschoben, explizit vom Nutzer so priorisiert). Neuer
     `searchPathEdgeKeys`-Computed: Multi-Source-BFS ab allen bereits
     allozierten Knoten gleichzeitig (nicht nur ab root) zu jedem
     Suchtreffer, markiert die kürzeste Kanten-Kette dorthin mit neuer
@@ -467,13 +468,32 @@ spezifiziert ist:
   (`UpgradeDialog.vue`/`UpgradeShopView.vue`) vollständig entfernt,
   `upgradeValue` überall zu `skillTreeValue` umbenannt (Net Worth, DTOs,
   `NetWorthHistoryEntity`). Zwei bewusst zurückgestellte Folgepunkte:
-  - [ ] **Anti-Cheat-Re-Verifikation für Skill-Allokationen.** Der
-    Allokations-Endpunkt prüft die Konnektivität nur beim Freischalten
-    selbst — es gibt keinen periodischen Job, der bestehende
-    `player_skill_nodes`-Zeilen im Nachhinein erneut gegen die Kanten
-    validiert (z. B. nach einem manuellen DB-Eingriff oder einem Bug in
-    einer früheren Version). Vor Public-Release nachholen, analog zu
-    anderen serverseitigen Integritätschecks.
+  - [x] **Anti-Cheat-Re-Verifikation für Skill-Allokationen (2026-08-21,
+    live beobachtet statt nur theoretisch).** Der Allokations-Endpunkt
+    prüfte die Konnektivität nur beim Freischalten selbst — keine
+    Re-Validierung bestehender `player_skill_nodes`-Zeilen danach. Live im
+    Admin-Editor reproduziert: Node/Edge löschen kann einen bereits
+    alloziierten, entfernteren Knoten vom Baum abschneiden (Screenshot:
+    grüner Knoten nur noch über nicht-allozierte Nachbarn verbunden), ohne
+    dass irgendetwas das verhindert oder meldet. `allocateNode`/
+    `deallocateNode` selbst sind korrekt (geprüft: Allokation verlangt
+    direkten alloziierten Nachbarn, Respec blockiert per `reachableFromRoot`-
+    BFS, falls das Entfernen einen ANDEREN Knoten abschneiden würde) — die
+    Lücke war ausschließlich der Admin-Editor-Pfad, der Edges/Nodes ändert,
+    ohne bestehende Spieler-Allokationen dagegen neu zu prüfen.
+    **Fix:** neue `SkillTreeService#repairDisconnectedAllocations()` —
+    sammelt pro Spieler alle `player_skill_nodes`, prüft per
+    `reachableFromRoot()` echte Erreichbarkeit über den aktuellen
+    Kantenbestand, entfernt nicht mehr erreichbare Zeilen und erstattet je
+    einen Skillpunkt (kein Spielerfehler, war ein Admin-Edit). Automatisch
+    aufgerufen nach `DELETE .../skilltree/nodes/{id}` und
+    `DELETE .../skilltree/edges/{id}` (die beiden topologie-verkleinernden
+    Admin-Aktionen) — Response trägt jetzt zusätzlich
+    `repairedAllocations`. Neuer manueller Endpunkt
+    `POST /admin/skilltree/repair` + Button "Reparieren" im Admin-Editor-
+    Toolbar, um bereits VOR diesem Fix entstandene kaputte Zustände
+    einmalig nachträglich zu bereinigen (der Auto-Trigger greift nur bei
+    zukünftigen Löschungen).
   - [ ] **Prestige-Bonuspunkte.** Ursprünglich angedacht: Prestige gibt
     +3 Skill-Punkte on top des normalen Resets. Bewusst außerhalb des
     Scopes beim Erstbau des Skill-Baums (Prestige-UI ist ohnehin gerade
@@ -608,7 +628,13 @@ spezifiziert ist:
     `seedTree()`, sonst kommen alte Nodes nie raus — braucht eigene
     Transaktion/Validierung, nicht einfach `seedTree()` wiederverwenden).
     Passt zeitlich am besten neben den Season-Reset-Admin-Endpoint (siehe
-    `docs/cookie-game-design.md` Abschnitt 9).
+    `docs/cookie-game-design.md` Abschnitt 9). Plan:
+    `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
+  - [ ] **Spieler-Builds als Code teilen/importieren** — eigene Node-
+    Allokation (nicht die Baum-Struktur) als Code exportieren, andere
+    Spieler importieren ihn für denselben Build. Braucht Server-Validierung
+    (nie Client-Node-IDs vertrauen) + Kosten-Modell-Entscheidung fürs Bulk-
+    Respec. Plan: `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
   - [x] **Nodes klonen (2026-08-19).** Neuer "Klonen"-Button im Info-Panel
     (neben "Knoten löschen"), fragt neue ID per Prompt ab, übernimmt Name/
     Branch/Tier/Effekte (tiefe Kopie) der Quell-Node mit `+40/+40`

@@ -691,6 +691,39 @@ public class SkillTreeService {
         return visited;
     }
 
+    // Anti-Cheat-/Daten-Integritaets-Reparatur (siehe docs/ROADMAP.md, "Anti-Cheat-Re-
+    // Verifikation fuer Skill-Allokationen"): allocateNode()/deallocateNode() halten die
+    // Konnektivitaet fuer sich genommen immer ein, aber der Admin-Editor kann Edges/Nodes
+    // loeschen, OHNE dass das gegen bereits alloziierte Spieler-Zeilen re-validiert wird --
+    // ein Spieler kann dadurch nachtraeglich vom Baum abgeschnitten dastehen (2026-08-21 live
+    // beobachtet). Wird nach jeder topologie-verkleinernden Admin-Aktion (Edge/Node loeschen)
+    // automatisch aufgerufen, siehe AdminConfigController. Kein Spielerfehler -> Skillpunkt
+    // wird erstattet statt der Knoten kommentarlos zu verschwinden.
+    @Transactional
+    public int repairDisconnectedAllocations() {
+        List<SkillEdgeEntity> allEdges = skillEdgeRepository.findAll();
+        Map<String, List<PlayerSkillNodeEntity>> byUser = playerSkillNodeRepository.findAll().stream()
+                .collect(Collectors.groupingBy(PlayerSkillNodeEntity::getUserId));
+
+        int repaired = 0;
+        for (Map.Entry<String, List<PlayerSkillNodeEntity>> entry : byUser.entrySet()) {
+            List<PlayerSkillNodeEntity> rows = entry.getValue();
+            Set<String> allocated = rows.stream().map(PlayerSkillNodeEntity::getNodeId).collect(Collectors.toSet());
+            Set<String> reachable = reachableFromRoot(allocated, allEdges);
+            List<PlayerSkillNodeEntity> orphaned = rows.stream()
+                    .filter(pn -> !reachable.contains(pn.getNodeId())).toList();
+            if (orphaned.isEmpty()) continue;
+
+            UserEntity user = userRepository.findById(entry.getKey()).orElse(null);
+            if (user == null) continue;
+            playerSkillNodeRepository.deleteAll(orphaned);
+            user.setSkillPoints(user.getSkillPoints() + orphaned.size());
+            userRepository.save(user);
+            repaired += orphaned.size();
+        }
+        return repaired;
+    }
+
     // ── Status-DTO ───────────────────────────────────────────────────
 
     public SkillTreeDto getTreeStatus(String userId) {

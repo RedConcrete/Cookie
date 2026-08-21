@@ -31,7 +31,7 @@
           <button class="pp-link" @click="ordenOpen = true"><ShortcutSlot />{{ t('playerProfileView.viewAll') }}</button>
         </div>
         <div class="pp-badges">
-          <NestedTooltip v-for="m in badges.slice(0, 6)" :key="m.id" :content="m.name" silent>
+          <NestedTooltip v-for="m in badges.slice(0, 6)" :key="m.id" :content="m.name" silent instant>
             <div class="pp-badge-chip" :style="{ background: m.color }">
               <PixelIcon :name="m.icon" :size="24" />
             </div>

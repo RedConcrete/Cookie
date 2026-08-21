@@ -30,5 +30,9 @@
   "descriptionDeLabel": "Description (DE)",
   "descriptionEnLabel": "Description (EN)",
   "iconLabel": "Icon",
-  "iconAutoOption": "(auto from branch)"
+  "iconAutoOption": "(auto from branch)",
+  "repairLabel": "Repair",
+  "autoRepairNotice": "Auto-repaired {count} disconnected allocation(s)",
+  "repairNotice": "Repaired {count} disconnected allocation(s)",
+  "repairNothingNotice": "Nothing to repair, tree is consistent"
 }

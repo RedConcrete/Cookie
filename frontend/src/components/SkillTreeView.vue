@@ -76,8 +76,8 @@
           <div v-if="respecMode" class="stv-hint">{{ t('skillTreeView.respecModeHint') }}</div>
         </div>
 
-        <!-- ── Suche: zentriert wie im Admin-Editor (.sta-search-box), unterhalb des
-             Skillpunkte-Badges (das belegt top:14px;left:50% schon) statt daneben ── -->
+        <!-- ── Suche: zentriert wie im Admin-Editor (.sta-search-box), oberhalb des
+             Skillpunkte-Badges statt daneben ── -->
         <div class="stv-search-box" @mousedown.stop>
           <input
             type="text" class="stv-search-input"
@@ -590,7 +590,7 @@ onUnmounted(() => {
    selbst (unten) bleibt weiterhin ein Popup (root-Klick oder Klick hier), damit der Baum
    sonst den vollen Viewport behaelt. */
 .stv-points-badge {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 20;
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px;
   background: var(--px-wood); border: 3px solid var(--px-gold);
@@ -775,7 +775,7 @@ onUnmounted(() => {
 .stv-respec-cost { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--px-ink); display: flex; align-items: center; }
 
 .stv-search-box {
-  position: absolute; top: 64px; left: 50%; transform: translateX(-50%); z-index: 20;
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
   display: flex; align-items: center; gap: 4px;
   padding: 6px 8px;
   background: var(--px-wood3); border: 3px solid var(--px-ink);

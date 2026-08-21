@@ -21,7 +21,7 @@
         >
           <template v-for="(seg, i) in parsedContent" :key="i">
             <span v-if="!seg.tooltip">{{ seg.text }}</span>
-            <NestedTooltip v-else :content="seg.tooltip" :depth="depth + 1">
+            <NestedTooltip v-else :content="seg.tooltip" :depth="depth + 1" instant>
               <span class="tt-highlight">{{ seg.text }}</span>
             </NestedTooltip>
           </template>

@@ -1,10 +1,10 @@
 <template>
   <div class="chart-root">
     <div class="chart-toolbar">
-      <NestedTooltip :content="t('priceChart.pctChangeTitle')" silent>
+      <NestedTooltip :content="t('priceChart.pctChangeTitle')" silent instant>
         <button class="pct-btn" :class="{ active: pctMode }" @click="pctMode = !pctMode"><ShortcutSlot />%</button>
       </NestedTooltip>
-      <NestedTooltip :content="t('priceChart.resetZoomTitle')" silent>
+      <NestedTooltip :content="t('priceChart.resetZoomTitle')" silent instant>
         <button class="pct-btn" @click="() => { chart?.resetZoom(); userHasMoved = false; applyYRange(); chart?.update('none') }"><ShortcutSlot />RESET</button>
       </NestedTooltip>
     </div>

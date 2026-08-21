@@ -2,7 +2,7 @@
   <div class="resource-bar">
 
     <!-- Cookies -->
-    <NestedTooltip :content="cookieTooltip" silent>
+    <NestedTooltip :content="cookieTooltip" silent instant>
       <div class="resource-item resource-item-cookies">
         <img :src="cookieIcon" class="resource-cookie-icon" alt="Cookie" />
         <span class="resource-value cookies-value">{{ fmt(playerStore.cookies) }}</span>
@@ -10,7 +10,7 @@
     </NestedTooltip>
 
     <!-- Ressourcen -->
-    <NestedTooltip v-for="res in resources" :key="res.key" :content="resTooltip(res)" silent>
+    <NestedTooltip v-for="res in resources" :key="res.key" :content="resTooltip(res)" silent instant>
       <div class="resource-item">
         <img :src="res.icon" class="resource-icon" :alt="res.label" />
         <div class="resource-text">
