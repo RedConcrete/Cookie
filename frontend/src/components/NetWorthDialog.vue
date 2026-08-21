@@ -1,6 +1,14 @@
 <template>
-  <Teleport to="body">
-    <div ref="panelRef" class="nw-box px-panel" :style="popupStyle" @wheel.stop @mousedown.stop @mousemove.stop>
+  <span ref="wrapRef" class="nw-trigger-wrap" @mouseenter="onTriggerEnter" @mouseleave="onTriggerLeave">
+    <slot />
+
+    <Teleport to="body">
+      <div
+        v-if="popupVisible"
+        class="nw-box px-panel" :style="popupStyle"
+        @mouseenter="onPopupEnter" @mouseleave="onPopupLeave"
+        @wheel.stop @mousedown.stop @mousemove.stop
+      >
       <div class="nw-layout">
 
         <!-- ── Links: Chart + Legende NEBENEINANDER (wie MarketView.vue's mv-chart-row:
@@ -81,12 +89,13 @@
         </PixelScrollBox>
 
       </div>
-    </div>
-  </Teleport>
+      </div>
+    </Teleport>
+  </span>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Chart, LineController, LineElement, PointElement,
@@ -106,14 +115,11 @@ import NestedTooltip from './NestedTooltip.vue'
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, ZoomPlugin)
 
-// anchorEl: das HUD-Networth-Element (FarmGridView.vue), an dem dieses Popup andockt --
-// war frueher ein Vollbild-Dialog (px-dialog-overlay), ist jetzt ein an den Button
-// geankertes schwebendes Popup (Nutzer: "kein Dialog dafuer noetig").
-const props = defineProps({
-  steamId: { type: String, required: true },
-  anchorEl: { default: null }, // HTMLElement -- kein type-Check (Vue's Object-Check matcht keine DOM-Elemente)
-})
-const emit  = defineEmits(['close'])
+// Selbststaendiges Hover-Popup statt extern (dialog-State in FarmGridView.vue) gesteuerter
+// Dialog -- Trigger kommt per Slot rein, wie PixelInfoPopover.vue (das die alte, einfache
+// Hover-Vorschau war und durch dieses Popup hier komplett ersetzt wird). Kein Klick, kein
+// Titlebar/Drag/Close-Button mehr noetig.
+const props = defineProps({ steamId: { type: String, required: true } })
 const audio = useAudio()
 const { t } = useI18n()
 
@@ -121,21 +127,19 @@ const playerStore = usePlayerStore()
 
 // Feste Panel-Groesse (siehe .nw-box CSS) statt Nach-dem-Rendern-Messen -- Position steht
 // so schon vorm ersten Frame fest, kein Flackern (gleiche Lektion wie bei NestedTooltip.vue's
-// positionPopup()). Ankert unten rechts an anchorEl, wie PixelInfoPopover's side="below-right"
-// (die bestehende Hover-Vorschau auf dem HUD-Button nutzt genau dieses side).
-// Kein Titlebar/Drag mehr -- ist ein Popup, kein Dialog (Nutzer-Vorgabe), Header war der
-// einzige Drag-Griff und ist damit weg; schliesst nur noch ueber Klick ausserhalb.
+// positionPopup()). Ankert unten rechts am eigenen Trigger-Wrapper (wrapRef), wie
+// PixelInfoPopover's side="below-right".
 const PANEL_WIDTH = 820
 const PANEL_HEIGHT = 420
 const EDGE_MARGIN = 8
 const GAP_BELOW = 14
 
-const panelRef = ref(null)
+const wrapRef = ref(null)
 const anchorPos = ref({ left: EDGE_MARGIN, top: EDGE_MARGIN })
 
 function computeAnchorPos() {
-  if (!props.anchorEl) return
-  const rect = props.anchorEl.getBoundingClientRect()
+  if (!wrapRef.value) return
+  const rect = wrapRef.value.getBoundingClientRect()
   let left = rect.right - PANEL_WIDTH
   let top  = rect.bottom + GAP_BELOW
   left = Math.min(Math.max(left, EDGE_MARGIN), window.innerWidth - PANEL_WIDTH - EDGE_MARGIN)
@@ -149,12 +153,60 @@ const popupStyle = computed(() => ({
   top: anchorPos.value.top + 'px',
 }))
 
-// Jeder Mousedown ausserhalb des Panels schliesst das Popup -- Klicks IM Panel selbst
-// erreichen document nie (siehe @mousedown.stop auf dem Panel-Root oben), kein
-// Ziel-Element-Check noetig.
-function onDocumentMousedown() {
-  emit('close')
+// Hover-Reveal mit kurzer Zu-Verzoegerung (Maus darf vom Trigger in den Popup wandern, ohne
+// dass er zwischendurch zuklappt) -- gleiches Grundmuster wie NestedTooltip.vue's
+// Drain-Delay/PixelInfoPopover's useHoverReveal, hier eigenstaendig gehalten, weil dieses
+// Popup zusaetzlich lazy beim ERSTEN Oeffnen die Chart-Daten laedt (siehe loadData unten).
+const popupVisible = ref(false)
+const CLOSE_DELAY = 250
+let closeTimer = null
+let dataInitialized = false
+
+async function onTriggerEnter() {
+  clearTimeout(closeTimer)
+  if (popupVisible.value) return
+  computeAnchorPos()
+  popupVisible.value = true
+  if (!dataInitialized) {
+    dataInitialized = true
+    audio.playBookOpen()
+    loadData()
+  } else {
+    // War schon mal offen: fullHistory ist noch da, aber der Canvas wurde beim letzten
+    // Schliessen (v-if) aus dem DOM entfernt und mit ihm die alte Chart.js-Instanz zerstoert
+    // (siehe onTriggerLeave) -- nach dem naechsten Tick (neuer Canvas im DOM) neu aufbauen.
+    await nextTick()
+    initChart()
+  }
 }
+function onTriggerLeave() {
+  closeTimer = setTimeout(() => {
+    popupVisible.value = false
+    chart?.destroy()
+    chart = null
+  }, CLOSE_DELAY)
+}
+function onPopupEnter() {
+  clearTimeout(closeTimer)
+}
+function onPopupLeave() {
+  onTriggerLeave()
+}
+
+// Fuer den Networth-Hotkey (Tastatur/Controller, siehe FarmGridView.vue) -- ohne Hover gibt es
+// kein "Maus verlaesst den Trigger"-Ereignis, das automatisch schliessen wuerde, also simple
+// Auf/Zu-Umschaltung per erneutem Tastendruck statt eines Delay-basierten Auto-Close.
+function toggle() {
+  if (popupVisible.value) {
+    clearTimeout(closeTimer)
+    popupVisible.value = false
+    chart?.destroy()
+    chart = null
+  } else {
+    onTriggerEnter()
+  }
+}
+defineExpose({ toggle })
 
 const DATASETS = [
   { key: 'netWorth',      labelKey: 'netWorthDialog.netWorthLabel', color: '#aea47e' },
@@ -364,28 +416,33 @@ async function refreshHistory() {
   }
 }
 
-onMounted(async () => {
-  audio.playBookOpen()
-  computeAnchorPos()
-  document.addEventListener('mousedown', onDocumentMousedown)
+// Lazy: erst beim ERSTEN Hover-Oeffnen laden (Popup ist jetzt dauerhaft im DOM, siehe
+// wrapRef oben, nicht mehr per v-if von aussen gemountet -- ein Datenfetch bei jedem
+// FarmGridView-Mount waere Verschwendung, wenn der Spieler nie hovert).
+async function loadData() {
   const [nwData, history] = await Promise.all([
     getNetWorth(props.steamId).catch(() => null),
     getNetWorthHistory(props.steamId).catch(() => []),
   ])
   nw.value = nwData
   fullHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+  await nextTick()
   initChart()
   historyTimer = setInterval(refreshHistory, 30_000)
-})
+}
 
 onUnmounted(() => {
   chart?.destroy()
   clearInterval(historyTimer)
-  document.removeEventListener('mousedown', onDocumentMousedown)
 })
 </script>
 
 <style scoped>
+/* Traeger fuer den Slot-Trigger (HUD-Chip) -- Layout/Groesse kommt vom Aufrufer per Klasse
+   (siehe .hud-networth-wrap in FarmGridView.vue), hier nur die Hover-Erkennung noetig,
+   analog PixelInfoPopover.vue's .pip-wrap. */
+.nw-trigger-wrap { position: relative; }
+
 .nw-box {
   width: 820px; max-width: 96vw; height: 420px;
   display: flex; flex-direction: column; overflow: hidden;

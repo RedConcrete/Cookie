@@ -861,8 +861,27 @@ spezifiziert ist:
   Net-Worth steht ohnehin schon in der "Gesamt"-Zeile der Breakdown-
   Liste). Popup dadurch kompakter: `.nw-box`-Höhe `480px`→`420px`
   (Titelleisten-Höhe abgezogen).
-
----
+  **Klick→Hover (selber Tag):** "ich will den onHover-Popup ersetzen
+  damit" — die bisherige einfache Hover-Vorschau
+  (`PixelInfoPopover`/`netWorthRows` in `FarmGridView.vue`) komplett
+  durch dieses Popup ersetzt, kein separater Klick-Dialog mehr.
+  `NetWorthDialog.vue` umgebaut zu einem selbstständigen Hover-Popup
+  (Trigger per `<slot/>`, wie `PixelInfoPopover.vue`) statt extern per
+  `dialog`-State (FarmGridView.vue) gesteuert — `wrapRef` (der Slot-
+  Wrapper) ersetzt das vorherige `anchorEl`-Prop, Grace-Delay (250ms)
+  beim Verlassen wie bei `NestedTooltip.vue`s Drain-Delay, damit die Maus
+  vom Trigger in den Popup wandern kann ohne dass er zuklappt. Chart-
+  Daten laden lazy beim ERSTEN Hover (kein Fetch bei jedem HUD-Mount).
+  **Fallstrick dabei gefunden:** Popup nutzt weiterhin `v-if`, der Canvas
+  wird also bei jedem Schließen/Öffnen neu erzeugt — die Chart.js-Instanz
+  muss deshalb bei jedem Wieder-Öffnen neu aufgebaut werden (`initChart()`
+  erneut, nicht nur beim allerersten Mal), sonst bleibt der Graph ab dem
+  zweiten Hover leer (an den alten, entfernten Canvas gebunden). Neuer
+  `toggle()` (via `defineExpose`) fürs Tastatur-/Controller-Hotkey
+  (`triggerAction('networth')` in `FarmGridView.vue`, konnte den
+  ehemaligen `dialog='networth'`-Pfad nicht mehr nutzen) — da ohne Hover
+  kein automatisches Schließen ausgelöst wird, schaltet erneutes Drücken
+  einfach wieder zu.
 
 ## 5. Build & Deployment (aus `CLAUDE.md` übernommen, weiter aktuell)
 
