@@ -276,7 +276,7 @@ function initChart() {
       }
 
       ctx.save()
-      ctx.font = 'bold 10px monospace'
+      ctx.font = 'bold 10px Silkscreen'
       ctx.textAlign = 'left'
       for (const { color, label, x, y } of items) {
         ctx.fillStyle = color
@@ -326,11 +326,11 @@ function initChart() {
               hour: 'HH:mm', day: 'dd.MM.', week: 'dd.MM.', month: 'MM.yy',
             },
           },
-          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6, maxRotation: 0, font: { family: 'Silkscreen' } },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
-          ticks: { color: '#aea47e', maxTicksLimit: 6 },
+          ticks: { color: '#aea47e', maxTicksLimit: 6, font: { family: 'Silkscreen' } },
           grid:  { color: 'rgba(255,255,255,0.06)' },
         },
       },
@@ -474,5 +474,8 @@ onUnmounted(() => {
 }
 .pct-btn:hover { color: var(--px-ink-txt); background: #fff1a9; }
 
-.chart-wrap { flex: 1; min-height: 0; position: relative; }
+/* Padding, damit die Y-Achsen-Ticks (z.B. "53") nicht direkt am Rand kleben und
+   abgeschnitten wirken -- .mv-chart-box im Markt-Dialog hat aus demselben Grund
+   padding:14px, hier gab es bisher gar keins. */
+.chart-wrap { flex: 1; min-height: 0; position: relative; padding: 4px 8px 4px 2px; box-sizing: border-box; }
 </style>

@@ -841,6 +841,18 @@ spezifiziert ist:
   eine neue `netWorthBtnEl`-Ref + `:anchorEl`-Prop-Weitergabe — diese
   Datei ist mit paralleler Arbeit vermischt, Änderung liegt unkommitiert
   im Arbeitsverzeichnis (siehe Commit-Notiz).
+  **Font-Nachzug (selber Tag):** Achsen-Ticks (`ticks.font.family`) und
+  das Tip-Label-Canvas-Plugin (`ctx.font`) liefen noch auf generischem
+  `monospace`/Browser-Default statt `Silkscreen` wie überall sonst im
+  Spiel — `PriceChart.vue` hatte das schon korrekt (`font:{family:
+  'Silkscreen'}` auf beiden Achsen, `'bold 10px Silkscreen'` fürs
+  Canvas-Plugin), auf `NetWorthDialog.vue` übernommen.
+  **Achsen-Clipping (selber Tag):** Y-Achsen-Ticks (z. B. "53") klebten
+  direkt am Rand und wirkten abgeschnitten — `.chart-wrap` hatte anders
+  als Markt's `.mv-chart-box` (`padding:14px`) gar kein Padding um den
+  Canvas. `padding:4px 8px 4px 2px` ergänzt, Canvas schrumpft dadurch
+  korrekt nach innen (Chart.js liest `clientWidth`/`clientHeight` des
+  Eltern-Containers), Ticks haben jetzt Luft zum Rand.
 
 ---
 
