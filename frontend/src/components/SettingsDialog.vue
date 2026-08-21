@@ -259,7 +259,7 @@ function exitGame() {
 </script>
 
 <style scoped>
-.sd-box { width: 420px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.sd-box { width: 470px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
 .sd-scroll { flex: 1 1 auto; min-height: 0; }
 .sd-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 
@@ -275,7 +275,7 @@ function exitGame() {
 }
 
 .sd-slider-row { display: flex; align-items: center; gap: 10px; }
-.sd-slider-label { width: 168px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sd-slider-label { width: 190px; flex-shrink: 0; font-size: 15px; color: var(--px-ink-txt); display: flex; align-items: center; gap: 6px; }
 .sd-mute { position: relative; background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; }
 .sd-skip {
   position: relative; flex-shrink: 0;

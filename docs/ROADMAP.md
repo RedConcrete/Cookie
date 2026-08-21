@@ -318,6 +318,16 @@ spezifiziert ist:
   Flexbox-Bug (`<input type=range>` ohne `min-width:0`) über den
   Dialogrand hinaus — beides behoben, bevor der Button durch den
   Musik-Player-Bereich ersetzt wurde.
+- [x] **Einstellungen: "Controller-Zoom-Geschwindigkeit"-Label überlappte
+  den Regler (2026-08-21).** `.sd-slider-label` war fest `168px` +
+  `white-space:nowrap` — passte für kurze Labels ("Musik", "Speed"), aber
+  die längeren Kamera-Labels ("Zoom-Geschwindigkeit (Controller)" DE,
+  "Controller zoom speed" EN) liefen über die 168px hinaus und ohne
+  `overflow:hidden` sichtbar in den Slider rein statt abgeschnitten zu
+  werden. **Fix:** Label-Spalte auf `190px` verbreitert, `nowrap`
+  entfernt (bricht jetzt bei Bedarf zweizeilig um statt zu überlappen),
+  Dialog selbst um 50px breiter (`420px`→`470px`, wie gewünscht) für mehr
+  Luft insgesamt.
 - [x] **Prestige-UI entfernt (2026-08-06).** Dialog blieb bei Live-Tests dauerhaft
   im Lade-Zustand hängen — DevTools-Network zeigte aber einen sauberen 200-OK-
   Request mit korrektem JSON-Body, Backend (`PrestigeService`/`GameController`)
