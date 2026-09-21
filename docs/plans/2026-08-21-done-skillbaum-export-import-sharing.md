@@ -1,6 +1,6 @@
 # ✅ Skill-Baum: Dev-Export/Import + Spieler-Build-Sharing
 
-> **Status:** ✅ Umgesetzt (2026-09-02) — beide Features implementiert, noch nicht
+> **Status:** ✅ Umgesetzt (2026-09-02, `ba9bfd1`) — beide Features implementiert, noch nicht
 > live gegen einen laufenden Server getestet (kein Java/Vite-Toolchain in dieser
 > Session verfügbar).
 

@@ -3,7 +3,7 @@ package cookie.server.dto;
 import java.util.List;
 
 // Spieler-Build-Code, clientseitig aus BuildShareDialog.vue decodiert -- siehe
-// docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 2.
+// docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md, Feature 2.
 public class ImportBuildRequestDto {
     private List<String> nodeIds;
 

@@ -733,7 +733,7 @@ public class SkillTreeService {
 
     // ── Dev-Baum-Export/Import ───────────────────────────────────────
     // Ersetzt den KOMPLETTEN Baum (nicht upsert-missing wie seedTree()) -- siehe
-    // docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 1.
+    // docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md, Feature 1.
 
     public SkillTreeExportDto exportTree() {
         SkillTreeExportDto dto = new SkillTreeExportDto();
@@ -858,7 +858,7 @@ public class SkillTreeService {
 
     // ── Spieler-Build-Sharing (Import) ──────────────────────────────
     // Export ist reiner Frontend-Vorgang (siehe BuildShareDialog.vue) -- kein Server-Roundtrip.
-    // Siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 2.
+    // Siehe docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md, Feature 2.
 
     // Alle Knoten, die von root aus im Ziel-Set erreichbar sind (inkl. requiresAllPrereqs-AND-
     // Semantik), liefert die IDs zurueck, die es NICHT sind -- generalisiert die

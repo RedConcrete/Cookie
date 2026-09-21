@@ -357,7 +357,7 @@ async function repairTree() {
   }
 }
 
-// ── Dev-Baum-Export/Import (siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md,
+// ── Dev-Baum-Export/Import (siehe docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md,
 // Feature 1) -- Ersatz fuers Live-Rumklicken: kompletter Baum als JSON runterladen, lokal
 // bearbeiten, vor Season-Start wieder hochladen. Ersetzt serverseitig den GESAMTEN Baum.
 async function exportTree() {

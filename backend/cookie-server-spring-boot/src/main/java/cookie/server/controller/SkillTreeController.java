@@ -43,7 +43,7 @@ public class SkillTreeController {
     }
 
     // Spieler-Build-Sharing (Feature 2, siehe
-    // docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md): dryRun=true berechnet nur
+    // docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md): dryRun=true berechnet nur
     // Diff+Kosten (Vorschau vor der eigentlichen Bestaetigung), ohne etwas zu aendern.
     @PostMapping("/import-build/{userId}")
     public ResponseEntity<ImportBuildResultDto> importBuild(

@@ -4,7 +4,7 @@ import java.util.List;
 
 // Antwort auf POST /api/v1/skilltree/import-build/{userId} -- sowohl fuer den Dry-Run
 // (Vorschau, nichts geaendert) als auch den echten Import (Diff bereits angewendet).
-// Siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 2.
+// Siehe docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md, Feature 2.
 public class ImportBuildResultDto {
     private boolean dryRun;
     private List<String> unknownNodeIds;

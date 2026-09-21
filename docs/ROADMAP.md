@@ -673,7 +673,7 @@ spezifiziert ist:
     Export-/Import-Buttons in `SkillTreeAdminDialog.vue` mit Diff-
     Bestätigungsdialog vor dem eigentlichen Import. Noch nicht live gegen
     einen laufenden Server getestet. Details:
-    `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
+    `docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md`.
   - [x] **Spieler-Builds als Code teilen/importieren (2026-09-02).** Export
     ist reiner Frontend-Vorgang (Base64-JSON aus den bereits alloziierten
     Node-IDs). Import: `POST /skilltree/import-build/{userId}?dryRun=…`,
@@ -684,7 +684,7 @@ spezifiziert ist:
     Anwendung (`BuildShareDialog.vue`, gleicher Bestätigungs-Schutz wie
     `HardResetDialog`). Noch nicht live gegen einen laufenden Server
     getestet. Details:
-    `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
+    `docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md`.
   - [x] **Nodes klonen (2026-08-19).** Neuer "Klonen"-Button im Info-Panel
     (neben "Knoten löschen"), fragt neue ID per Prompt ab, übernimmt Name/
     Branch/Tier/Effekte (tiefe Kopie) der Quell-Node mit `+40/+40`

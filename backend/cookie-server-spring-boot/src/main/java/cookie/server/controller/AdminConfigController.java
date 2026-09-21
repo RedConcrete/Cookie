@@ -287,7 +287,7 @@ public class AdminConfigController {
     }
 
     // Voller Baum-Snapshot fuers lokale Bearbeiten (Ersatz fuers Live-Rumklicken im
-    // Node-Editor) -- siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md.
+    // Node-Editor) -- siehe docs/plans/2026-08-21-done-skillbaum-export-import-sharing.md.
     @GetMapping("/skilltree/export")
     public ResponseEntity<?> exportSkillTree(
             @RequestHeader(value = "X-Admin-Token", required = false) String token) {
