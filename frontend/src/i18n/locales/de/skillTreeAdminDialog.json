@@ -34,5 +34,11 @@
   "repairLabel": "Reparieren",
   "autoRepairNotice": "{count} abgeschnittene Allokation(en) automatisch repariert",
   "repairNotice": "{count} abgeschnittene Allokation(en) repariert",
-  "repairNothingNotice": "Nichts zu reparieren, Baum ist konsistent"
+  "repairNothingNotice": "Nichts zu reparieren, Baum ist konsistent",
+  "exportLabel": "Baum exportieren",
+  "importLabel": "Baum importieren",
+  "exportedNotice": "Baum exportiert",
+  "importInvalidJsonNotice": "Ungültige JSON-Datei",
+  "importDiffSummary": "{added} neu, {changed} geändert, {removed} entfernt (Knoten) · {edgesAdded} neu, {edgesRemoved} entfernt (Kanten). Ersetzt den kompletten Baum!",
+  "importedNotice": "Baum importiert ({nodes} Knoten, {edges} Kanten)"
 }

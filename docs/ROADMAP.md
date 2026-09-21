@@ -665,23 +665,26 @@ spezifiziert ist:
     `docs/plans/2026-08-13-done-skillbaum-admin-nodes-crud.md`.
     **Live-DB-Test steht noch aus** (Sandbox ohne Postgres-Zugriff) — vor
     dem nächsten Einsatz einmal mit laufendem Dev-Stack durchklicken.
-  - [ ] **Ganzen Baum als JSON exportieren/importieren** — damit sich ein
-    Skill-Baum für die nächste Season vorab (lokal, ohne Live-Server)
-    planen und danach vor Season-Start auf den Server hochladen lässt,
-    statt live am Produktiv-Baum rumzuklicken. Export: ein Endpoint, der
-    alle Nodes+Edges als ein JSON-Dokument liefert (Snapshot). Import:
-    Gegenstück, das dieses JSON in `skill_nodes`/`skill_edges` einspielt
-    (vermutlich: vorhandene Zeilen ersetzen statt nur upsert-missing wie
-    `seedTree()`, sonst kommen alte Nodes nie raus — braucht eigene
-    Transaktion/Validierung, nicht einfach `seedTree()` wiederverwenden).
-    Passt zeitlich am besten neben den Season-Reset-Admin-Endpoint (siehe
-    `docs/cookie-game-design.md` Abschnitt 9). Plan:
+  - [x] **Ganzen Baum als JSON exportieren/importieren (2026-09-02).** Export:
+    `GET /admin/skilltree/export` liefert Nodes+Edges als Snapshot. Import:
+    `POST /admin/skilltree/import` ersetzt den kompletten Baum (nicht
+    upsert-missing wie `seedTree()`), validiert vorher komplett (alle
+    Fehler auf einmal), räumt `player_skill_nodes` mit auf. Frontend:
+    Export-/Import-Buttons in `SkillTreeAdminDialog.vue` mit Diff-
+    Bestätigungsdialog vor dem eigentlichen Import. Noch nicht live gegen
+    einen laufenden Server getestet. Details:
     `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
-  - [ ] **Spieler-Builds als Code teilen/importieren** — eigene Node-
-    Allokation (nicht die Baum-Struktur) als Code exportieren, andere
-    Spieler importieren ihn für denselben Build. Braucht Server-Validierung
-    (nie Client-Node-IDs vertrauen) + Kosten-Modell-Entscheidung fürs Bulk-
-    Respec. Plan: `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
+  - [x] **Spieler-Builds als Code teilen/importieren (2026-09-02).** Export
+    ist reiner Frontend-Vorgang (Base64-JSON aus den bereits alloziierten
+    Node-IDs). Import: `POST /skilltree/import-build/{userId}?dryRun=…`,
+    volle Server-Validierung (Konnektivität inkl. `requiresAllPrereqs`,
+    unbekannte Node-IDs tolerant behandelt statt hart abgelehnt), Kosten =
+    Respec-Flat-Kosten pro entfernter Node + normale Skillpunkt-Kaufkurve
+    für tatsächlich neu gekaufte Punkte. Dry-Run-Vorschau vor jeder echten
+    Anwendung (`BuildShareDialog.vue`, gleicher Bestätigungs-Schutz wie
+    `HardResetDialog`). Noch nicht live gegen einen laufenden Server
+    getestet. Details:
+    `docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md`.
   - [x] **Nodes klonen (2026-08-19).** Neuer "Klonen"-Button im Info-Panel
     (neben "Knoten löschen"), fragt neue ID per Prompt ab, übernimmt Name/
     Branch/Tier/Effekte (tiefe Kopie) der Quell-Node mit `+40/+40`

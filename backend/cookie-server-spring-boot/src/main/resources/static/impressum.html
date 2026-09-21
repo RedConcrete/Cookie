@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum — Cookie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #F5EDD6;
+    --surface:     #FFFBF0;
+    --surface2:    #EDE0C0;
+    --accent:      #C97B2A;
+    --accent-dk:   #8d4a17;
+    --text:        #3D2B1F;
+    --text-muted:  #8B6E52;
+    --border:      #D4B87A;
+    --ink:         #100b07;
+    --wood:        #33261a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Silkscreen', monospace;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+  }
+  .app-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #6B4F2A 0%, #4A7C2F 100%);
+    border-bottom: 3px solid var(--border);
+  }
+  .app-header .cookie-emoji { font-size: 22px; }
+  .app-header h2 { color: #F5EDD6; font-size: 16px; letter-spacing: 0.02em; }
+  .panel {
+    margin-top: 76px;
+    margin-bottom: 24px;
+    max-width: 640px;
+    width: 100%;
+    background: var(--surface);
+    border: 4px solid var(--ink);
+    box-shadow: 0 10px 0 rgba(0,0,0,.35);
+  }
+  .panel-titlebar {
+    padding: 12px 18px;
+    background: var(--wood);
+    border-bottom: 4px solid var(--ink);
+    color: var(--bg);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .panel-body {
+    padding: 28px;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .panel-body h1 {
+    font-family: 'Silkscreen', monospace;
+    color: var(--accent);
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+  .panel-body h2 {
+    font-family: 'Silkscreen', monospace;
+    color: var(--accent-dk);
+    font-size: 13px;
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+  .panel-body p { margin-bottom: 8px; }
+  .panel-body a { color: var(--accent-dk); }
+  .todo {
+    background: #fff3cd;
+    border: 2px dashed var(--accent-dk);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'Silkscreen', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+  <div class="app-header">
+    <span class="cookie-emoji">🍪</span>
+    <h2>COOKIE</h2>
+  </div>
+  <div class="panel">
+    <div class="panel-titlebar">IMPRESSUM</div>
+    <div class="panel-body">
+      <h1>Impressum</h1>
+
+      <div class="todo">
+        TODO vor Live-Schaltung ausfüllen: echte, ladungsfähige Anschrift
+        eintragen (kein reines Postfach — dazu ggf. einen kommerziellen
+        Impressum-Adress-/Virtual-Office-Dienst nutzen). Diese Seite ist
+        erst rechtssicher, wenn alle Platzhalter ersetzt sind.
+      </div>
+
+      <h2>Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)</h2>
+      <p>
+        [TODO: Vor- und Nachname bzw. Firmenname]<br>
+        [TODO: Straße und Hausnummer]<br>
+        [TODO: Postleitzahl und Ort]<br>
+        [TODO: Land]
+      </p>
+
+      <h2>Kontakt</h2>
+      <p>
+        E-Mail: [TODO: Kontakt-E-Mail-Adresse]<br>
+        Telefon: [TODO: optional]
+      </p>
+
+      <h2>Umsatzsteuer-ID</h2>
+      <p>[TODO: falls vorhanden — Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG; sonst diesen Abschnitt entfernen]</p>
+
+      <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+      <p>[TODO: Name und Anschrift wie oben, falls abweichend]</p>
+
+      <h2>Streitschlichtung</h2>
+      <p>
+        Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS)
+        bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr/</a>.
+        Wir sind nicht verpflichtet und nicht bereit, an einem Streitbeilegungsverfahren
+        vor einer Verbraucherschlichtungsstelle teilzunehmen.
+      </p>
+
+      <a class="back-link" href="/">&larr; zurück</a>
+    </div>
+  </div>
+</body>
+</html>

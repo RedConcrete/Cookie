@@ -21,6 +21,7 @@
   "respecLabel": "Zurücksetzen",
   "respecModeLabel": "Zurücksetzen",
   "respecModeHint": "Knoten anklicken zum Markieren, dann bestätigen",
+  "buildShareLabel": "Build teilen",
   "respecMarkHint": "Klicken zum Markieren",
   "respecUnmarkHint": "Klicken zum Abwählen",
   "respecSelectedCount": "{count} markiert",

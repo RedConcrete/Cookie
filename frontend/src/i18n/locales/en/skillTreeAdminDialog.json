@@ -34,5 +34,11 @@
   "repairLabel": "Repair",
   "autoRepairNotice": "Auto-repaired {count} disconnected allocation(s)",
   "repairNotice": "Repaired {count} disconnected allocation(s)",
-  "repairNothingNotice": "Nothing to repair, tree is consistent"
+  "repairNothingNotice": "Nothing to repair, tree is consistent",
+  "exportLabel": "Export tree",
+  "importLabel": "Import tree",
+  "exportedNotice": "Tree exported",
+  "importInvalidJsonNotice": "Invalid JSON file",
+  "importDiffSummary": "{added} new, {changed} changed, {removed} removed (nodes) · {edgesAdded} new, {edgesRemoved} removed (edges). Replaces the entire tree!",
+  "importedNotice": "Tree imported ({nodes} nodes, {edges} edges)"
 }

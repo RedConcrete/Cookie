@@ -1,0 +1,20 @@
+{
+  "title": "SHARE BUILD",
+  "tabExport": "Export",
+  "tabImport": "Import",
+  "copyLabel": "Copy code",
+  "copiedNotice": "Code copied",
+  "copyFailedNotice": "Copy failed",
+  "exportMeta": "Season {season} · by {author}",
+  "importPlaceholder": "Paste build code here…",
+  "importMeta": "Season {season} · by {author}",
+  "invalidCodeNotice": "Invalid build code",
+  "noSeason": "unknown",
+  "anonymous": "Anonymous",
+  "previewLabel": "Preview",
+  "unknownNodesWarning": "{count} node(s) from this code no longer exist, the rest was applied",
+  "previewDiff": "{added} new, {removed} removed",
+  "previewCost": "Cost",
+  "applyLabel": "Apply",
+  "appliedNotice": "Build applied ({added} new, {removed} removed)"
+}

@@ -100,6 +100,9 @@
             :class="{ 'px-btn-accent': respecMode }"
             @click="toggleRespecMode"
           ><ShortcutSlot />{{ t('skillTreeView.respecModeLabel') }}</button>
+          <button class="px-btn" @click="buildShareOpen = true">
+            <ShortcutSlot />{{ t('skillTreeView.buildShareLabel') }}
+          </button>
           <div v-if="respecMode" class="stv-hint">{{ t('skillTreeView.respecModeHint') }}</div>
         </div>
 
@@ -153,6 +156,8 @@
           </div>
         </div>
       </div>
+
+      <BuildShareDialog v-if="buildShareOpen" @close="buildShareOpen = false" />
     </template>
   </div>
 </template>
@@ -170,6 +175,7 @@ import LoadingIndicator from './pixel/LoadingIndicator.vue'
 import PixelInfoPopover from './pixel/PixelInfoPopover.vue'
 import PixelIcon from './pixel/PixelIcon.vue'
 import ShortcutSlot from './pixel/ShortcutSlot.vue'
+import BuildShareDialog from './BuildShareDialog.vue'
 
 const { t, locale } = useI18n()
 const playerStore = usePlayerStore()
@@ -181,6 +187,7 @@ const respeccing  = ref(false)
 const notice      = ref('')
 const noticeError = ref(false)
 const buyDialogOpen = ref(false)
+const buildShareOpen = ref(false)
 
 // Respec-Modus: Toggle wie "Verbinden" im Admin-Editor (SkillTreeAdminDialog.vue) --
 // solange aktiv, waehlt ein Klick auf einen freigeschalteten Knoten ihn nur zur

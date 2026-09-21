@@ -10,6 +10,9 @@ public class SkillTreeDto {
     private double totalSkillPointCookiesSpent;
     private double nextPointCost;
     private double respecCostFlat;
+    // Fuer Build-Share-Codes (siehe BuildShareDialog.vue) -- reine Anzeige, nie serverseitig
+    // validiert. Null wenn gerade keine Season aktiv ist (siehe SeasonRepository#findByActiveTrue).
+    private String activeSeasonName;
 
     public List<SkillNodeStatusDto> getNodes() { return nodes; }
     public void setNodes(List<SkillNodeStatusDto> nodes) { this.nodes = nodes; }
@@ -31,4 +34,7 @@ public class SkillTreeDto {
 
     public double getRespecCostFlat() { return respecCostFlat; }
     public void setRespecCostFlat(double respecCostFlat) { this.respecCostFlat = respecCostFlat; }
+
+    public String getActiveSeasonName() { return activeSeasonName; }
+    public void setActiveSeasonName(String activeSeasonName) { this.activeSeasonName = activeSeasonName; }
 }

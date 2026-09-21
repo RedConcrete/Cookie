@@ -1,6 +1,8 @@
 package cookie.server.controller;
 
 import cookie.server.dto.AllocateNodeRequestDto;
+import cookie.server.dto.ImportBuildRequestDto;
+import cookie.server.dto.ImportBuildResultDto;
 import cookie.server.dto.SkillTreeDto;
 import cookie.server.service.SkillTreeService;
 import org.springframework.http.ResponseEntity;
@@ -38,5 +40,16 @@ public class SkillTreeController {
             @PathVariable String userId,
             @RequestBody AllocateNodeRequestDto request) {
         return ResponseEntity.ok(skillTreeService.deallocateNode(userId, request.getNodeId()));
+    }
+
+    // Spieler-Build-Sharing (Feature 2, siehe
+    // docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md): dryRun=true berechnet nur
+    // Diff+Kosten (Vorschau vor der eigentlichen Bestaetigung), ohne etwas zu aendern.
+    @PostMapping("/import-build/{userId}")
+    public ResponseEntity<ImportBuildResultDto> importBuild(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "false") boolean dryRun,
+            @RequestBody ImportBuildRequestDto request) {
+        return ResponseEntity.ok(skillTreeService.importBuild(userId, request.getNodeIds(), dryRun));
     }
 }

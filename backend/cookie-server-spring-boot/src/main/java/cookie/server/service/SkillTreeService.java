@@ -5,7 +5,10 @@ import cookie.server.dto.SkillEdgeDto;
 import cookie.server.dto.SkillEffectDto;
 import cookie.server.dto.SkillNodeStatusDto;
 import cookie.server.dto.SkillTreeDto;
+import cookie.server.dto.ImportBuildResultDto;
+import cookie.server.dto.SkillTreeExportDto;
 import cookie.server.entity.PlayerSkillNodeEntity;
+import cookie.server.entity.SeasonEntity;
 import cookie.server.entity.SkillEdgeEntity;
 import cookie.server.entity.SkillNodeEffectEntity;
 import cookie.server.entity.SkillNodeEntity;
@@ -13,6 +16,7 @@ import cookie.server.entity.UserEntity;
 import cookie.server.enums.EffectType;
 import cookie.server.enums.NodeTier;
 import cookie.server.repository.PlayerSkillNodeRepository;
+import cookie.server.repository.SeasonRepository;
 import cookie.server.repository.SkillEdgeRepository;
 import cookie.server.repository.SkillNodeRepository;
 import cookie.server.repository.UserRepository;
@@ -40,6 +44,7 @@ public class SkillTreeService {
     private final SkillEdgeRepository skillEdgeRepository;
     private final PlayerSkillNodeRepository playerSkillNodeRepository;
     private final UserRepository userRepository;
+    private final SeasonRepository seasonRepository;
     private final GameBalanceConfig balance;
 
     // Alle Knoten im Speicher gecacht -- wird bei jedem Effekt-Lookup (Ernte/Backen/Markt)
@@ -55,11 +60,13 @@ public class SkillTreeService {
                             SkillEdgeRepository skillEdgeRepository,
                             PlayerSkillNodeRepository playerSkillNodeRepository,
                             UserRepository userRepository,
+                            SeasonRepository seasonRepository,
                             GameBalanceConfig balance) {
         this.skillNodeRepository = skillNodeRepository;
         this.skillEdgeRepository = skillEdgeRepository;
         this.playerSkillNodeRepository = playerSkillNodeRepository;
         this.userRepository = userRepository;
+        this.seasonRepository = seasonRepository;
         this.balance = balance;
     }
 
@@ -724,6 +731,84 @@ public class SkillTreeService {
         return repaired;
     }
 
+    // ── Dev-Baum-Export/Import ───────────────────────────────────────
+    // Ersetzt den KOMPLETTEN Baum (nicht upsert-missing wie seedTree()) -- siehe
+    // docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 1.
+
+    public SkillTreeExportDto exportTree() {
+        SkillTreeExportDto dto = new SkillTreeExportDto();
+        dto.setNodes(skillNodeRepository.findAll());
+        dto.setEdges(skillEdgeRepository.findAll());
+        return dto;
+    }
+
+    // Reine Struktur-Validierung, kein DB-Write -- sammelt ALLE Fehler statt beim ersten
+    // abzubrechen, damit der Admin-Editor eine vollstaendige Fehlerliste anzeigen kann.
+    public List<String> validateTreeImport(List<SkillNodeEntity> nodes, List<SkillEdgeEntity> edges) {
+        List<String> errors = new ArrayList<>();
+        if (nodes == null || nodes.isEmpty()) {
+            errors.add("nodes darf nicht leer sein");
+            return errors;
+        }
+        Set<String> nodeIds = new HashSet<>();
+        int rootCount = 0;
+        for (SkillNodeEntity n : nodes) {
+            if (n.getId() == null || n.getId().isBlank()) {
+                errors.add("Node ohne gueltige id");
+                continue;
+            }
+            if (!nodeIds.add(n.getId())) {
+                errors.add("Doppelte Node-id: " + n.getId());
+            }
+            if (n.isRoot()) rootCount++;
+            List<SkillNodeEffectEntity> effects = n.getEffects() != null ? n.getEffects() : List.of();
+            for (SkillNodeEffectEntity e : effects) {
+                try {
+                    EffectType.valueOf(e.getEffectType());
+                } catch (IllegalArgumentException | NullPointerException ex) {
+                    errors.add("Node " + n.getId() + ": unbekannter effectType " + e.getEffectType());
+                }
+            }
+        }
+        if (rootCount != 1) {
+            errors.add("Es muss genau eine Node mit isRoot=true geben, gefunden: " + rootCount);
+        }
+        if (edges != null) {
+            for (SkillEdgeEntity e : edges) {
+                if (!nodeIds.contains(e.getFromNode())) {
+                    errors.add("Edge " + e.getId() + ": fromNode " + e.getFromNode() + " existiert nicht in nodes");
+                }
+                if (!nodeIds.contains(e.getToNode())) {
+                    errors.add("Edge " + e.getId() + ": toNode " + e.getToNode() + " existiert nicht in nodes");
+                }
+            }
+        }
+        return errors;
+    }
+
+    // Aufrufer MUSS vorher validateTreeImport() aufrufen -- diese Methode geht von bereits
+    // validierten Daten aus. player_skill_nodes wird komplett geleert (kein DB-FK auf
+    // skill_nodes.id, siehe PlayerSkillNodeEntity) -- ein Import waehrend einer laufenden
+    // Season darf keine kaputten Spielerstaende (Zeiger auf nicht mehr existierende Nodes)
+    // hinterlassen, siehe Plan.
+    @Transactional
+    public void importTree(List<SkillNodeEntity> nodes, List<SkillEdgeEntity> edges) {
+        skillEdgeRepository.deleteAll();
+        skillNodeRepository.deleteAll();
+        playerSkillNodeRepository.deleteAll();
+
+        for (SkillNodeEntity n : nodes) {
+            if (n.getEffects() == null) n.setEffects(new ArrayList<>());
+            for (SkillNodeEffectEntity e : n.getEffects()) {
+                e.setId(null);
+            }
+        }
+        skillNodeRepository.saveAll(nodes);
+        if (edges != null) skillEdgeRepository.saveAll(edges);
+
+        refreshCache();
+    }
+
     // ── Status-DTO ───────────────────────────────────────────────────
 
     public SkillTreeDto getTreeStatus(String userId) {
@@ -767,6 +852,129 @@ public class SkillTreeService {
         dto.setTotalSkillPointCookiesSpent(user.getTotalSkillPointCookiesSpent());
         dto.setNextPointCost(nextPointCost(user.getTotalSkillPointsBought()));
         dto.setRespecCostFlat(balance.getRespecCostFlat());
+        dto.setActiveSeasonName(seasonRepository.findByActiveTrue().map(SeasonEntity::getName).orElse(null));
+        return dto;
+    }
+
+    // ── Spieler-Build-Sharing (Import) ──────────────────────────────
+    // Export ist reiner Frontend-Vorgang (siehe BuildShareDialog.vue) -- kein Server-Roundtrip.
+    // Siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md, Feature 2.
+
+    // Alle Knoten, die von root aus im Ziel-Set erreichbar sind (inkl. requiresAllPrereqs-AND-
+    // Semantik), liefert die IDs zurueck, die es NICHT sind -- generalisiert die
+    // deallocateNode()-Pruefung (dort: "aktuell alloziert minus ein Knoten") auf ein beliebiges
+    // Ziel-Set (hier: kompletter gewuenschter Build, unabhaengig vom aktuellen Spielerstand).
+    private Set<String> unreachableInTargetSet(Set<String> targetSet, List<SkillEdgeEntity> allEdges) {
+        Set<String> reachable = reachableFromRoot(targetSet, allEdges);
+        Set<String> unreachable = new HashSet<>();
+        for (String id : targetSet) {
+            if (id.equals(ROOT_ID)) continue;
+            if (!reachable.contains(id)) {
+                unreachable.add(id);
+                continue;
+            }
+            SkillNodeEntity node = nodeCache.get(id);
+            if (node != null && node.isRequiresAllPrereqs()) {
+                boolean allPrereqsInTarget = allEdges.stream()
+                        .filter(e -> e.getToNode().equals(id))
+                        .allMatch(e -> targetSet.contains(e.getFromNode()));
+                if (!allPrereqsInTarget) unreachable.add(id);
+            }
+        }
+        return unreachable;
+    }
+
+    // dryRun=true: nur Diff+Kosten berechnen, nichts aendern. Ungueltige Ziel-Struktur (nicht
+    // durchgehend von root erreichbar) wird in BEIDEN Modi hart abgelehnt (Exception -> 400,
+    // siehe GlobalExceptionHandler) -- ein Preview fuer einen kaputten Build waere nutzlos.
+    // Zu wenig Cookies dagegen blockt NUR den echten Import (siehe Abschnitt weiter unten) --
+    // der Dry-Run liefert stattdessen canAfford=false, damit die Vorschau im Frontend trotzdem
+    // normal anzeigt "kostet X, du hast aber nur Y" statt als Fehler zu erscheinen.
+    @Transactional
+    public ImportBuildResultDto importBuild(String userId, List<String> nodeIdsRaw, boolean dryRun) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+        List<String> requested = nodeIdsRaw != null ? nodeIdsRaw : List.of();
+
+        Set<String> knownIds = nodeCache.keySet();
+        List<String> unknownNodeIds = requested.stream().filter(id -> !knownIds.contains(id)).distinct().toList();
+
+        Set<String> targetSet = new HashSet<>(requested.stream().filter(knownIds::contains).toList());
+        targetSet.add(ROOT_ID);
+
+        List<SkillEdgeEntity> allEdges = skillEdgeRepository.findAll();
+        Set<String> unreachable = unreachableInTargetSet(targetSet, allEdges);
+        if (!unreachable.isEmpty()) {
+            throw new IllegalStateException(
+                    "Build-Code ist nicht gueltig verbunden, Import abgelehnt -- nicht erreichbar: "
+                            + String.join(", ", unreachable));
+        }
+
+        Set<String> currentAllocated = allocatedNodeIds(userId);
+        Set<String> toRemove = new HashSet<>(currentAllocated);
+        toRemove.removeAll(targetSet);
+        Set<String> toAdd = new HashSet<>(targetSet);
+        toAdd.removeAll(currentAllocated);
+
+        double respecCost = toRemove.size() * balance.getRespecCostFlat();
+        int pointsRefunded = toRemove.size();
+        int poolBeforeBuy = user.getSkillPoints() + pointsRefunded;
+        int pointsToBuy = Math.max(0, toAdd.size() - poolBeforeBuy);
+
+        double pointsCost = 0;
+        int totalBoughtSoFar = user.getTotalSkillPointsBought();
+        for (int i = 0; i < pointsToBuy; i++) {
+            pointsCost += nextPointCost(totalBoughtSoFar + i);
+        }
+        double totalCost = respecCost + pointsCost;
+        boolean canAfford = user.getCookies() >= totalCost;
+
+        if (dryRun) {
+            return importResult(true, unknownNodeIds, toAdd.size(), toRemove.size(), pointsRefunded,
+                    pointsToBuy, respecCost, pointsCost, totalCost, canAfford, getTreeStatus(userId));
+        }
+
+        if (!canAfford) {
+            throw new IllegalArgumentException(
+                    "Nicht genug Cookies fuer Import. Brauche " + totalCost + ", habe " + user.getCookies());
+        }
+
+        for (String nodeId : toRemove) {
+            playerSkillNodeRepository.deleteById(userId + "#" + nodeId);
+        }
+        for (String nodeId : toAdd) {
+            PlayerSkillNodeEntity pn = new PlayerSkillNodeEntity();
+            pn.setId(userId + "#" + nodeId);
+            pn.setUserId(userId);
+            pn.setNodeId(nodeId);
+            playerSkillNodeRepository.save(pn);
+        }
+
+        user.setCookies(user.getCookies() - totalCost);
+        user.setSkillPoints(poolBeforeBuy + pointsToBuy - toAdd.size());
+        user.setTotalSkillPointsBought(user.getTotalSkillPointsBought() + pointsToBuy);
+        user.setTotalSkillPointCookiesSpent(user.getTotalSkillPointCookiesSpent() + pointsCost);
+        userRepository.save(user);
+
+        return importResult(false, unknownNodeIds, toAdd.size(), toRemove.size(), pointsRefunded,
+                pointsToBuy, respecCost, pointsCost, totalCost, canAfford, getTreeStatus(userId));
+    }
+
+    private ImportBuildResultDto importResult(boolean dryRun, List<String> unknownNodeIds, int nodesAdded,
+            int nodesRemoved, int pointsRefunded, int pointsBought, double respecCost, double pointsCost,
+            double totalCost, boolean canAfford, SkillTreeDto tree) {
+        ImportBuildResultDto dto = new ImportBuildResultDto();
+        dto.setDryRun(dryRun);
+        dto.setUnknownNodeIds(unknownNodeIds);
+        dto.setNodesAdded(nodesAdded);
+        dto.setNodesRemoved(nodesRemoved);
+        dto.setPointsRefunded(pointsRefunded);
+        dto.setPointsBought(pointsBought);
+        dto.setRespecCost(respecCost);
+        dto.setPointsCost(pointsCost);
+        dto.setTotalCost(totalCost);
+        dto.setCanAfford(canAfford);
+        dto.setTree(tree);
         return dto;
     }
 }

@@ -21,6 +21,7 @@
   "respecLabel": "Respec",
   "respecModeLabel": "Respec",
   "respecModeHint": "Click nodes to mark them, then confirm",
+  "buildShareLabel": "Share build",
   "respecMarkHint": "Click to mark",
   "respecUnmarkHint": "Click to unmark",
   "respecSelectedCount": "{count} marked",

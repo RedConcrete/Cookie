@@ -3,6 +3,7 @@ package cookie.server.controller;
 import cookie.server.config.AppConfig;
 import cookie.server.config.GameBalanceConfig;
 import cookie.server.config.MarketConfig;
+import cookie.server.dto.SkillTreeExportDto;
 import cookie.server.entity.RecipeEntity;
 import cookie.server.entity.SkillEdgeEntity;
 import cookie.server.entity.SkillNodeEffectEntity;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -282,6 +284,32 @@ public class AdminConfigController {
         if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
         int repaired = skillTreeService.repairDisconnectedAllocations();
         return ResponseEntity.ok(Map.of("repairedAllocations", repaired));
+    }
+
+    // Voller Baum-Snapshot fuers lokale Bearbeiten (Ersatz fuers Live-Rumklicken im
+    // Node-Editor) -- siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md.
+    @GetMapping("/skilltree/export")
+    public ResponseEntity<?> exportSkillTree(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        return ResponseEntity.ok(skillTreeService.exportTree());
+    }
+
+    // Ersetzt den KOMPLETTEN Baum, kein Upsert -- siehe SkillTreeService#importTree(). Leert
+    // dabei auch player_skill_nodes (kein DB-FK auf skill_nodes.id), damit ein Import waehrend
+    // einer laufenden Season keine kaputten Spielerstaende hinterlaesst.
+    @PostMapping("/skilltree/import")
+    public ResponseEntity<?> importSkillTree(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token,
+            @RequestBody SkillTreeExportDto body) {
+        if (!appConfig.isDevMode() && badToken(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid admin token");
+        List<String> errors = skillTreeService.validateTreeImport(body.getNodes(), body.getEdges());
+        if (!errors.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", String.join("; ", errors)));
+
+        skillTreeService.importTree(body.getNodes(), body.getEdges());
+        return ResponseEntity.ok(Map.of(
+                "importedNodes", body.getNodes().size(),
+                "importedEdges", body.getEdges() != null ? body.getEdges().size() : 0));
     }
 
     // ── Rezepte ──────────────────────────────────────────────────────

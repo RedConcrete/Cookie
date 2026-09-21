@@ -55,6 +55,16 @@
           <button class="px-btn" :disabled="repairing" @click="repairTree">
             <ShortcutSlot />{{ t('skillTreeAdminDialog.repairLabel') }}
           </button>
+          <button class="px-btn" @click="exportTree">
+            <ShortcutSlot />{{ t('skillTreeAdminDialog.exportLabel') }}
+          </button>
+          <button class="px-btn" @click="triggerImportFile">
+            <ShortcutSlot />{{ t('skillTreeAdminDialog.importLabel') }}
+          </button>
+          <input
+            ref="importFileInput" type="file" accept="application/json"
+            style="display: none" @change="onImportFileChange"
+          />
           <div v-if="connectMode" class="sta-hint">
             {{ pendingFrom ? t('skillTreeAdminDialog.connectHintPick') : t('skillTreeAdminDialog.connectHintFrom') }}
           </div>
@@ -163,13 +173,23 @@
       @confirm="confirmDeleteNode"
       @close="pendingDelete = null"
     />
+
+    <PixelConfirmDialog
+      v-if="pendingImport"
+      :title="t('skillTreeAdminDialog.importLabel')"
+      :body="t('skillTreeAdminDialog.importDiffSummary', pendingImport.summary)"
+      :confirm-label="t('skillTreeAdminDialog.importLabel')"
+      danger
+      @confirm="confirmImport"
+      @close="pendingImport = null"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillNode, adminDeleteSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge, adminRepairSkillTree } from '../services/api.js'
+import { adminListSkillNodes, adminListSkillEdges, adminUpdateSkillNode, adminCreateSkillNode, adminDeleteSkillNode, adminCreateSkillEdge, adminDeleteSkillEdge, adminRepairSkillTree, adminExportSkillTree, adminImportSkillTree } from '../services/api.js'
 import { useAudio } from '../composables/useAudio.js'
 import { resourceLabel } from './buildings/buildingInfo.js'
 import LoadingIndicator from './pixel/LoadingIndicator.vue'
@@ -334,6 +354,87 @@ async function repairTree() {
     flash(err.message, true)
   } finally {
     repairing.value = false
+  }
+}
+
+// ── Dev-Baum-Export/Import (siehe docs/plans/2026-08-21-open-skillbaum-export-import-sharing.md,
+// Feature 1) -- Ersatz fuers Live-Rumklicken: kompletter Baum als JSON runterladen, lokal
+// bearbeiten, vor Season-Start wieder hochladen. Ersetzt serverseitig den GESAMTEN Baum.
+async function exportTree() {
+  try {
+    const dump = await adminExportSkillTree()
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `skilltree-export-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    flash(t('skillTreeAdminDialog.exportedNotice'))
+  } catch (err) {
+    flash(err.message, true)
+  }
+}
+
+const importFileInput = ref(null)
+function triggerImportFile() {
+  importFileInput.value?.click()
+}
+
+const pendingImport = ref(null) // { nodes, edges, summary } bis zur Bestaetigung
+function onImportFileChange(e) {
+  const file = e.target.files?.[0]
+  e.target.value = '' // erlaubt erneutes Waehlen derselben Datei
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    let parsed
+    try {
+      parsed = JSON.parse(reader.result)
+    } catch {
+      flash(t('skillTreeAdminDialog.importInvalidJsonNotice'), true)
+      return
+    }
+    const importedNodes = parsed.nodes || []
+    const importedEdges = parsed.edges || []
+    pendingImport.value = { nodes: importedNodes, edges: importedEdges, summary: diffSummary(importedNodes, importedEdges) }
+  }
+  reader.readAsText(file)
+}
+
+// X neu/geaendert/entfernt, getrennt fuer Knoten und Kanten -- Vergleich rein ueber die
+// bereits im Editor geladenen nodes/edges (keine zusaetzliche Server-Anfrage noetig).
+function diffSummary(importedNodes, importedEdges) {
+  const currentById = new Map(nodes.value.map(n => [n.id, n]))
+  const importedById = new Map(importedNodes.map(n => [n.id, n]))
+  let added = 0, changed = 0
+  for (const [id, n] of importedById) {
+    if (!currentById.has(id)) added++
+    else if (JSON.stringify(currentById.get(id)) !== JSON.stringify(n)) changed++
+  }
+  const removed = [...currentById.keys()].filter(id => !importedById.has(id)).length
+
+  const currentEdgeIds = new Set(edges.value.map(e => e.id))
+  const importedEdgeIds = new Set(importedEdges.map(e => e.id))
+  const edgesAdded = [...importedEdgeIds].filter(id => !currentEdgeIds.has(id)).length
+  const edgesRemoved = [...currentEdgeIds].filter(id => !importedEdgeIds.has(id)).length
+
+  return { added, changed, removed, edgesAdded, edgesRemoved }
+}
+
+async function confirmImport() {
+  const imp = pendingImport.value
+  pendingImport.value = null
+  if (!imp) return
+  try {
+    const res = await adminImportSkillTree(imp.nodes, imp.edges)
+    const [n, e] = await Promise.all([adminListSkillNodes(), adminListSkillEdges()])
+    nodes.value = n
+    edges.value = e
+    selectedId.value = null
+    flash(t('skillTreeAdminDialog.importedNotice', { nodes: res.importedNodes, edges: res.importedEdges }))
+  } catch (err) {
+    flash(err.message, true)
   }
 }
 

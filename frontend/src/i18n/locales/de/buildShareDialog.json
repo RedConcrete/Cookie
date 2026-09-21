@@ -1,0 +1,20 @@
+{
+  "title": "BUILD TEILEN",
+  "tabExport": "Exportieren",
+  "tabImport": "Importieren",
+  "copyLabel": "Code kopieren",
+  "copiedNotice": "Code kopiert",
+  "copyFailedNotice": "Kopieren fehlgeschlagen",
+  "exportMeta": "Season {season} · von {author}",
+  "importPlaceholder": "Build-Code hier einfügen…",
+  "importMeta": "Season {season} · von {author}",
+  "invalidCodeNotice": "Ungültiger Build-Code",
+  "noSeason": "unbekannt",
+  "anonymous": "Anonym",
+  "previewLabel": "Vorschau",
+  "unknownNodesWarning": "{count} Knoten aus diesem Code gibt's nicht mehr, Rest wurde übernommen",
+  "previewDiff": "{added} neu, {removed} entfernt",
+  "previewCost": "Kosten",
+  "applyLabel": "Übernehmen",
+  "appliedNotice": "Build übernommen ({added} neu, {removed} entfernt)"
+}

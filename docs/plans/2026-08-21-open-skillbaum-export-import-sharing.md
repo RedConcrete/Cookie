@@ -1,6 +1,8 @@
-# ⏳ Skill-Baum: Dev-Export/Import + Spieler-Build-Sharing
+# ✅ Skill-Baum: Dev-Export/Import + Spieler-Build-Sharing
 
-> **Status:** ⏳ Offen
+> **Status:** ✅ Umgesetzt (2026-09-02) — beide Features implementiert, noch nicht
+> live gegen einen laufenden Server getestet (kein Java/Vite-Toolchain in dieser
+> Session verfügbar).
 
 ## Kontext
 
@@ -21,7 +23,14 @@ Referenz-Recherche (Datenmodell, bestehende Endpoints, Respec-Flow,
 Frontend-Patterns) siehe Analyse in dieser Planungs-Session — Kernpunkte
 unten direkt eingearbeitet.
 
-## Feature 1: Dev-Baum-Export/Import
+## Feature 1: Dev-Baum-Export/Import ✅ Umgesetzt (2026-08-31)
+
+Backend (`SkillTreeExportDto`, `SkillTreeService#exportTree/validateTreeImport/importTree`,
+zwei neue Endpoints in `AdminConfigController`) + Frontend (Export-/Import-Buttons in
+`SkillTreeAdminDialog.vue`, Bestätigungsdialog mit Diff-Zusammenfassung) wie unten
+spezifiziert umgesetzt. Noch nicht live gegen einen laufenden Server getestet (kein
+Java-Toolchain in dieser Session verfügbar) — vor Season-Start einmal manuell
+durchklicken.
 
 ### Endpoints (neu, in `AdminConfigController.java`, gleiches
 `badToken`/`isDevMode`-Gate wie die bestehenden Node/Edge-CRUD-Endpoints)
@@ -65,7 +74,18 @@ Bestätigungsdialog mit Diff-Zusammenfassung — X Nodes neu/geändert/entfernt
 — bevor `POST .../import` geschickt wird). Kein neues Dialog-Grundgerüst
 nötig, reiner Zusatz zum bestehenden Editor.
 
-## Feature 2: Spieler-Build-Sharing
+## Feature 2: Spieler-Build-Sharing ✅ Umgesetzt (2026-09-02)
+
+Backend (`ImportBuildRequestDto`/`ImportBuildResultDto`, `SkillTreeService#importBuild` +
+`unreachableInTargetSet` als Verallgemeinerung der `deallocateNode`-Konnektivitätsprüfung,
+neuer Endpoint `POST /api/v1/skilltree/import-build/{userId}?dryRun=…` in
+`SkillTreeController`, `activeSeasonName` in `SkillTreeDto`) + Frontend
+(`BuildShareDialog.vue` mit Export-/Import-Tab, Button in `SkillTreeView.vue`) wie
+unten spezifiziert umgesetzt. Eine Design-Abweichung von der Spec: zu wenig Cookies
+blockt nur den ECHTEN Import (400) — der Dry-Run liefert stattdessen `canAfford:
+false` mit 200, damit die Vorschau im Frontend als normale Anzeige funktioniert statt
+als Fehler zu erscheinen (siehe Kommentar in `SkillTreeService#importBuild`). Noch
+nicht live gegen einen laufenden Server getestet.
 
 ### Export — reiner Frontend-Vorgang, kein Backend-Call nötig
 

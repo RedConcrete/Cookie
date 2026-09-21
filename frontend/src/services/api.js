@@ -90,6 +90,13 @@ export function deallocateSkillNode(steamId, nodeId) {
   return request('POST', `/api/v1/skilltree/deallocate/${steamId}`, { nodeId })
 }
 
+// Spieler-Build-Sharing: importiert eine Node-ID-Liste (aus einem geteilten Build-Code, siehe
+// BuildShareDialog.vue). dryRun=true berechnet nur Diff+Kosten (Vorschau), aendert nichts.
+export function importSkillBuild(steamId, nodeIds, dryRun = false) {
+  const query = dryRun ? '?dryRun=true' : ''
+  return request('POST', `/api/v1/skilltree/import-build/${steamId}${query}`, { nodeIds })
+}
+
 // Fetch global leaderboard sorted by net worth.
 export function getLeaderboard() {
   return request('GET', '/api/v1/leaderboard')
@@ -287,5 +294,11 @@ export function adminDeleteSkillEdge(id) {
 }
 export function adminRepairSkillTree() {
   return request('POST', '/api/v1/admin/skilltree/repair')
+}
+export function adminExportSkillTree() {
+  return request('GET', '/api/v1/admin/skilltree/export')
+}
+export function adminImportSkillTree(nodes, edges) {
+  return request('POST', '/api/v1/admin/skilltree/import', { nodes, edges })
 }
 
